@@ -371,18 +371,6 @@ namespace NemoCalendarImportExport {
                 KDateTime dtStart = event->dtStart();
                 KDateTime dtEnd = event->dtEnd();
 
-                // calendar requires all-day events to have times in order to appear correctly
-                if (dtStart.isDateOnly()) {
-                    dtStart.setTime(QTime(0, 0, 0, 0));
-                    event->setDtStart(dtStart);
-                    LOG_DEBUG("Added time to DTSTART, now" << dtStart.toString() << "for" << incidence->uid());
-                }
-                if (dtEnd.isValid() && dtEnd.isDateOnly()) {
-                    dtEnd.setTime(QTime(0, 0, 0, 0));
-                    event->setDtEnd(dtEnd);
-                    LOG_DEBUG("Added time to DTEND, now" << dtEnd.toString() << "for" << incidence->uid());
-                }
-
                 // calendar processing requires all-day events to have a dtEnd
                 if (!dtEnd.isValid()) {
                     LOG_DEBUG("Adding DTEND to" << incidence->uid() << "as" << dtStart.toString());
@@ -414,11 +402,11 @@ namespace NemoCalendarImportExport {
                     KDateTime dt;
                     if (event->hasEndDate()) {
                         // Event::dtEnd() is inclusive, but DTEND in iCalendar format is exclusive.
-                        dt = KDateTime(event->dtEnd().addDays(1).date(), event->dtEnd().timeSpec());
+                        dt = KDateTime(event->dtEnd().addDays(1).date(), KDateTime::Spec::ClockTime());
                         LOG_DEBUG("Adding +1 day to DTEND to make exclusive DTEND for" << incidence->uid() << ":" << dt.toString());
                     } else {
                         // No DTEND exists in event, but it's all day.  Set to DTSTART+1 to make exclusive DTEND.
-                        dt = KDateTime(event->dtStart().addDays(1).date(), event->dtStart().timeSpec());
+                        dt = KDateTime(event->dtStart().addDays(1).date(), KDateTime::Spec::ClockTime());
                         LOG_DEBUG("Setting DTEND to DTSTART+1 for" << incidence->uid() << ":" << dt.toString());
                     }
                     dt.setDateOnly(true);
@@ -428,7 +416,7 @@ namespace NemoCalendarImportExport {
             }
 
             if (event->dtStart().isDateOnly()) {
-                KDateTime dt = KDateTime(event->dtStart().date(), event->dtStart().timeSpec());
+                KDateTime dt = KDateTime(event->dtStart().date(), KDateTime::Spec::ClockTime());
                 dt.setDateOnly(true);
                 event->setDtStart(dt);
                 LOG_DEBUG("Stripping time from date-only DTSTART:" << dt.toString());
