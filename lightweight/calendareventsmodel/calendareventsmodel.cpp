@@ -52,7 +52,8 @@ NemoCalendarEventsModel::NemoCalendarEventsModel(QObject *parent) :
     mContentType(ContentAll),
     mEventLimit(1000),
     mTotalCount(0),
-    mEventDisplayTime(0)
+    mEventDisplayTime(0),
+    m_mkcalTracked(false)
 {
     registerCalendarDataServiceTypes();
     mProxy = new CalendarDataServiceProxy("org.nemomobile.calendardataservice",
@@ -66,14 +67,7 @@ NemoCalendarEventsModel::NemoCalendarEventsModel(QObject *parent) :
     mUpdateDelayTimer.setSingleShot(true);
     connect(&mUpdateDelayTimer, SIGNAL(timeout()), this, SLOT(update()));
 
-    QString privilegedDataDir = QString("%1/.local/share/system/privileged/Calendar/mkcal/db").arg(QDir::homePath());
-    if (QFile::exists(privilegedDataDir)) {
-        if (!mWatcher->addPath(privilegedDataDir)) {
-            qWarning() << "CalendarEventsModel: error adding filesystem watcher for calendar db";
-        }
-    } else {
-        qWarning() << "CalendarEventsModel not following database changes, dir not found:" << privilegedDataDir;
-    }
+    trackMkcal();
 
     QSettings settings("nemo", "nemo-qml-plugin-calendar");
 
@@ -273,6 +267,10 @@ void NemoCalendarEventsModel::updateFinished(QDBusPendingCallWatcher *call)
 
 void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, const EventDataList &eventDataList)
 {
+    // mkcal database didn't necessarily exist on startup but after calendar service has checked
+    // events it should be there.
+    trackMkcal();
+
     if ((mTransactionId != transactionId)
             || (mEventDataList.isEmpty() && eventDataList.isEmpty()))
         return;
@@ -362,4 +360,22 @@ void NemoCalendarEventsModel::restartUpdateTimer()
         mUpdateDelayTimer.start();
     else
         mUpdateDelayTimer.stop();
+}
+
+void NemoCalendarEventsModel::trackMkcal()
+{
+    if (m_mkcalTracked) {
+        return;
+    }
+
+    QString privilegedDataDir = QString("%1/.local/share/system/privileged/Calendar/mkcal/db").arg(QDir::homePath());
+    if (QFile::exists(privilegedDataDir)) {
+        if (!mWatcher->addPath(privilegedDataDir)) {
+            qWarning() << "CalendarEventsModel: error adding filesystem watcher for calendar db";
+        } else {
+            m_mkcalTracked = true;
+        }
+    } else {
+        qWarning() << "CalendarEventsModel not following database changes, dir not found:" << privilegedDataDir;
+    }
 }
