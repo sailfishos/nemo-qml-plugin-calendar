@@ -140,6 +140,7 @@ protected:
 
 private:
     void restartUpdateTimer();
+    void trackMkcal();
 
     CalendarDataServiceProxy *mProxy;
     QFileSystemWatcher *mWatcher;
@@ -155,6 +156,7 @@ private:
     int mTotalCount;
     int mEventDisplayTime;
     QString mTransactionId;
+    bool m_mkcalTracked;
 };
 
 #endif // CALENDAREVENTSMODEL_H
