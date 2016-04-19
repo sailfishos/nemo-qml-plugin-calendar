@@ -642,6 +642,7 @@ namespace NemoCalendarImportExport {
         KCalCore::MemoryCalendar::Ptr cal(new KCalCore::MemoryCalendar(KDateTime::UTC));
         if (!iCalFormat.fromString(cal, icsData)) {
             qWarning() << "unable to parse iCal data";
+            return false;
         }
 
         // Reorganize the list of imported incidences into lists of incidences segregated by UID.
@@ -795,7 +796,7 @@ int main(int argc, char *argv[])
         // parse arguments
         bool verbose = false, destructive = false;
         if (args.size() == 4) {
-            if (args[3] == QStringLiteral("-d") || args[3] != QStringLiteral("destructive")) {
+            if (args[3] == QStringLiteral("-d") || args[3] == QStringLiteral("destructive")) {
                 destructive = true;
             } else {
                 verbose = true;
@@ -806,6 +807,9 @@ int main(int argc, char *argv[])
         }
 
         // perform required operation
+        if (verbose) {
+            qputenv("KCALDEBUG", "1");
+        }
         if (args[1] == QStringLiteral("import")) {
             if (!QFile::exists(args[2])) {
                 qWarning() << "no such file exists:" << args[2] << "; cannot import.";
