@@ -271,8 +271,7 @@ void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, cons
     // events it should be there.
     trackMkcal();
 
-    if ((mTransactionId != transactionId)
-            || (mEventDataList.isEmpty() && eventDataList.isEmpty()))
+    if (mTransactionId != transactionId)
         return;
 
     int oldcount = mEventDataList.count();
@@ -325,8 +324,11 @@ void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, cons
             expiryDate.setTime(QTime(0,0,0,1));
         }
     }
-    mExpiryDate = expiryDate;
-    emit expiryDateChanged();
+
+    if (mExpiryDate != expiryDate) {
+        mExpiryDate = expiryDate;
+        emit expiryDateChanged();
+    }
 
     endResetModel();
     if (count() != oldcount) {
