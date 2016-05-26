@@ -247,8 +247,8 @@ void NemoCalendarEventsModel::update()
 {
     mTransactionId.clear();
     QDateTime endDate = (mEndDate.isValid()) ? mEndDate : mStartDate;
-    QDBusPendingCall pcall = mProxy->getEvents(mStartDate.toString(Qt::ISODate),
-                                               endDate.toString(Qt::ISODate));
+    QDBusPendingCall pcall = mProxy->getEvents(mStartDate.date().toString(Qt::ISODate),
+                                               endDate.date().toString(Qt::ISODate));
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(pcall, this);
     QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)),
                      this, SLOT(updateFinished(QDBusPendingCallWatcher*)));
