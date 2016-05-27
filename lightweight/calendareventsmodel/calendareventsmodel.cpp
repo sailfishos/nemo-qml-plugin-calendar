@@ -247,8 +247,8 @@ void NemoCalendarEventsModel::update()
 {
     mTransactionId.clear();
     QDateTime endDate = (mEndDate.isValid()) ? mEndDate : mStartDate;
-    QDBusPendingCall pcall = mProxy->getEvents(mStartDate.toString(Qt::ISODate),
-                                               endDate.toString(Qt::ISODate));
+    QDBusPendingCall pcall = mProxy->getEvents(mStartDate.date().toString(Qt::ISODate),
+                                               endDate.date().toString(Qt::ISODate));
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(pcall, this);
     QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)),
                      this, SLOT(updateFinished(QDBusPendingCallWatcher*)));
@@ -271,8 +271,7 @@ void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, cons
     // events it should be there.
     trackMkcal();
 
-    if ((mTransactionId != transactionId)
-            || (mEventDataList.isEmpty() && eventDataList.isEmpty()))
+    if (mTransactionId != transactionId)
         return;
 
     int oldcount = mEventDataList.count();
@@ -325,8 +324,11 @@ void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, cons
             expiryDate.setTime(QTime(0,0,0,1));
         }
     }
-    mExpiryDate = expiryDate;
-    emit expiryDateChanged();
+
+    if (mExpiryDate != expiryDate) {
+        mExpiryDate = expiryDate;
+        emit expiryDateChanged();
+    }
 
     endResetModel();
     if (count() != oldcount) {
