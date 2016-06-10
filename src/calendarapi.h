@@ -35,6 +35,7 @@
 
 #include <QStringList>
 #include <QDateTime>
+#include <QObject>
 
 class QJSEngine;
 class QQmlEngine;
