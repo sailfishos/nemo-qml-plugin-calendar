@@ -457,6 +457,8 @@ namespace NemoCalendarImportExport {
                 KCalCore::Incidence::Ptr recurringIncidence = toExport->hasRecurrenceId()
                                                         ? calendar->incidence(toExport->uid(), KDateTime())
                                                         : toExport;
+                // Don't crash on null instances
+                if (recurringIncidence.isNull()) continue;
                 KCalCore::Incidence::List instances = calendar->instances(recurringIncidence);
                 KCalCore::Incidence::Ptr exportableIncidence = IncidenceHandler::incidenceToExport(recurringIncidence, printDebug);
 
