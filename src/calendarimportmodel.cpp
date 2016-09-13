@@ -190,15 +190,15 @@ bool NemoCalendarImportModel::importFromFile(const QString &fileName,
         qWarning() << "Unable to open file for reading" << filePath;
         return false;
     }
-    QString fileContent(file.readAll());
+    QByteArray fileContent(file.readAll());
 
     bool ok = false;
     if (filePath.endsWith(".vcs")) {
         KCalCore::VCalFormat vcalFormat;
-        ok = vcalFormat.fromString(calendar, fileContent);
+        ok = vcalFormat.fromRawString(calendar, fileContent);
     } else if (filePath.endsWith(".ics")) {
         KCalCore::ICalFormat icalFormat;
-        ok = icalFormat.fromString(calendar, fileContent);
+        ok = icalFormat.fromRawString(calendar, fileContent);
     }
     if (!ok)
         qWarning() << "Failed to import from file" << filePath;
