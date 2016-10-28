@@ -54,11 +54,11 @@ CalendarDataService::CalendarDataService(QObject *parent) :
     registerCalendarDataServiceTypes();
     new CalendarDataServiceAdaptor(this);
     QDBusConnection connection = QDBusConnection::sessionBus();
-    if (!connection.registerService("org.nemomobile.calendardataservice"))
-        qWarning("Can't register org.nemomobile.calendardataservice service on the session bus");
-
     if (!connection.registerObject("/org/nemomobile/calendardataservice", this))
         qWarning("Can't register org/nemomobile/calendardataservice object for the D-Bus service.");
+
+    if (!connection.registerService("org.nemomobile.calendardataservice"))
+        qWarning("Can't register org.nemomobile.calendardataservice service on the session bus");
 
     if (connection.lastError().isValid())
         QCoreApplication::exit(1);
