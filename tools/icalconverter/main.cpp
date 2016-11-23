@@ -42,6 +42,7 @@
 #include <extendedcalendar.h>
 #include <extendedstorage.h>
 #include <icalformat.h>
+#include <vcalformat.h>
 #include <incidence.h>
 #include <event.h>
 #include <todo.h>
@@ -643,8 +644,12 @@ namespace NemoCalendarImportExport {
         KCalCore::ICalFormat iCalFormat;
         KCalCore::MemoryCalendar::Ptr cal(new KCalCore::MemoryCalendar(KDateTime::UTC));
         if (!iCalFormat.fromString(cal, icsData)) {
-            qWarning() << "unable to parse iCal data";
-            return false;
+            qWarning() << "unable to parse iCal data, trying as vCal";
+            KCalCore::VCalFormat vCalFormat;
+            if (!vCalFormat.fromString(cal, icsData)) {
+                qWarning() << "unable to parse vCal data";
+                return false;
+            }
         }
 
         // Reorganize the list of imported incidences into lists of incidences segregated by UID.
