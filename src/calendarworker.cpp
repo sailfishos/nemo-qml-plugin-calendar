@@ -375,6 +375,7 @@ bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEv
         KCalCore::Alarm::Ptr alarm = event->newAlarm();
         alarm->setEnabled(true);
         alarm->setStartOffset(reminderToDuration(reminder));
+        alarm->setType(KCalCore::Alarm::Display);
     }
 
     return true;
