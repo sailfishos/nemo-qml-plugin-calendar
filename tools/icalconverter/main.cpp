@@ -782,15 +782,6 @@ namespace NemoCalendarImportExport {
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-    QString usage = QStringLiteral("usage: icalconverter import|export filename [-d|destructive] [-v|verbose]\n"
-                                   "Examples:\n"
-                                   "To import the ICS data found in backup.ics:\n"
-                                   "icalconverter import backup.ics\n"
-                                   "To export the calendar to newBackup.ics:\n"
-                                   "icalconverter export newBackup.ics\n"
-                                   "Note: if the -d or destructive argument is provided, local calendar data will be removed prior to import.\n"
-                                   "Note: if the -v or verbose argument is provided, extra debugging will be printed.\n\n");
-
     QStringList args = app.arguments();
     if (args.size() < 3 || args.size() > 5
             || (args[1] != QStringLiteral("import") && args[1] != QStringLiteral("export"))
@@ -798,7 +789,14 @@ int main(int argc, char *argv[])
                                  && (args[3] != QStringLiteral("-v") && args[3] != QStringLiteral("verbose")))
             || (args.size() == 5 && ((args[3] != QStringLiteral("-d") && args[3] != QStringLiteral("destructive"))
                                     || (args[4] != QStringLiteral("-v") && args[4] != QStringLiteral("verbose"))))) {
-        qWarning() << usage;
+        qWarning("usage: icalconverter import|export filename [-d|destructive] [-v|verbose]\n"
+                 "Examples:\n"
+                 "To import the ICS data found in backup.ics:\n"
+                 "  icalconverter import backup.ics\n"
+                 "To export the calendar to newBackup.ics:\n"
+                 "  icalconverter export newBackup.ics\n"
+                 "Note: if the -d or destructive argument is provided, local calendar data will be removed prior to import.\n"
+                 "Note: if the -v or verbose argument is provided, extra debugging will be printed.\n\n");
     } else {
         // parse arguments
         bool verbose = false, destructive = false;
