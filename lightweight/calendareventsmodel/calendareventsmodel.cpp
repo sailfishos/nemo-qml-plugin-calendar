@@ -40,6 +40,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
+#include <QColor>
 #include <qqmlinfo.h>
 
 #include "calendardataserviceproxy.h"
@@ -223,9 +224,17 @@ QVariant NemoCalendarEventsModel::data(const QModelIndex &index, int role) const
     case DescriptionRole:
         return eventData.description;
     case StartTimeRole:
-        return eventData.startTime;
+        if (eventData.allDay) {
+            return QDateTime(QDate::fromString(eventData.startTime, Qt::ISODate));
+        } else {
+            return QDateTime::fromString(eventData.startTime, Qt::ISODate);
+        }
     case EndTimeRole:
-        return eventData.endTime;
+        if (eventData.allDay) {
+            return QDateTime(QDate::fromString(eventData.endTime, Qt::ISODate));
+        } else {
+            return QDateTime::fromString(eventData.endTime, Qt::ISODate);
+        }
     case RecurrenceIdRole:
         return eventData.recurrenceId;
     case AllDayRole:
@@ -237,7 +246,7 @@ QVariant NemoCalendarEventsModel::data(const QModelIndex &index, int role) const
     case UidRole:
         return eventData.uniqueId;
     case ColorRole:
-        return eventData.color;
+        return QColor(eventData.color);
     default:
         return QVariant();
     }
