@@ -287,26 +287,33 @@ void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, cons
             continue;
         }
 
-        QDateTime startTime = QDateTime::fromString(e.startTime, Qt::ISODate);
+        QDateTime startTime;
         QDateTime endTime;
-        if (mEventDisplayTime > 0) {
-            endTime = startTime.addSecs(mEventDisplayTime);
+
+        if (e.allDay) {
+            startTime = QDateTime(QDate::fromString(e.startTime, Qt::ISODate));
+            // returned value inclusive, need to know when event is over so getting the following day
+            endTime = QDateTime(QDate::fromString(e.endTime, Qt::ISODate).addDays(1));
         } else {
-            endTime = QDateTime::fromString(e.endTime, Qt::ISODate);
+            startTime = QDateTime::fromString(e.startTime, Qt::ISODate);
+
+            if (mEventDisplayTime > 0) {
+                endTime = startTime.addSecs(mEventDisplayTime);
+            } else {
+                endTime = QDateTime::fromString(e.endTime, Qt::ISODate);
+            }
         }
 
-        if (e.allDay
-                || (mFilterMode == FilterPast && now < endTime)
+        if ((mFilterMode == FilterPast && now < endTime)
                 || (mFilterMode == FilterPastAndCurrent && now < startTime)
                 || (mFilterMode == FilterNone)) {
             if (mEventDataList.count() < mEventLimit) {
                 mEventDataList.append(e);
-                if (!e.allDay) {
-                    if (mFilterMode == FilterPast && (!expiryDate.isValid() || expiryDate > endTime)) {
-                        expiryDate = endTime;
-                    } else if (mFilterMode == FilterPastAndCurrent && (!expiryDate.isValid() || expiryDate > startTime)) {
-                        expiryDate = startTime;
-                    }
+
+                if (mFilterMode == FilterPast && (!expiryDate.isValid() || expiryDate > endTime)) {
+                    expiryDate = endTime;
+                } else if (mFilterMode == FilterPastAndCurrent && (!expiryDate.isValid() || expiryDate > startTime)) {
+                    expiryDate = startTime;
                 }
             }
             mTotalCount++;
