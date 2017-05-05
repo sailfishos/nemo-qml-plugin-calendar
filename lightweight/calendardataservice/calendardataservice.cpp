@@ -96,8 +96,13 @@ void CalendarDataService::updated()
             EventData eventStruct;
             eventStruct.displayLabel = event->displayLabel();
             eventStruct.description = event->description();
-            eventStruct.startTime = occurrence->startTime().toString(Qt::ISODate);
-            eventStruct.endTime = occurrence->endTime().toString(Qt::ISODate);
+            if (event->allDay()) {
+                eventStruct.startTime = occurrence->startTime().date().toString(Qt::ISODate);
+                eventStruct.endTime = occurrence->endTime().date().toString(Qt::ISODate);
+            } else {
+                eventStruct.startTime = occurrence->startTime().toString(Qt::ISODate);
+                eventStruct.endTime = occurrence->endTime().toString(Qt::ISODate);
+            }
             eventStruct.allDay = event->allDay();
             eventStruct.color = event->color();
             eventStruct.recurrenceId = event->recurrenceIdString();

@@ -45,7 +45,7 @@ CalendarImportEvent::CalendarImportEvent(KCalCore::Event::Ptr event)
 QString CalendarImportEvent::displayLabel() const
 {
     if (!mEvent)
-        return "";
+        return QString();
 
     return mEvent->summary();
 }
@@ -53,7 +53,7 @@ QString CalendarImportEvent::displayLabel() const
 QString CalendarImportEvent::description() const
 {
     if (!mEvent)
-        return "";
+        return QString();
 
     return mEvent->description();
 }
@@ -101,7 +101,7 @@ NemoCalendarEvent::Reminder CalendarImportEvent::reminder() const
 QString CalendarImportEvent::uniqueId() const
 {
     if (!mEvent)
-        return "";
+        return QString();
 
     return mEvent->uid();
 }
@@ -114,7 +114,7 @@ QString CalendarImportEvent::color() const
 QString CalendarImportEvent::location() const
 {
     if (!mEvent)
-        return "";
+        return QString();
 
     return mEvent->location();
 }

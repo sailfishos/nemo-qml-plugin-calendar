@@ -40,6 +40,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
+#include <QColor>
 #include <qqmlinfo.h>
 
 #include "calendardataserviceproxy.h"
@@ -223,9 +224,17 @@ QVariant NemoCalendarEventsModel::data(const QModelIndex &index, int role) const
     case DescriptionRole:
         return eventData.description;
     case StartTimeRole:
-        return eventData.startTime;
+        if (eventData.allDay) {
+            return QDateTime(QDate::fromString(eventData.startTime, Qt::ISODate));
+        } else {
+            return QDateTime::fromString(eventData.startTime, Qt::ISODate);
+        }
     case EndTimeRole:
-        return eventData.endTime;
+        if (eventData.allDay) {
+            return QDateTime(QDate::fromString(eventData.endTime, Qt::ISODate));
+        } else {
+            return QDateTime::fromString(eventData.endTime, Qt::ISODate);
+        }
     case RecurrenceIdRole:
         return eventData.recurrenceId;
     case AllDayRole:
@@ -237,7 +246,7 @@ QVariant NemoCalendarEventsModel::data(const QModelIndex &index, int role) const
     case UidRole:
         return eventData.uniqueId;
     case ColorRole:
-        return eventData.color;
+        return QColor(eventData.color);
     default:
         return QVariant();
     }
@@ -287,26 +296,33 @@ void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, cons
             continue;
         }
 
-        QDateTime startTime = QDateTime::fromString(e.startTime, Qt::ISODate);
+        QDateTime startTime;
         QDateTime endTime;
-        if (mEventDisplayTime > 0) {
-            endTime = startTime.addSecs(mEventDisplayTime);
+
+        if (e.allDay) {
+            startTime = QDateTime(QDate::fromString(e.startTime, Qt::ISODate));
+            // returned value inclusive, need to know when event is over so getting the following day
+            endTime = QDateTime(QDate::fromString(e.endTime, Qt::ISODate).addDays(1));
         } else {
-            endTime = QDateTime::fromString(e.endTime, Qt::ISODate);
+            startTime = QDateTime::fromString(e.startTime, Qt::ISODate);
+
+            if (mEventDisplayTime > 0) {
+                endTime = startTime.addSecs(mEventDisplayTime);
+            } else {
+                endTime = QDateTime::fromString(e.endTime, Qt::ISODate);
+            }
         }
 
-        if (e.allDay
-                || (mFilterMode == FilterPast && now < endTime)
+        if ((mFilterMode == FilterPast && now < endTime)
                 || (mFilterMode == FilterPastAndCurrent && now < startTime)
                 || (mFilterMode == FilterNone)) {
             if (mEventDataList.count() < mEventLimit) {
                 mEventDataList.append(e);
-                if (!e.allDay) {
-                    if (mFilterMode == FilterPast && (!expiryDate.isValid() || expiryDate > endTime)) {
-                        expiryDate = endTime;
-                    } else if (mFilterMode == FilterPastAndCurrent && (!expiryDate.isValid() || expiryDate > startTime)) {
-                        expiryDate = startTime;
-                    }
+
+                if (mFilterMode == FilterPast && (!expiryDate.isValid() || expiryDate > endTime)) {
+                    expiryDate = endTime;
+                } else if (mFilterMode == FilterPastAndCurrent && (!expiryDate.isValid() || expiryDate > startTime)) {
+                    expiryDate = startTime;
                 }
             }
             mTotalCount++;
