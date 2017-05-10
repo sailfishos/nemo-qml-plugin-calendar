@@ -71,22 +71,20 @@ NemoCalendarEventsModel::NemoCalendarEventsModel(QObject *parent) :
     trackMkcal();
 
     QSettings settings("nemo", "nemo-qml-plugin-calendar");
+    QDir settingsDir(QFileInfo(settings.fileName()).absoluteDir());
 
-    if (!QFile::exists(settings.fileName())) {
-        // forcefully create a settings file so changes can be followed
-        QFileInfo info(settings.fileName());
-        QDir path;
-        path.mkpath(info.absoluteDir().path());
-        QFile touch(settings.fileName());
-        touch.open(QIODevice::WriteOnly | QIODevice::Text);
+    if (!settingsDir.exists()) {
+        // forcefully create a settings path so changes can be followed
+        settingsDir.mkpath(QStringLiteral("."));
     }
 
-    if (!mWatcher->addPath(settings.fileName())) {
-        qWarning() << "CalendarEventsModel: error following settings file changes" << settings.fileName();
+    if (!mWatcher->addPath(settingsDir.absolutePath())) {
+        qWarning() << "CalendarEventsModel: error following settings file changes" << settingsDir.absolutePath();
     }
 
     // Updates to the calendar db will cause several file change notifications, delay update a bit
-    connect(mWatcher, SIGNAL(fileChanged(QString)), &mUpdateDelayTimer, SLOT(start()));
+    connect(mWatcher, SIGNAL(directoryChanged(QString)), &mUpdateDelayTimer, SLOT(start()));
+    connect(mWatcher, SIGNAL(fileChanged(QString)), &mUpdateDelayTimer, SLOT(start())); // for mkcal tracking
 }
 
 int NemoCalendarEventsModel::count() const
