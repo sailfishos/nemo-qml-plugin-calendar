@@ -50,6 +50,7 @@ class NemoCalendarWorker;
 class NemoCalendarAgendaModel;
 class NemoCalendarEventOccurrence;
 class NemoCalendarEventQuery;
+class NemoCalendarInvitationQuery;
 
 class NemoCalendarManager : public QObject
 {
@@ -95,6 +96,10 @@ public:
     void unRegisterEventQuery(NemoCalendarEventQuery *query);
     void scheduleEventQueryRefresh(NemoCalendarEventQuery *query);
 
+    // Invitation event search
+    void scheduleInvitationQuery(NemoCalendarInvitationQuery *query, const QString &invitationFile);
+    void unRegisterInvitationQuery(NemoCalendarInvitationQuery *query);
+
     // Caller gets ownership of returned NemoCalendarEventOccurrence object
     // Does synchronous DB thread access - no DB operations, though, fast when no ongoing DB ops
     NemoCalendarEventOccurrence* getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
@@ -120,6 +125,8 @@ private slots:
     void occurrenceExceptionFailedSlot(NemoCalendarData::Event data, QDateTime occurrence);
     void occurrenceExceptionCreatedSlot(NemoCalendarData::Event data, QDateTime occurrence, KDateTime newRecurrenceId);
 
+    void findMatchingEventFinished(const QString &invitationFile,
+                                   const NemoCalendarData::Event &event);
 
 signals:
     void excludedNotebooksChanged(QStringList excludedNotebooks);
@@ -151,6 +158,7 @@ private:
     QList<NemoCalendarAgendaModel *> mAgendaRefreshList;
     QList<NemoCalendarEventQuery *> mQueryRefreshList;
     QList<NemoCalendarEventQuery *> mQueryList; // List of all NemoCalendarEventQuery instances
+    QHash<NemoCalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
     QStringList mExcludedNotebooks;
     QHash<QString, NemoCalendarData::Notebook> mNotebooks;
 

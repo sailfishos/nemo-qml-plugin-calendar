@@ -38,6 +38,7 @@
 
 // kCalCore
 #include <event.h>
+#include <calendar.h>
 
 namespace NemoCalendarUtils {
 
@@ -47,6 +48,7 @@ QList<NemoCalendarData::Attendee> getEventAttendees(const KCalCore::Event::Ptr &
 QList<QObject*> convertAttendeeList(const QList<NemoCalendarData::Attendee> &list);
 NemoCalendarData::EventOccurrence getNextOccurrence(const KCalCore::Event::Ptr &event,
                                                     const QDateTime &start = QDateTime::currentDateTime());
+bool importFromFile(const QString &fileName, KCalCore::Calendar::Ptr calendar);
 
 } // namespace NemoCalendarUtils
 

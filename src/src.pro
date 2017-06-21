@@ -27,6 +27,7 @@ SOURCES += \
     $$SRCDIR/calendaragendamodel.cpp \
     $$SRCDIR/calendarapi.cpp \
     $$SRCDIR/calendareventquery.cpp \
+    $$SRCDIR/calendarinvitationquery.cpp \
     $$SRCDIR/calendarnotebookmodel.cpp \
     $$SRCDIR/calendarmanager.cpp \
     $$SRCDIR/calendarworker.cpp \
@@ -43,6 +44,7 @@ HEADERS += \
     $$SRCDIR/calendaragendamodel.h \
     $$SRCDIR/calendarapi.h \
     $$SRCDIR/calendareventquery.h \
+    $$SRCDIR/calendarinvitationquery.h \
     $$SRCDIR/calendarnotebookmodel.h \
     $$SRCDIR/calendarmanager.h \
     $$SRCDIR/calendarworker.h \

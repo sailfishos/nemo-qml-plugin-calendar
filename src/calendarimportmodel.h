@@ -80,7 +80,6 @@ protected:
     virtual QHash<int, QByteArray> roleNames() const;
 
 private:
-    bool importFromFile(const QString &fileName, KCalCore::Calendar::Ptr calendar);
     bool importToMemory(const QString &fileName);
 
     QString mFileName;

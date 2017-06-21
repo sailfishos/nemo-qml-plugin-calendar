@@ -39,6 +39,7 @@
 #include "calendaragendamodel.h"
 #include "calendareventoccurrence.h"
 #include "calendareventquery.h"
+#include "calendarinvitationquery.h"
 #include "calendarchangeinformation.h"
 
 // kCalCore
@@ -82,6 +83,9 @@ NemoCalendarManager::NemoCalendarManager() :
             this, SLOT(occurrenceExceptionFailedSlot(NemoCalendarData::Event,QDateTime)));
     connect(mCalendarWorker, SIGNAL(occurrenceExceptionCreated(NemoCalendarData::Event,QDateTime,KDateTime)),
             this, SLOT(occurrenceExceptionCreatedSlot(NemoCalendarData::Event,QDateTime,KDateTime)));
+
+    connect(mCalendarWorker, &NemoCalendarWorker::findMatchingEventFinished,
+            this, &NemoCalendarManager::findMatchingEventFinished);
 
     mWorkerThread.setObjectName("calendarworker");
     mWorkerThread.start();
@@ -536,6 +540,33 @@ NemoCalendarData::Event NemoCalendarManager::getEvent(const QString &uid, const 
     }
 
     return NemoCalendarData::Event();
+}
+
+void NemoCalendarManager::scheduleInvitationQuery(NemoCalendarInvitationQuery *query, const QString &invitationFile)
+{
+    mInvitationQueryHash.insert(query, invitationFile);
+    QMetaObject::invokeMethod(mCalendarWorker, "findMatchingEvent", Qt::QueuedConnection,
+                              Q_ARG(QString, invitationFile));
+}
+
+void NemoCalendarManager::unRegisterInvitationQuery(NemoCalendarInvitationQuery *query)
+{
+    mInvitationQueryHash.remove(query);
+}
+
+void NemoCalendarManager::findMatchingEventFinished(
+        const QString &invitationFile,
+        const NemoCalendarData::Event &event)
+{
+    QHash<NemoCalendarInvitationQuery*, QString>::iterator it = mInvitationQueryHash.begin();
+    while (it != mInvitationQueryHash.end()) {
+        if (it.value() == invitationFile) {
+            it.key()->queryResult(event);
+            it = mInvitationQueryHash.erase(it);
+        } else {
+            it++;
+        }
+    }
 }
 
 void NemoCalendarManager::storageModifiedSlot(QString info)

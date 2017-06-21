@@ -37,6 +37,7 @@
 #include <QQmlExtensionPlugin>
 #include "calendarapi.h"
 #include "calendareventquery.h"
+#include "calendarinvitationquery.h"
 #include "calendarnotebookmodel.h"
 #include "calendarevent.h"
 #include "calendareventmodification.h"
@@ -121,6 +122,7 @@ public:
                                                                   "Change information instances are returned from CalendarEventModification");
         qmlRegisterType<NemoCalendarAgendaModel>(uri, 1, 0, "AgendaModel");
         qmlRegisterType<NemoCalendarEventQuery>(uri, 1, 0, "EventQuery");
+        qmlRegisterType<NemoCalendarInvitationQuery>(uri, 1, 0, "InvitationQuery");
         qmlRegisterUncreatableType<Person>(uri, 1, 0, "Person", "Persons reachable only through EventQuery");
         qmlRegisterType<NemoCalendarNotebookModel>(uri, 1, 0, "NotebookModel");
         qmlRegisterType<NemoCalendarNotebookQuery>(uri, 1, 0, "NotebookQuery");
