@@ -44,6 +44,8 @@
 // libaccounts-qt
 namespace Accounts { class Manager; }
 
+class NemoCalendarInvitationQuery;
+
 class NemoCalendarWorker : public QObject, public mKCal::ExtendedStorageObserver
 {
     Q_OBJECT
@@ -80,6 +82,8 @@ public slots:
                                                         const QDateTime &startTime) const;
     QList<NemoCalendarData::Attendee> getEventAttendees(const QString &uid, const KDateTime &recurrenceId);
 
+    void findMatchingEvent(const QString &invitationFile);
+
 signals:
     void storageModifiedSignal(QString info);
 
@@ -98,6 +102,9 @@ signals:
 
     void occurrenceExceptionFailed(NemoCalendarData::Event eventData, QDateTime startTime);
     void occurrenceExceptionCreated(NemoCalendarData::Event eventData, QDateTime startTime, KDateTime newRecurrenceId);
+
+    void findMatchingEventFinished(QString invitationFile,
+                                   NemoCalendarData::Event eventData);
 
 private:
     void setEventData(KCalCore::Event::Ptr &event, const NemoCalendarData::Event &eventData);

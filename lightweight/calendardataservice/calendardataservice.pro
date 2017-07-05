@@ -19,6 +19,7 @@ HEADERS += \
     ../../src/calendarevent.h \
     ../../src/calendarchangeinformation.h \
     ../../src/calendareventquery.h \
+    ../../src/calendarinvitationquery.h \
     ../../src/calendarutils.h
 
 SOURCES += \
@@ -32,6 +33,7 @@ SOURCES += \
     ../../src/calendarevent.cpp \
     ../../src/calendarchangeinformation.cpp \
     ../../src/calendareventquery.cpp \
+    ../../src/calendarinvitationquery.cpp \
     ../../src/calendarutils.cpp \
     main.cpp
 

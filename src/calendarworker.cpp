@@ -45,6 +45,7 @@
 #include <vcalformat.h>
 #include <recurrence.h>
 #include <recurrencerule.h>
+#include <memorycalendar.h>
 
 #include <libical/vobject.h>
 #include <libical/vcaltmp.h>
@@ -707,4 +708,35 @@ QList<NemoCalendarData::Attendee> NemoCalendarWorker::getEventAttendees(const QS
     }
 
     return NemoCalendarUtils::getEventAttendees(event);
+}
+
+void NemoCalendarWorker::findMatchingEvent(const QString &invitationFile)
+{
+    KCalCore::MemoryCalendar::Ptr cal(new KCalCore::MemoryCalendar(KDateTime::Spec::LocalZone()));
+    NemoCalendarUtils::importFromFile(invitationFile, cal);
+    KCalCore::Incidence::List incidenceList = cal->incidences();
+    for (int i = 0; i < incidenceList.size(); i++) {
+        KCalCore::Incidence::Ptr incidence = incidenceList.at(i);
+        if (incidence->type() == KCalCore::IncidenceBase::TypeEvent) {
+            // Search for this event in the database.
+            loadData(QList<NemoCalendarData::Range>() << qMakePair(incidence->dtStart().date().addDays(-1), incidence->dtStart().date().addDays(1)), QStringList(), false);
+            KCalCore::Incidence::List dbIncidences = mCalendar->incidences();
+            Q_FOREACH (KCalCore::Incidence::Ptr dbIncidence, dbIncidences) {
+                const QString remoteUidValue(dbIncidence->nonKDECustomProperty("X-SAILFISHOS-REMOTE-UID"));
+                if (dbIncidence->uid().compare(incidence->uid(), Qt::CaseInsensitive) == 0 ||
+                        remoteUidValue.compare(incidence->uid(), Qt::CaseInsensitive) == 0) {
+                    if ((!incidence->hasRecurrenceId() && !dbIncidence->hasRecurrenceId())
+                            || (incidence->hasRecurrenceId() && dbIncidence->hasRecurrenceId()
+                                && incidence->recurrenceId() == dbIncidence->recurrenceId())) {
+                        emit findMatchingEventFinished(invitationFile, createEventStruct(dbIncidence.staticCast<KCalCore::Event>()));
+                        return;
+                    }
+                }
+            }
+            break; // we only attempt to find the very first event, the invitation should only contain one.
+        }
+    }
+
+    // not found.
+    emit findMatchingEventFinished(invitationFile, NemoCalendarData::Event());
 }

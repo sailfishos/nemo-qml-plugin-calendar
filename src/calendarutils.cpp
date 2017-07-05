@@ -34,6 +34,16 @@
 
 #include "calendareventquery.h"
 
+// kcalcore
+#include <icalformat.h>
+#include <vcalformat.h>
+
+#include <QFile>
+#include <QUrl>
+#include <QString>
+#include <QByteArray>
+#include <QtDebug>
+
 NemoCalendarEvent::Recur NemoCalendarUtils::convertRecurrence(const KCalCore::Event::Ptr &event)
 {
     if (!event->recurs())
@@ -182,4 +192,40 @@ NemoCalendarData::EventOccurrence NemoCalendarUtils::getNextOccurrence(const KCa
     }
 
     return occurrence;
+}
+
+bool NemoCalendarUtils::importFromFile(const QString &fileName,
+                                       KCalCore::Calendar::Ptr calendar)
+{
+    QString filePath;
+    QUrl url(fileName);
+    if (url.isLocalFile())
+        filePath = url.toLocalFile();
+    else
+        filePath = fileName;
+
+    if (!(filePath.endsWith(".vcs") || filePath.endsWith(".ics"))) {
+        qWarning() << "Unsupported file format" << filePath;
+        return false;
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Unable to open file for reading" << filePath;
+        return false;
+    }
+    QByteArray fileContent(file.readAll());
+
+    bool ok = false;
+    if (filePath.endsWith(".vcs")) {
+        KCalCore::VCalFormat vcalFormat;
+        ok = vcalFormat.fromRawString(calendar, fileContent);
+    } else if (filePath.endsWith(".ics")) {
+        KCalCore::ICalFormat icalFormat;
+        ok = icalFormat.fromRawString(calendar, fileContent);
+    }
+    if (!ok)
+        qWarning() << "Failed to import from file" << filePath;
+
+    return ok;
 }

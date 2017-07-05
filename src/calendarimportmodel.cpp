@@ -31,6 +31,8 @@
  */
 
 #include "calendarimportmodel.h"
+#include "calendarimportevent.h"
+#include "calendarutils.h"
 
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
@@ -41,11 +43,7 @@
 #include <extendedstorage.h>
 
 // kcalcore
-#include <icalformat.h>
-#include <vcalformat.h>
 #include <memorycalendar.h>
-
-#include "calendarimportevent.h"
 
 NemoCalendarImportModel::NemoCalendarImportModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -148,7 +146,7 @@ bool NemoCalendarImportModel::importToNotebook(const QString &notebookUid)
         }
     }
 
-    if (importFromFile(mFileName, calendar))
+    if (NemoCalendarUtils::importFromFile(mFileName, calendar))
         storage->save();
 
     storage->close();
@@ -168,42 +166,6 @@ QHash<int, QByteArray> NemoCalendarImportModel::roleNames() const
     roleNames[UidRole] = "uid";
 
     return roleNames;
-}
-
-bool NemoCalendarImportModel::importFromFile(const QString &fileName,
-                                             KCalCore::Calendar::Ptr calendar)
-{
-    QString filePath;
-    QUrl url(fileName);
-    if (url.isLocalFile())
-        filePath = url.toLocalFile();
-    else
-        filePath = fileName;
-
-    if (!(filePath.endsWith(".vcs") || filePath.endsWith(".ics"))) {
-        qWarning() << "Unsupported file format" << filePath;
-        return false;
-    }
-
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Unable to open file for reading" << filePath;
-        return false;
-    }
-    QByteArray fileContent(file.readAll());
-
-    bool ok = false;
-    if (filePath.endsWith(".vcs")) {
-        KCalCore::VCalFormat vcalFormat;
-        ok = vcalFormat.fromRawString(calendar, fileContent);
-    } else if (filePath.endsWith(".ics")) {
-        KCalCore::ICalFormat icalFormat;
-        ok = icalFormat.fromRawString(calendar, fileContent);
-    }
-    if (!ok)
-        qWarning() << "Failed to import from file" << filePath;
-
-    return ok;
 }
 
 static bool incidenceLessThan(const KCalCore::Incidence::Ptr e1,
@@ -229,7 +191,7 @@ bool NemoCalendarImportModel::importToMemory(const QString &fileName)
 
     beginResetModel();
     KCalCore::MemoryCalendar::Ptr cal(new KCalCore::MemoryCalendar(KDateTime::Spec::LocalZone()));
-    importFromFile(fileName, cal);
+    NemoCalendarUtils::importFromFile(fileName, cal);
     KCalCore::Incidence::List incidenceList = cal->incidences();
     for (int i = 0; i < incidenceList.size(); i++) {
         KCalCore::Incidence::Ptr incidence = incidenceList.at(i);
