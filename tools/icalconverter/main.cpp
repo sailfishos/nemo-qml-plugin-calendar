@@ -31,6 +31,7 @@
  */
 
 #include <QCoreApplication>
+#include <QCommandLineParser>
 #include <QStringList>
 #include <QString>
 #include <QFile>
@@ -454,6 +455,7 @@ namespace NemoCalendarImportExport {
         // then, export from that calendar to .ics file.
         KCalCore::MemoryCalendar::Ptr memoryCalendar(new KCalCore::MemoryCalendar(KDateTime::UTC));
         Q_FOREACH (KCalCore::Incidence::Ptr toExport, incidencesToExport) {
+          LOG_DEBUG("Exporting incidence:" << toExport->uid());
             if (toExport->hasRecurrenceId() || toExport->recurs()) {
                 KCalCore::Incidence::Ptr recurringIncidence = toExport->hasRecurrenceId()
                                                         ? calendar->incidence(toExport->uid(), KDateTime())
@@ -518,6 +520,7 @@ namespace NemoCalendarImportExport {
             storage->close();
             return QString();
         }
+        LOG_DEBUG("Exporting notebook:" << notebook->uid());
 
         KCalCore::Incidence::List incidencesToExport;
         if (incidenceUid.isEmpty()) {
@@ -527,6 +530,7 @@ namespace NemoCalendarImportExport {
             storage->load(incidenceUid);
             incidencesToExport << calendar->incidence(incidenceUid, recurrenceId);
         }
+        LOG_DEBUG("Found" << incidencesToExport.length() << "incidences to export.");
 
         QString retn = constructExportIcs(calendar, incidencesToExport, printDebug);
         storage->close();
@@ -782,79 +786,87 @@ namespace NemoCalendarImportExport {
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-    QStringList args = app.arguments();
-    if (args.size() < 3 || args.size() > 5
-            || (args[1] != QStringLiteral("import") && args[1] != QStringLiteral("export"))
-            || (args.size() == 4 && (args[3] != QStringLiteral("-d") && args[3] != QStringLiteral("destructive"))
-                                 && (args[3] != QStringLiteral("-v") && args[3] != QStringLiteral("verbose")))
-            || (args.size() == 5 && ((args[3] != QStringLiteral("-d") && args[3] != QStringLiteral("destructive"))
-                                    || (args[4] != QStringLiteral("-v") && args[4] != QStringLiteral("verbose"))))) {
-        qWarning("usage: icalconverter import|export filename [-d|destructive] [-v|verbose]\n"
-                 "Examples:\n"
-                 "To import the ICS data found in backup.ics:\n"
-                 "  icalconverter import backup.ics\n"
-                 "To export the calendar to newBackup.ics:\n"
-                 "  icalconverter export newBackup.ics\n"
-                 "Note: if the -d or destructive argument is provided, local calendar data will be removed prior to import.\n"
-                 "Note: if the -v or verbose argument is provided, extra debugging will be printed.\n\n");
-    } else {
-        // parse arguments
-        bool verbose = false, destructive = false;
-        if (args.size() == 4) {
-            if (args[3] == QStringLiteral("-d") || args[3] == QStringLiteral("destructive")) {
-                destructive = true;
-            } else {
-                verbose = true;
-            }
-        } else if (args.size() == 5) {
-            destructive = true;
-            verbose = true;
-        }
+    QCoreApplication::setApplicationName("icalconverter");
 
-        // perform required operation
-        if (verbose) {
-            qputenv("KCALDEBUG", "1");
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Command line tool to import / export calendar data from / to ICS data.");
+    parser.addHelpOption();
+
+    parser.addPositionalArgument("action", "action to execute, 'import' or 'export'.");
+    parser.parse(QCoreApplication::arguments());
+
+    const QString command = parser.positionalArguments().isEmpty()
+        ? QString() : parser.positionalArguments().first();
+    if (command == "import") {
+        parser.clearPositionalArguments();
+        parser.addPositionalArgument("import", "import the ICS data found in backup.ics.");
+        parser.addPositionalArgument("backup", "file to be read.", "backup.ics");
+        parser.addOption(QCommandLineOption(QStringList() << "v" << "verbose",
+                                            "extra debugging will be printed."));
+        parser.addOption(QCommandLineOption(QStringList() << "d" << "destructive",
+                                            "local calendar data will be removed prior to import."));
+    } else if (command == "export") {
+        parser.clearPositionalArguments();
+        parser.addPositionalArgument("export", "export calendar entries as ICS data in backup.ics.");
+        parser.addPositionalArgument("backup", "file to be written.", "backup.ics");
+        parser.addOption(QCommandLineOption(QStringList() << "v" << "verbose",
+                                            "extra debugging will be printed."));
+        parser.addOption(QCommandLineOption(QStringList() << "n" << "notebook",
+                                            "uid of notebook to export.", "uid"));
+    } else {
+        parser.showHelp();
+    }
+    parser.process(app);
+    if (parser.positionalArguments().length() != 2)
+        parser.showHelp();
+
+    // parse arguments
+    bool verbose = parser.isSet("verbose");
+    const QString backupFile = parser.positionalArguments().at(1);
+
+    // perform required operation
+    if (verbose) {
+        qputenv("KCALDEBUG", "1");
+    }
+    if (command == QStringLiteral("import")) {
+        if (!QFile::exists(backupFile)) {
+            qWarning() << "no such file exists:" << backupFile << "; cannot import.";
+        } else {
+            QFile importFile(backupFile);
+            if (importFile.open(QIODevice::ReadOnly)) {
+                QString fileData = QString::fromUtf8(importFile.readAll());
+                if (NemoCalendarImportExport::importIcsData(fileData, QString(), parser.isSet("destructive"), verbose)) {
+                    qDebug() << "Successfully imported:" << backupFile;
+                    return 0;
+                }
+                qWarning() << "Failed to import:" << backupFile;
+            } else {
+                qWarning() << "Unable to open:" << backupFile << "for import.";
+            }
         }
-        if (args[1] == QStringLiteral("import")) {
-            if (!QFile::exists(args[2])) {
-                qWarning() << "no such file exists:" << args[2] << "; cannot import.";
-            } else {
-                QFile importFile(args[2]);
-                if (importFile.open(QIODevice::ReadOnly)) {
-                    QString fileData = QString::fromUtf8(importFile.readAll());
-                    if (NemoCalendarImportExport::importIcsData(fileData, QString(), destructive, verbose)) {
-                        qDebug() << "Successfully imported:" << args[2];
-                        return 0;
-                    }
-                    qWarning() << "Failed to import:" << args[2];
+    } else { // "export"
+        QString exportIcsData = NemoCalendarImportExport::constructExportIcs(parser.value("notebook"), QString(), KDateTime(), verbose);
+        if (exportIcsData.isEmpty()) {
+            qWarning() << "No data to export!";
+            return 0;
+        }
+        QFile exportFile(backupFile);
+        if (exportFile.open(QIODevice::WriteOnly)) {
+            QByteArray ba = exportIcsData.toUtf8();
+            qint64 bytesRemaining = ba.size();
+            while (bytesRemaining) {
+                qint64 count = exportFile.write(ba, bytesRemaining);
+                if (count == -1) {
+                    qWarning() << "Error while writing export data to:" << backupFile;
+                    return 1;
                 } else {
-                    qWarning() << "Unable to open:" << args[2] << "for import.";
+                    bytesRemaining -= count;
                 }
             }
-        } else { // "export"
-            QString exportIcsData = NemoCalendarImportExport::constructExportIcs(QString(), QString(), KDateTime(), verbose);
-            if (exportIcsData.isEmpty()) {
-                qWarning() << "No data to export!";
-                return 0;
-            }
-            QFile exportFile(args[2]);
-            if (exportFile.open(QIODevice::WriteOnly)) {
-                QByteArray ba = exportIcsData.toUtf8();
-                qint64 bytesRemaining = ba.size();
-                while (bytesRemaining) {
-                    qint64 count = exportFile.write(ba, bytesRemaining);
-                    if (count == -1) {
-                        qWarning() << "Error while writing export data to:" << args[2];
-                        return 1;
-                    } else {
-                        bytesRemaining -= count;
-                    }
-                }
-                qDebug() << "Successfully wrote:" << ba.size() << "bytes of export data to:" << args[2];
-                return 0;
-            } else {
-                qWarning() << "Unable to open:" << args[2] << "for export.";
-            }
+            qDebug() << "Successfully wrote:" << ba.size() << "bytes of export data to:" << backupFile;
+            return 0;
+        } else {
+            qWarning() << "Unable to open:" << backupFile << "for export.";
         }
     }
 
