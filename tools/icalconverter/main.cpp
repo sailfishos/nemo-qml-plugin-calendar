@@ -37,6 +37,7 @@
 #include <QFile>
 #include <QBuffer>
 #include <QDataStream>
+#include <QTextStream>
 #include <QtDebug>
 
 #include <memorycalendar.h>
@@ -447,6 +448,20 @@ namespace NemoCalendarImportExport {
         }
     }
 
+    void listNotebooks()
+    {
+        mKCal::ExtendedCalendar::Ptr calendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
+        mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(calendar);
+        storage->open();
+        storage->load();
+        QTextStream qStdout(stdout);
+        qStdout << "List of known notebooks on device:" << endl;
+        Q_FOREACH (mKCal::Notebook::Ptr notebook, storage->notebooks()) {
+            qStdout << "- " << notebook->uid() << ": " << notebook->name() << endl;
+        }
+        storage->close();
+    }
+
     QString constructExportIcs(mKCal::ExtendedCalendar::Ptr calendar, KCalCore::Incidence::List incidencesToExport, bool printDebug)
     {
         // create an in-memory calendar
@@ -792,7 +807,9 @@ int main(int argc, char *argv[])
     parser.setApplicationDescription("Command line tool to import / export calendar data from / to ICS data.");
     parser.addHelpOption();
 
-    parser.addPositionalArgument("action", "action to execute, 'import' or 'export'.");
+    parser.addPositionalArgument("action", "action to execute, 'import', 'export' or 'list'.");
+    parser.addOption(QCommandLineOption(QStringList() << "v" << "verbose",
+                                        "extra debugging will be printed."));
     parser.parse(QCoreApplication::arguments());
 
     const QString command = parser.positionalArguments().isEmpty()
@@ -801,34 +818,33 @@ int main(int argc, char *argv[])
         parser.clearPositionalArguments();
         parser.addPositionalArgument("import", "import the ICS data found in backup.ics.");
         parser.addPositionalArgument("backup", "file to be read.", "backup.ics");
-        parser.addOption(QCommandLineOption(QStringList() << "v" << "verbose",
-                                            "extra debugging will be printed."));
         parser.addOption(QCommandLineOption(QStringList() << "d" << "destructive",
                                             "local calendar data will be removed prior to import."));
     } else if (command == "export") {
         parser.clearPositionalArguments();
         parser.addPositionalArgument("export", "export calendar entries as ICS data in backup.ics.");
         parser.addPositionalArgument("backup", "file to be written.", "backup.ics");
-        parser.addOption(QCommandLineOption(QStringList() << "v" << "verbose",
-                                            "extra debugging will be printed."));
         parser.addOption(QCommandLineOption(QStringList() << "n" << "notebook",
                                             "uid of notebook to export.", "uid"));
+    } else if (command == "list") {
+        parser.clearPositionalArguments();
+        parser.addPositionalArgument("list", "list all notebooks known on device.");
     } else {
         parser.showHelp();
     }
     parser.process(app);
-    if (parser.positionalArguments().length() != 2)
-        parser.showHelp();
 
     // parse arguments
     bool verbose = parser.isSet("verbose");
-    const QString backupFile = parser.positionalArguments().at(1);
 
     // perform required operation
     if (verbose) {
         qputenv("KCALDEBUG", "1");
     }
     if (command == QStringLiteral("import")) {
+        if (parser.positionalArguments().length() != 2)
+            parser.showHelp();
+        const QString backupFile = parser.positionalArguments().at(1);
         if (!QFile::exists(backupFile)) {
             qWarning() << "no such file exists:" << backupFile << "; cannot import.";
         } else {
@@ -844,7 +860,10 @@ int main(int argc, char *argv[])
                 qWarning() << "Unable to open:" << backupFile << "for import.";
             }
         }
-    } else { // "export"
+    } else if (command == QStringLiteral("export")) {
+        if (parser.positionalArguments().length() != 2)
+            parser.showHelp();
+        const QString backupFile = parser.positionalArguments().at(1);
         QString exportIcsData = NemoCalendarImportExport::constructExportIcs(parser.value("notebook"), QString(), KDateTime(), verbose);
         if (exportIcsData.isEmpty()) {
             qWarning() << "No data to export!";
@@ -868,6 +887,9 @@ int main(int argc, char *argv[])
         } else {
             qWarning() << "Unable to open:" << backupFile << "for export.";
         }
+    } else if (command == QStringLiteral("list")) {
+        NemoCalendarImportExport::listNotebooks();
+        return 0;
     }
 
     return 1;
