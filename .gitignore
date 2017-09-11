@@ -1,0 +1,14 @@
+# Build artefacts
+*.o
+*.so
+lightweight/calendardataservice/calendardataservice
+tests/tst_calendarevent/tst_calendarevent
+tests/tst_calendarmanager/tst_calendarmanager
+tools/icalconverter/icalconverter
+RPMS
+
+# Generated sources
+Makefile
+moc_*.cpp
+.moc
+documentation.list
