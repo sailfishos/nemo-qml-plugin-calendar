@@ -71,14 +71,23 @@ void NemoCalendarImportModel::setFileName(const QString &fileName)
 
     mFileName = fileName;
     emit fileNameChanged();
-    if (!mFileName.isEmpty()) {
-        importToMemory(fileName);
-    } else if (!mEventList.isEmpty()) {
-        beginResetModel();
-        mEventList.clear();
-        endResetModel();
-        emit countChanged();
-    }
+    reload();
+}
+
+QString NemoCalendarImportModel::icsUtf8RawString() const
+{
+    return QString::fromUtf8(mIcsRawData);
+}
+
+void NemoCalendarImportModel::setIcsUtf8RawString(const QString &icsData)
+{
+    QByteArray data = icsData.toUtf8();
+    if (mIcsRawData == data)
+        return;
+
+    mIcsRawData = data;
+    emit icsUtf8RawStringChanged();
+    reload();
 }
 
 QObject *NemoCalendarImportModel::getEvent(int index)
@@ -184,14 +193,30 @@ static bool incidenceLessThan(const KCalCore::Incidence::Ptr e1,
     }
 }
 
-bool NemoCalendarImportModel::importToMemory(const QString &fileName)
+void NemoCalendarImportModel::reload()
+{
+    if (!mFileName.isEmpty() || !mIcsRawData.isEmpty()) {
+        importToMemory(mFileName, mIcsRawData);
+    } else if (!mEventList.isEmpty()) {
+        beginResetModel();
+        mEventList.clear();
+        endResetModel();
+        emit countChanged();
+    }
+}
+
+bool NemoCalendarImportModel::importToMemory(const QString &fileName, const QByteArray &icsData)
 {
     if (!mEventList.isEmpty())
         mEventList.clear();
 
     beginResetModel();
     KCalCore::MemoryCalendar::Ptr cal(new KCalCore::MemoryCalendar(KDateTime::Spec::LocalZone()));
-    NemoCalendarUtils::importFromFile(fileName, cal);
+    if (!fileName.isEmpty()) {
+        NemoCalendarUtils::importFromFile(fileName, cal);
+    } else {
+        NemoCalendarUtils::importFromIcsRawData(icsData, cal);
+    }
     KCalCore::Incidence::List incidenceList = cal->incidences();
     for (int i = 0; i < incidenceList.size(); i++) {
         KCalCore::Incidence::Ptr incidence = incidenceList.at(i);

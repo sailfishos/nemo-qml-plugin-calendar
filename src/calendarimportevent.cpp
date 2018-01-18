@@ -98,6 +98,14 @@ NemoCalendarEvent::Reminder CalendarImportEvent::reminder() const
     return NemoCalendarUtils::getReminder(mEvent);
 }
 
+int CalendarImportEvent::reminderSeconds() const
+{
+    if (!mEvent)
+        return 0;
+
+    return NemoCalendarUtils::getReminderSeconds(mEvent);
+}
+
 QString CalendarImportEvent::uniqueId() const
 {
     if (!mEvent)
@@ -125,6 +133,30 @@ QList<QObject *> CalendarImportEvent::attendees() const
         return QList<QObject *>();
 
     return NemoCalendarUtils::convertAttendeeList(NemoCalendarUtils::getEventAttendees(mEvent));
+}
+
+NemoCalendarEvent::Secrecy CalendarImportEvent::secrecy() const
+{
+    if (!mEvent)
+        return NemoCalendarEvent::SecrecyPublic;
+
+    return NemoCalendarUtils::convertSecrecy(mEvent);
+}
+
+QString CalendarImportEvent::organizer() const
+{
+    if (!mEvent || !mEvent->organizer())
+        return QString();
+
+    return mEvent->organizer()->fullName();
+}
+
+QString CalendarImportEvent::organizerEmail() const
+{
+    if (!mEvent || !mEvent->organizer())
+        return QString();
+
+    return mEvent->organizer()->email();
 }
 
 void CalendarImportEvent::setColor(const QString &color)

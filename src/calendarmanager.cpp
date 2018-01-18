@@ -752,6 +752,9 @@ void NemoCalendarManager::sendEventChangeSignals(const NemoCalendarData::Event &
     if (newEvent.location != oldEvent.location)
         emit eventObject->locationChanged();
 
+    if (newEvent.secrecy != oldEvent.secrecy)
+        emit eventObject->secrecyChanged();
+
     if (newEvent.recur != oldEvent.recur)
         emit eventObject->recurChanged();
 

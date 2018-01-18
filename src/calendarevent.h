@@ -46,6 +46,8 @@ class NemoCalendarEvent : public QObject
     Q_ENUMS(Recur)
     Q_ENUMS(Reminder)
     Q_ENUMS(TimeSpec)
+    Q_ENUMS(Secrecy)
+    Q_ENUMS(Response)
 
     Q_PROPERTY(QString displayLabel READ displayLabel NOTIFY displayLabelChanged)
     Q_PROPERTY(QString description READ description NOTIFY descriptionChanged)
@@ -62,6 +64,7 @@ class NemoCalendarEvent : public QObject
     Q_PROPERTY(bool readonly READ readonly CONSTANT)
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
+    Q_PROPERTY(Secrecy secrecy READ secrecy NOTIFY secrecyChanged)
 
 public:
     enum Recur {
@@ -91,6 +94,19 @@ public:
         SpecClockTime
     };
 
+    enum Secrecy {
+        SecrecyPublic,
+        SecrecyPrivate,
+        SecrecyConfidential
+    };
+
+    enum Response {
+        ResponseUnspecified,
+        ResponseAccept,
+        ResponseTentative,
+        ResponseDecline
+    };
+
     NemoCalendarEvent(NemoCalendarManager *manager, const QString &uid, const KDateTime &recurrenceId);
     ~NemoCalendarEvent();
 
@@ -110,6 +126,7 @@ public:
     QString location() const;
     KDateTime recurrenceId() const;
     QString recurrenceIdString() const;
+    Secrecy secrecy() const;
 
     Q_INVOKABLE QString vCalendar(const QString &prodId = QString()) const;
 
@@ -131,6 +148,7 @@ signals:
     void locationChanged();
     void recurEndDateChanged();
     void hasRecurEndDateChanged();
+    void secrecyChanged();
 
 private:
     NemoCalendarManager *mManager;
