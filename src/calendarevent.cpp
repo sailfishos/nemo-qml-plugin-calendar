@@ -122,6 +122,11 @@ QString NemoCalendarEvent::location() const
     return mManager->getEvent(mUniqueId, mRecurrenceId).location;
 }
 
+NemoCalendarEvent::Secrecy NemoCalendarEvent::secrecy() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).secrecy;
+}
+
 KDateTime NemoCalendarEvent::recurrenceId() const
 {
     return mRecurrenceId;

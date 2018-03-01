@@ -70,7 +70,21 @@ NemoCalendarEvent::Recur NemoCalendarUtils::convertRecurrence(const KCalCore::Ev
     return NemoCalendarEvent::RecurCustom;
 }
 
-NemoCalendarEvent::Reminder NemoCalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
+NemoCalendarEvent::Secrecy NemoCalendarUtils::convertSecrecy(const KCalCore::Event::Ptr &event)
+{
+    KCalCore::Incidence::Secrecy s = event->secrecy();
+    switch (s) {
+    case KCalCore::Incidence::SecrecyPrivate:
+        return NemoCalendarEvent::SecrecyPrivate;
+    case KCalCore::Incidence::SecrecyConfidential:
+        return NemoCalendarEvent::SecrecyConfidential;
+    case KCalCore::Incidence::SecrecyPublic:
+    default:
+        return NemoCalendarEvent::SecrecyPublic;
+    }
+}
+
+int NemoCalendarUtils::getReminderSeconds(const KCalCore::Event::Ptr &event)
 {
     KCalCore::Alarm::List alarms = event->alarms();
 
@@ -90,7 +104,12 @@ NemoCalendarEvent::Reminder NemoCalendarUtils::getReminder(const KCalCore::Event
         return NemoCalendarEvent::ReminderNone;
 
     KCalCore::Duration d = alarm->startOffset();
-    int sec = d.asSeconds();
+    return d.asSeconds();
+}
+
+NemoCalendarEvent::Reminder NemoCalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
+{
+    int sec = getReminderSeconds(event);
 
     switch (sec) {
     case 0:
@@ -226,6 +245,18 @@ bool NemoCalendarUtils::importFromFile(const QString &fileName,
     }
     if (!ok)
         qWarning() << "Failed to import from file" << filePath;
+
+    return ok;
+}
+
+bool NemoCalendarUtils::importFromIcsRawData(const QByteArray &icsData,
+                                             KCalCore::Calendar::Ptr calendar)
+{
+    bool ok = false;
+    KCalCore::ICalFormat icalFormat;
+    ok = icalFormat.fromRawString(calendar, icsData);
+    if (!ok)
+        qWarning() << "Failed to import from raw data";
 
     return ok;
 }

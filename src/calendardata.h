@@ -37,6 +37,7 @@ struct Event {
     KDateTime recurrenceId;
     bool readonly;
     QString location;
+    NemoCalendarEvent::Secrecy secrecy;
     QString calendarUid;
 
     bool operator==(const Event& other) const

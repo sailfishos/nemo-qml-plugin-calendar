@@ -613,6 +613,7 @@ NemoCalendarData::Event NemoCalendarWorker::createEventStruct(const KCalCore::Ev
     event.displayLabel = e->summary();
     event.endTime = e->dtEnd();
     event.location = e->location();
+    event.secrecy = NemoCalendarUtils::convertSecrecy(e);
     event.readonly = mStorage->notebook(event.calendarUid)->isReadOnly();
     event.recur = NemoCalendarUtils::convertRecurrence(e);
     KCalCore::RecurrenceRule *defaultRule = e->recurrence()->defaultRRule();
