@@ -84,7 +84,7 @@ NemoCalendarEvent::Secrecy NemoCalendarUtils::convertSecrecy(const KCalCore::Eve
     }
 }
 
-int NemoCalendarUtils::getReminderSeconds(const KCalCore::Event::Ptr &event)
+int NemoCalendarUtils::getReminderSeconds(const KCalCore::Event::Ptr &event, bool *hasReminder)
 {
     KCalCore::Alarm::List alarms = event->alarms();
 
@@ -94,22 +94,32 @@ int NemoCalendarUtils::getReminderSeconds(const KCalCore::Event::Ptr &event)
         if (alarms.at(ii)->type() == KCalCore::Alarm::Procedure)
             continue;
 
-        if (alarm)
-            return NemoCalendarEvent::ReminderNone;
-        else
+        if (alarm) {
+            *hasReminder = false;
+            return 0;
+        } else {
             alarm = alarms.at(ii);
+        }
     }
 
-    if (!alarm)
-        return NemoCalendarEvent::ReminderNone;
+    if (!alarm) {
+        *hasReminder = false;
+        return 0;
+    }
 
     KCalCore::Duration d = alarm->startOffset();
+    *hasReminder = true;
     return d.asSeconds();
 }
 
 NemoCalendarEvent::Reminder NemoCalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
 {
-    int sec = getReminderSeconds(event);
+    bool hasReminder = false;
+    int sec = getReminderSeconds(event, &hasReminder);
+
+    if (!hasReminder) {
+        return NemoCalendarEvent::ReminderNone;
+    }
 
     switch (sec) {
     case 0:

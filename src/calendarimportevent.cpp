@@ -100,10 +100,12 @@ NemoCalendarEvent::Reminder CalendarImportEvent::reminder() const
 
 int CalendarImportEvent::reminderSeconds() const
 {
+    // FIXME: this doesn't know how to say "no reminder".
     if (!mEvent)
         return 0;
 
-    return NemoCalendarUtils::getReminderSeconds(mEvent);
+    bool hasReminder = false;
+    return NemoCalendarUtils::getReminderSeconds(mEvent, &hasReminder);
 }
 
 QString CalendarImportEvent::uniqueId() const
