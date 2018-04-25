@@ -41,7 +41,8 @@
 
 class NemoCalendarAgendaModel;
 
-class CalendarDataService : public QObject {
+class CalendarDataService : public QObject
+{
     Q_OBJECT
 
 public:
