@@ -12,7 +12,7 @@ PKGCONFIG += libkcalcoren-qt5 libmkcal-qt5 libical accounts-qt5
 
 INSTALLS += target
 
-qmldir.files += $$_PRO_FILE_PWD_/qmldir
+qmldir.files += qmldir
 qmldir.path +=  $$target.path
 INSTALLS += qmldir
 
