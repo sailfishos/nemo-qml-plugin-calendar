@@ -12,9 +12,12 @@ PKGCONFIG += libkcalcoren-qt5 libmkcal-qt5 libical accounts-qt5
 
 INSTALLS += target
 
-qmldir.files += qmldir
+qmldir.files += qmldir plugins.qmltypes
 qmldir.path +=  $$target.path
 INSTALLS += qmldir
+
+qmltypes.commands = qmlplugindump -nonrelocatable org.nemomobile.calendar 1.0 > $$PWD/plugins.qmltypes
+QMAKE_EXTRA_TARGETS += qmltypes
 
 CONFIG += link_pkgconfig
 
