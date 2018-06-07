@@ -43,7 +43,7 @@ class NemoCalendarImportModel : public QAbstractListModel
     Q_OBJECT
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QString fileName READ fileName WRITE setFileName NOTIFY fileNameChanged)
-    Q_PROPERTY(QString icsUtf8RawString READ icsUtf8RawString WRITE setIcsUtf8RawString NOTIFY icsUtf8RawStringChanged)
+    Q_PROPERTY(QString icsString READ icsString WRITE setIcsString NOTIFY icsStringChanged)
 
 public:
     enum {
@@ -64,8 +64,8 @@ public:
     QString fileName() const;
     void setFileName(const QString& fileName);
 
-    QString icsUtf8RawString() const;
-    void setIcsUtf8RawString(const QString &icsData);
+    QString icsString() const;
+    void setIcsString(const QString &icsData);
 
     virtual int rowCount(const QModelIndex &index) const;
     virtual QVariant data(const QModelIndex &index, int role) const;
@@ -76,7 +76,7 @@ public slots:
 signals:
     void countChanged();
     void fileNameChanged();
-    void icsUtf8RawStringChanged();
+    void icsStringChanged();
 
 public slots:
     bool importToNotebook(const QString &notebookUid = QString());
