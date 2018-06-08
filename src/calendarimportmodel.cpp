@@ -74,19 +74,19 @@ void NemoCalendarImportModel::setFileName(const QString &fileName)
     reload();
 }
 
-QString NemoCalendarImportModel::icsUtf8RawString() const
+QString NemoCalendarImportModel::icsString() const
 {
     return QString::fromUtf8(mIcsRawData);
 }
 
-void NemoCalendarImportModel::setIcsUtf8RawString(const QString &icsData)
+void NemoCalendarImportModel::setIcsString(const QString &icsData)
 {
     QByteArray data = icsData.toUtf8();
     if (mIcsRawData == data)
         return;
 
     mIcsRawData = data;
-    emit icsUtf8RawStringChanged();
+    emit icsStringChanged();
     reload();
 }
 
