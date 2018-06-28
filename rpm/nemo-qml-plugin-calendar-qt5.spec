@@ -62,6 +62,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_libdir}/qt5/qml/org/nemomobile/calendar/libnemocalendar.so
+%{_libdir}/qt5/qml/org/nemomobile/calendar/plugins.qmltypes
 %{_libdir}/qt5/qml/org/nemomobile/calendar/qmldir
 
 %files tests
@@ -73,6 +74,7 @@ rm -rf %{buildroot}
 %attr(2755, root, privileged) %{_bindir}/calendardataservice
 %{_datadir}/dbus-1/services/org.nemomobile.calendardataservice.service
 %{_libdir}/qt5/qml/org/nemomobile/calendar/lightweight/libnemocalendarwidget.so
+%{_libdir}/qt5/qml/org/nemomobile/calendar/lightweight/plugins.qmltypes
 %{_libdir}/qt5/qml/org/nemomobile/calendar/lightweight/qmldir
 
 %files tools
