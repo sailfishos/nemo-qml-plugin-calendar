@@ -417,6 +417,13 @@ void NemoCalendarManager::doAgendaAndQueryRefresh()
         NemoCalendarData::Range range;
         range.first = model->startDate();
         range.second = agenda_endDate(model);
+
+        if (!range.first.isValid()) {
+            // need start date for fetching events, clear this model
+            model->doRefresh(QList<NemoCalendarEventOccurrence*>());
+            continue;
+        }
+
         QList<NemoCalendarData::Range> newRanges;
         if (isRangeLoaded(range, &newRanges))
             updateAgendaModel(model);
