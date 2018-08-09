@@ -679,7 +679,9 @@ void NemoCalendarWorker::loadNotebooks()
         if (mNotebooks.contains(notebook.uid) && mNotebooks.value(notebook.uid) != notebook)
             changed = true;
 
-        newNotebooks.insert(notebook.uid, notebook);
+        if (notebooks.at(ii)->isVisible()) {
+            newNotebooks.insert(notebook.uid, notebook);
+        }
     }
 
     if (changed || mNotebooks.count() != newNotebooks.count()) {
