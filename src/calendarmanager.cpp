@@ -549,6 +549,16 @@ NemoCalendarData::Event NemoCalendarManager::getEvent(const QString &uid, const 
     return NemoCalendarData::Event();
 }
 
+bool NemoCalendarManager::sendResponse(const NemoCalendarData::Event &eventData, NemoCalendarEvent::Response response)
+{
+    bool result;
+    QMetaObject::invokeMethod(mCalendarWorker, "sendResponse", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(bool, result),
+                              Q_ARG(NemoCalendarData::Event, eventData),
+                              Q_ARG(NemoCalendarEvent::Response, response));
+    return result;
+}
+
 void NemoCalendarManager::scheduleInvitationQuery(NemoCalendarInvitationQuery *query, const QString &invitationFile)
 {
     mInvitationQueryHash.insert(query, invitationFile);
@@ -770,4 +780,10 @@ void NemoCalendarManager::sendEventChangeSignals(const NemoCalendarData::Event &
 
     if (newEvent.startTime != oldEvent.startTime)
         emit eventObject->startTimeChanged();
+
+    if (newEvent.rsvp != oldEvent.rsvp)
+        emit eventObject->rsvpChanged();
+
+    if (newEvent.ownerStatus != oldEvent.ownerStatus)
+        emit eventObject->ownerStatusChanged();
 }

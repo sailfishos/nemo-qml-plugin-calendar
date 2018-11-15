@@ -76,6 +76,7 @@ public:
 
     // Event
     NemoCalendarData::Event getEvent(const QString& uid, const KDateTime &recurrenceId);
+    bool sendResponse(const NemoCalendarData::Event &eventData, NemoCalendarEvent::Response response);
 
     // Notebooks
     QList<NemoCalendarData::Notebook> notebooks();

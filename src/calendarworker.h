@@ -67,6 +67,7 @@ public slots:
     void replaceOccurrence(const NemoCalendarData::Event &eventData, const QDateTime &startTime);
     void deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
+    bool sendResponse(const NemoCalendarData::Event &eventData, const NemoCalendarEvent::Response response);
     QString convertEventToVCalendar(const QString &uid, const QString &prodId) const;
 
     QList<NemoCalendarData::Notebook> notebooks() const;

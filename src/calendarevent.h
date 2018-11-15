@@ -48,23 +48,27 @@ class NemoCalendarEvent : public QObject
     Q_ENUMS(TimeSpec)
     Q_ENUMS(Secrecy)
     Q_ENUMS(Response)
+    Q_ENUMS(ParticipantStatus)
+    Q_ENUMS(AttendeeRole)
 
     Q_PROPERTY(QString displayLabel READ displayLabel NOTIFY displayLabelChanged)
     Q_PROPERTY(QString description READ description NOTIFY descriptionChanged)
     Q_PROPERTY(QDateTime startTime READ startTime NOTIFY startTimeChanged)
     Q_PROPERTY(QDateTime endTime READ endTime NOTIFY endTimeChanged)
     Q_PROPERTY(bool allDay READ allDay NOTIFY allDayChanged)
-    Q_PROPERTY(Recur recur READ recur NOTIFY recurChanged)
+    Q_PROPERTY(NemoCalendarEvent::Recur recur READ recur NOTIFY recurChanged)
     Q_PROPERTY(QDateTime recurEndDate READ recurEndDate NOTIFY recurEndDateChanged)
     Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
-    Q_PROPERTY(Reminder reminder READ reminder NOTIFY reminderChanged)
+    Q_PROPERTY(NemoCalendarEvent::Reminder reminder READ reminder NOTIFY reminderChanged)
     Q_PROPERTY(QString uniqueId READ uniqueId NOTIFY uniqueIdChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
     Q_PROPERTY(QString color READ color NOTIFY colorChanged)
     Q_PROPERTY(bool readonly READ readonly CONSTANT)
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
-    Q_PROPERTY(Secrecy secrecy READ secrecy NOTIFY secrecyChanged)
+    Q_PROPERTY(NemoCalendarEvent::Secrecy secrecy READ secrecy NOTIFY secrecyChanged)
+    Q_PROPERTY(NemoCalendarEvent::Response ownerStatus READ ownerStatus NOTIFY ownerStatusChanged)
+    Q_PROPERTY(bool rsvp READ rsvp NOTIFY rsvpChanged)
 
 public:
     enum Recur {
@@ -107,6 +111,21 @@ public:
         ResponseDecline
     };
 
+    enum ParticipantStatus {
+        NeedsAction,
+        Accepted,
+        Declined,
+        Tentative,
+        Delegated
+    };
+
+    enum AttendeeRole {
+        ReqParticipant,
+        OptParticipant,
+        NonParticipant,
+        Chair
+    };
+
     NemoCalendarEvent(NemoCalendarManager *manager, const QString &uid, const KDateTime &recurrenceId);
     ~NemoCalendarEvent();
 
@@ -127,7 +146,10 @@ public:
     KDateTime recurrenceId() const;
     QString recurrenceIdString() const;
     Secrecy secrecy() const;
+    Response ownerStatus() const;
+    bool rsvp() const;
 
+    Q_INVOKABLE bool sendResponse(int response);
     Q_INVOKABLE QString vCalendar(const QString &prodId = QString()) const;
 
 private slots:
@@ -149,6 +171,8 @@ signals:
     void recurEndDateChanged();
     void hasRecurEndDateChanged();
     void secrecyChanged();
+    void ownerStatusChanged();
+    void rsvpChanged();
 
 private:
     NemoCalendarManager *mManager;
