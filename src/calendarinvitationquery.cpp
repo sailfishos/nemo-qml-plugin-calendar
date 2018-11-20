@@ -44,7 +44,10 @@ NemoCalendarInvitationQuery::NemoCalendarInvitationQuery()
 
 NemoCalendarInvitationQuery::~NemoCalendarInvitationQuery()
 {
-    NemoCalendarManager::instance()->unRegisterInvitationQuery(this);
+    NemoCalendarManager *manager = NemoCalendarManager::instance(false);
+    if (manager) {
+        manager->unRegisterInvitationQuery(this);
+    }
 }
 
 QString NemoCalendarInvitationQuery::notebookUid() const

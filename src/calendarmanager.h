@@ -59,7 +59,7 @@ private:
     NemoCalendarManager();
 
 public:
-    static NemoCalendarManager *instance();
+    static NemoCalendarManager *instance(bool createIfNeeded = true);
     ~NemoCalendarManager();
 
     NemoCalendarEvent* eventObject(const QString &eventUid, const KDateTime &recurrenceId);
