@@ -98,10 +98,10 @@ NemoCalendarManager::NemoCalendarManager() :
     connect(mTimer, SIGNAL(timeout()), this, SLOT(timeout()));
 }
 
-NemoCalendarManager *NemoCalendarManager::instance()
+NemoCalendarManager *NemoCalendarManager::instance(bool createIfNeeded)
 {
     static NemoCalendarManager *managerInstance;
-    if (!managerInstance)
+    if (!managerInstance && createIfNeeded)
         managerInstance = new NemoCalendarManager;
 
     return managerInstance;
