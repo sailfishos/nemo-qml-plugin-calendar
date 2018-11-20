@@ -38,6 +38,10 @@
 #include <icalformat.h>
 #include <vcalformat.h>
 
+//mkcal
+#include <servicehandler.h>
+
+// Qt
 #include <QFile>
 #include <QUrl>
 #include <QString>
@@ -143,7 +147,7 @@ NemoCalendarEvent::Reminder NemoCalendarUtils::getReminder(const KCalCore::Event
     }
 }
 
-QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCalCore::Event::Ptr &event)
+QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCalCore::Event::Ptr &event, const QString &ownerEmail)
 {
     QList<NemoCalendarData::Attendee> result;
     KCalCore::Person::Ptr calOrganizer = event->organizer();
@@ -154,6 +158,7 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
         organizer.isOrganizer = true;
         organizer.name = calOrganizer->name();
         organizer.email = calOrganizer->email();
+        organizer.isOwner = organizer.email == ownerEmail;
         organizer.participationRole = KCalCore::Attendee::ReqParticipant;
         result.append(organizer);
     }
@@ -161,6 +166,7 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
     KCalCore::Attendee::List attendees = event->attendees();
     NemoCalendarData::Attendee attendee;
     attendee.isOrganizer = false;
+    attendee.isOwner = false;
 
     foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
         attendee.name = calAttendee->name();
@@ -168,6 +174,10 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
         if (attendee.name == organizer.name && attendee.email == organizer.email) {
             // avoid duplicate info
             continue;
+        }
+        attendee.isOwner = attendee.email == ownerEmail;
+        if (attendee.isOwner) {
+            attendee.status = calAttendee->status();
         }
         attendee.participationRole = calAttendee->role();
         result.append(attendee);
@@ -269,4 +279,34 @@ bool NemoCalendarUtils::importFromIcsRawData(const QByteArray &icsData,
         qWarning() << "Failed to import from raw data";
 
     return ok;
+}
+
+NemoCalendarEvent::Response NemoCalendarUtils::convertPartStat(KCalCore::Attendee::PartStat status)
+{
+    switch (status) {
+    case KCalCore::Attendee::Accepted:
+        return NemoCalendarEvent::ResponseAccept;
+    case KCalCore::Attendee::Declined:
+        return NemoCalendarEvent::ResponseDecline;
+    case KCalCore::Attendee::Tentative:
+        return NemoCalendarEvent::ResponseTentative;
+    case KCalCore::Attendee::NeedsAction:
+    case KCalCore::Attendee::None:
+    default:
+        return NemoCalendarEvent::ResponseUnspecified;
+    }
+}
+
+KCalCore::Attendee::PartStat NemoCalendarUtils::convertResponse(NemoCalendarEvent::Response response)
+{
+    switch (response) {
+    case NemoCalendarEvent::ResponseAccept:
+        return KCalCore::Attendee::Accepted;
+    case NemoCalendarEvent::ResponseTentative:
+        return KCalCore::Attendee::Tentative;
+    case NemoCalendarEvent::ResponseDecline:
+        return KCalCore::Attendee::Declined;
+    default:
+        return KCalCore::Attendee::NeedsAction;
+    }
 }

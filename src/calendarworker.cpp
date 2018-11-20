@@ -39,6 +39,7 @@
 // mkcal
 #include <event.h>
 #include <notebook.h>
+#include <servicehandler.h>
 
 // kCalCore
 #include <calformat.h>
@@ -125,6 +126,23 @@ void NemoCalendarWorker::deleteAll(const QString &uid)
     mCalendar->deleteEvent(event);
 }
 
+bool NemoCalendarWorker::sendResponse(const NemoCalendarData::Event &eventData, const NemoCalendarEvent::Response response)
+{
+    KCalCore::Event::Ptr event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
+    if (!event) {
+        qWarning() << "Failed to send response, event not found. UID = " << eventData.uniqueId;
+        return false;
+    }
+    const QString &notebookUid = mCalendar->notebook(event);
+    const QString &ownerEmail = mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
+                                                                 : QString();
+
+    // TODO: should we save this change in DB?
+    KCalCore::Attendee::Ptr attender = event->attendeeByMail(ownerEmail);
+    attender->setStatus(NemoCalendarUtils::convertResponse(response));
+    return mKCal::ServiceHandler::instance().sendResponse(event, eventData.description, mCalendar, mStorage);
+}
+
 // eventToVEvent() is protected
 class NemoCalendarVCalFormat : public KCalCore::VCalFormat
 {
@@ -192,7 +210,7 @@ void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
         if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
             // mkcal does funny things when moving event between notebooks, work around by changing uid
             KCalCore::Event::Ptr newEvent = KCalCore::Event::Ptr(event->clone());
-            newEvent->setUid(KCalCore::CalFormat::createUniqueId());
+            newEvent->setUid(KCalCore::CalFormat::createUniqueId().toUpper());
             emit eventNotebookChanged(event->uid(), newEvent->uid(), notebookUid);
             mCalendar->deleteEvent(event);
             mCalendar->addEvent(newEvent, notebookUid);
@@ -205,10 +223,21 @@ void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
     setEventData(event, eventData);
 
     if (createNew) {
+        // For exchange it is better to use upper case UIDs, because for some reason when
+        // UID is generated out of Global object id of the email message we are getting a lowercase
+        // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
+        // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
+        // for new events than trying to implement some complex logic in basesailfish-eas.
+        event->setUid(event->uid().toUpper());
+        bool eventAdded;
         if (notebookUid.isEmpty())
-            mCalendar->addEvent(event);
+            eventAdded = mCalendar->addEvent(event);
         else
-            mCalendar->addEvent(event, notebookUid);
+            eventAdded = mCalendar->addEvent(event, notebookUid);
+        if (!eventAdded) {
+            qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
+            return;
+        }
     }
 
     save();
@@ -616,6 +645,20 @@ NemoCalendarData::Event NemoCalendarWorker::createEventStruct(const KCalCore::Ev
     event.secrecy = NemoCalendarUtils::convertSecrecy(e);
     event.readonly = mStorage->notebook(event.calendarUid)->isReadOnly();
     event.recur = NemoCalendarUtils::convertRecurrence(e);
+
+    KCalCore::Attendee::List attendees = e->attendees();
+    const QString &calendarOwnerEmail = mNotebooks.contains(event.calendarUid) ? mNotebooks.value(event.calendarUid).emailAddress
+                                                                               : QString();
+    foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
+        if (calAttendee->email() == calendarOwnerEmail) {
+            event.ownerStatus = NemoCalendarUtils::convertPartStat(calAttendee->status());
+            //TODO: KCalCore::Attendee::RSVP() returns false even if response was requested for some accounts like Google.
+            // We can use attendee role until the problem is not fixed (probably in Google plugin).
+            // To be updated later when google account support for responses is added.
+            event.rsvp = calAttendee->RSVP();// || calAttendee->role() != KCalCore::Attendee::Chair;
+        }
+    }
+
     KCalCore::RecurrenceRule *defaultRule = e->recurrence()->defaultRRule();
     if (defaultRule) {
         event.recurEndDate = defaultRule->endDt().date();
@@ -641,6 +684,7 @@ void NemoCalendarWorker::loadNotebooks()
         notebook.name = notebooks.at(ii)->name();
         notebook.uid = notebooks.at(ii)->uid();
         notebook.description = notebooks.at(ii)->description();
+        notebook.emailAddress = mKCal::ServiceHandler::instance().emailAddress(notebooks.at(ii), mStorage);
         notebook.isDefault = notebooks.at(ii)->isDefault();
         notebook.readOnly = notebooks.at(ii)->isReadOnly();
         notebook.localCalendar = notebooks.at(ii)->isMaster()
@@ -710,7 +754,7 @@ QList<NemoCalendarData::Attendee> NemoCalendarWorker::getEventAttendees(const QS
         return result;
     }
 
-    return NemoCalendarUtils::getEventAttendees(event);
+    return NemoCalendarUtils::getEventAttendees(event, mKCal::ServiceHandler::instance().emailAddress(mStorage->notebook(mCalendar->notebook(event)), mStorage));
 }
 
 void NemoCalendarWorker::findMatchingEvent(const QString &invitationFile)

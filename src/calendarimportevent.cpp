@@ -34,6 +34,9 @@
 
 #include "calendareventoccurrence.h"
 #include "calendarutils.h"
+#include "calendarmanager.h"
+
+#include <QDebug>
 
 CalendarImportEvent::CalendarImportEvent(KCalCore::Event::Ptr event)
     : QObject(),
@@ -134,7 +137,8 @@ QList<QObject *> CalendarImportEvent::attendees() const
     if (!mEvent)
         return QList<QObject *>();
 
-    return NemoCalendarUtils::convertAttendeeList(NemoCalendarUtils::getEventAttendees(mEvent));
+    // TODO: ownerEmail to be fixed later when invitation creation is done in calendar
+    return NemoCalendarUtils::convertAttendeeList(NemoCalendarUtils::getEventAttendees(mEvent, QString()));
 }
 
 NemoCalendarEvent::Secrecy CalendarImportEvent::secrecy() const
@@ -168,6 +172,22 @@ void CalendarImportEvent::setColor(const QString &color)
 
     mColor = color;
     emit colorChanged();
+}
+
+NemoCalendarEvent::Response CalendarImportEvent::ownerStatus() const
+{
+    return NemoCalendarEvent::ResponseUnspecified;
+}
+
+bool CalendarImportEvent::rsvp() const
+{
+    return false;
+}
+
+bool CalendarImportEvent::sendResponse(int response)
+{
+    Q_UNUSED(response)
+    return false;
 }
 
 QObject *CalendarImportEvent::nextOccurrence()

@@ -39,6 +39,8 @@ struct Event {
     QString location;
     NemoCalendarEvent::Secrecy secrecy;
     QString calendarUid;
+    NemoCalendarEvent::Response ownerStatus = NemoCalendarEvent::ResponseUnspecified;
+    bool rsvp = false;
 
     bool operator==(const Event& other) const
     {
@@ -56,6 +58,7 @@ struct Notebook {
     QString uid;
     QString description;
     QString color;
+    QString emailAddress;
     int accountId;
     QUrl accountIcon;
     bool isDefault;
@@ -82,10 +85,12 @@ struct Notebook {
 typedef QPair<QDate,QDate> Range;
 
 struct Attendee {
+    bool isOwner;
     bool isOrganizer;
     QString name;
     QString email;
     KCalCore::Attendee::Role participationRole;
+    KCalCore::Attendee::PartStat status;
 };
 
 }

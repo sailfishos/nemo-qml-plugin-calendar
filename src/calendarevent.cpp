@@ -127,6 +127,21 @@ NemoCalendarEvent::Secrecy NemoCalendarEvent::secrecy() const
     return mManager->getEvent(mUniqueId, mRecurrenceId).secrecy;
 }
 
+NemoCalendarEvent::Response NemoCalendarEvent::ownerStatus() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).ownerStatus;
+}
+
+bool NemoCalendarEvent::rsvp() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).rsvp;
+}
+
+bool NemoCalendarEvent::sendResponse(int response)
+{
+    return mManager->sendResponse(mManager->getEvent(mUniqueId, mRecurrenceId), (Response)response);
+}
+
 KDateTime NemoCalendarEvent::recurrenceId() const
 {
     return mRecurrenceId;

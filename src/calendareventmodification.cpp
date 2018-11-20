@@ -141,6 +141,15 @@ void NemoCalendarEventModification::unsetRecurEndDate()
     setRecurEndDate(QDateTime());
 }
 
+QString NemoCalendarEventModification::recurrenceIdString() const
+{
+    if (m_event.recurrenceId.isValid()) {
+        return m_event.recurrenceId.toString();
+    } else {
+        return QString();
+    }
+}
+
 NemoCalendarEvent::Reminder NemoCalendarEventModification::reminder() const
 {
     return m_event.reminder;
