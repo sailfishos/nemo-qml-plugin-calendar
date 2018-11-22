@@ -159,7 +159,7 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
         organizer.name = calOrganizer->name();
         organizer.email = calOrganizer->email();
         organizer.isOwner = organizer.email == ownerEmail;
-        organizer.participationRole = KCalCore::Attendee::ReqParticipant;
+        organizer.participationRole = KCalCore::Attendee::Chair;
         result.append(organizer);
     }
 
