@@ -141,24 +141,48 @@ Module {
                 "ResponseDecline": 3
             }
         }
+        Enum {
+            name: "ParticipantStatus"
+            values: {
+                "NeedsAction": 0,
+                "Accepted": 1,
+                "Declined": 2,
+                "Tentative": 3,
+                "Delegated": 4
+            }
+        }
+        Enum {
+            name: "AttendeeRole"
+            values: {
+                "ReqParticipant": 0,
+                "OptParticipant": 1,
+                "NonParticipant": 2,
+                "Chair": 3
+            }
+        }
         Property { name: "displayLabel"; type: "string"; isReadonly: true }
         Property { name: "description"; type: "string"; isReadonly: true }
         Property { name: "startTime"; type: "QDateTime"; isReadonly: true }
         Property { name: "endTime"; type: "QDateTime"; isReadonly: true }
         Property { name: "allDay"; type: "bool"; isReadonly: true }
-        Property { name: "recur"; type: "Recur"; isReadonly: true }
+        Property { name: "recur"; type: "NemoCalendarEvent::Recur"; isReadonly: true }
         Property { name: "recurEndDate"; type: "QDateTime"; isReadonly: true }
         Property { name: "hasRecurEndDate"; type: "bool"; isReadonly: true }
-        Property { name: "reminder"; type: "Reminder"; isReadonly: true }
+        Property { name: "reminder"; type: "NemoCalendarEvent::Reminder"; isReadonly: true }
         Property { name: "uniqueId"; type: "string"; isReadonly: true }
         Property { name: "recurrenceId"; type: "string"; isReadonly: true }
         Property { name: "color"; type: "string"; isReadonly: true }
         Property { name: "readonly"; type: "bool"; isReadonly: true }
         Property { name: "calendarUid"; type: "string"; isReadonly: true }
         Property { name: "location"; type: "string"; isReadonly: true }
-        Property { name: "secrecy"; type: "Secrecy"; isReadonly: true }
-        Property { name: "ownerStatus"; type: "Response"; isReadonly: true }
+        Property { name: "secrecy"; type: "NemoCalendarEvent::Secrecy"; isReadonly: true }
+        Property { name: "ownerStatus"; type: "NemoCalendarEvent::Response"; isReadonly: true }
         Property { name: "rsvp"; type: "bool"; isReadonly: true }
+        Method {
+            name: "sendResponse"
+            type: "bool"
+            Parameter { name: "response"; type: "int" }
+        }
         Method {
             name: "vCalendar"
             type: "string"
@@ -180,6 +204,7 @@ Module {
         Property { name: "recur"; type: "NemoCalendarEvent::Recur" }
         Property { name: "recurEndDate"; type: "QDateTime"; isReadonly: true }
         Property { name: "hasRecurEndDate"; type: "bool"; isReadonly: true }
+        Property { name: "recurrenceId"; type: "string"; isReadonly: true }
         Property { name: "reminder"; type: "NemoCalendarEvent::Reminder" }
         Property { name: "location"; type: "string" }
         Property { name: "calendarUid"; type: "string" }
