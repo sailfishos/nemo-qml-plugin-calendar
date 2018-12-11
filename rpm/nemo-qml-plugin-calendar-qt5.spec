@@ -8,7 +8,6 @@ License:    BSD
 URL:        https://git.merproject.org/mer-core/nemo-qml-plugin-calendar
 Source0:    %{name}-%{version}.tar.bz2
 BuildRequires:  pkgconfig(Qt5Core)
-BuildRequires:  pkgconfig(Qt5Gui)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(libmkcal-qt5)

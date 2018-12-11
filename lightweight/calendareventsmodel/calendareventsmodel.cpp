@@ -40,7 +40,6 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
-#include <QColor>
 #include <qqmlinfo.h>
 
 #include "calendardataserviceproxy.h"
@@ -244,7 +243,7 @@ QVariant NemoCalendarEventsModel::data(const QModelIndex &index, int role) const
     case UidRole:
         return eventData.uniqueId;
     case ColorRole:
-        return QColor(eventData.color);
+        return eventData.color;
     default:
         return QVariant();
     }
