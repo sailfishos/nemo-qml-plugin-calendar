@@ -97,13 +97,8 @@ int NemoCalendarUtils::getReminderSeconds(const KCalCore::Event::Ptr &event, boo
     for (int ii = 0; ii < alarms.count(); ++ii) {
         if (alarms.at(ii)->type() == KCalCore::Alarm::Procedure)
             continue;
-
-        if (alarm) {
-            *hasReminder = false;
-            return 0;
-        } else {
-            alarm = alarms.at(ii);
-        }
+        alarm = alarms.at(ii);
+        break;
     }
 
     if (!alarm) {
