@@ -120,24 +120,24 @@ NemoCalendarEvent::Reminder NemoCalendarUtils::getReminder(const KCalCore::Event
         return NemoCalendarEvent::ReminderNone;
     }
 
-    switch (sec) {
-    case 0:
+    if (sec >= 0) {
         return NemoCalendarEvent::ReminderTime;
-    case -5 * 60:
+    } else if (sec >= (-5 * 60)) {
         return NemoCalendarEvent::Reminder5Min;
-    case -15 * 60:
+    } else if (sec >= (-15 * 60)) {
         return NemoCalendarEvent::Reminder15Min;
-    case -30 * 60:
+    } else if (sec >= (-30 * 60)) {
         return NemoCalendarEvent::Reminder30Min;
-    case -60 * 60:
+    } else if (sec >= (-60 * 60)) {
         return NemoCalendarEvent::Reminder1Hour;
-    case -2 * 60 * 60:
+    } else if (sec >= (-2 * 60 * 60)) {
         return NemoCalendarEvent::Reminder2Hour;
-    case -24 * 60 * 60:
+    } else if (sec >= (-24 * 60 * 60)) {
         return NemoCalendarEvent::Reminder1Day;
-    case -2 * 24 * 60 * 60:
+    } else if (sec >= (-2 * 24 * 60 * 60)
+            && sec <= (-3 * 24 * 60 * 60)) {
         return NemoCalendarEvent::Reminder2Day;
-    default:
+    } else {
         return NemoCalendarEvent::ReminderNone;
     }
 }
