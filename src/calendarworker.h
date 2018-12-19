@@ -115,6 +115,7 @@ private:
 
     bool setRecurrence(KCalCore::Event::Ptr &event, NemoCalendarEvent::Recur recur);
     bool setReminder(KCalCore::Event::Ptr &event, NemoCalendarEvent::Reminder reminder);
+    bool needSendCancellation(KCalCore::Event::Ptr &event) const;
 
     KCalCore::Duration reminderToDuration(NemoCalendarEvent::Reminder reminder) const;
     NemoCalendarData::Event createEventStruct(const KCalCore::Event::Ptr &event) const;
@@ -127,6 +128,12 @@ private:
 
     mKCal::ExtendedCalendar::Ptr mCalendar;
     mKCal::ExtendedStorage::Ptr mStorage;
+
+    // mDeletedEvents and mExceptionEvents are used to make sure
+    // that we are sending a cancellation email for events only
+    // when user actually saved (so truly deleted) changes by calling of save()
+    QStringList mDeletedEvents;
+    QList<QPair<QString, QDateTime>> mExceptionEvents;
 
     QHash<QString, NemoCalendarData::Notebook> mNotebooks;
 

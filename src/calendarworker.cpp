@@ -112,6 +112,7 @@ void NemoCalendarWorker::deleteEvent(const QString &uid, const KDateTime &recurr
     } else {
         mCalendar->deleteEvent(event);
     }
+    mExceptionEvents.append(QPair<QString, QDateTime>(uid, dateTime));
 }
 
 void NemoCalendarWorker::deleteAll(const QString &uid)
@@ -124,6 +125,7 @@ void NemoCalendarWorker::deleteAll(const QString &uid)
 
     mCalendar->deleteEventInstances(event);
     mCalendar->deleteEvent(event);
+    mDeletedEvents.append(uid);
 }
 
 bool NemoCalendarWorker::sendResponse(const NemoCalendarData::Event &eventData, const NemoCalendarEvent::Response response)
@@ -183,6 +185,29 @@ QString NemoCalendarWorker::convertEventToVCalendar(const QString &uid, const QS
 void NemoCalendarWorker::save()
 {
     mStorage->save();
+    if (!mDeletedEvents.isEmpty()) {
+        for (const QString &uid: mDeletedEvents) {
+            KCalCore::Event::Ptr event = mCalendar->deletedEvent(uid);
+            if (!needSendCancellation(event)) {
+                continue;
+            }
+            event->setStatus(KCalCore::Incidence::StatusCanceled);
+            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
+        }
+        mDeletedEvents.clear();
+    }
+    if (!mExceptionEvents.isEmpty()) {
+        for (const QPair<QString, QDateTime> &exceptionEvent: mExceptionEvents) {
+            KCalCore::Event::Ptr event = mCalendar->deletedEvent(exceptionEvent.first,
+                                                                 KDateTime(exceptionEvent.second, KDateTime::Spec(KDateTime::LocalZone)));
+            if (!needSendCancellation(event)) {
+                continue;
+            }
+            event->setStatus(KCalCore::Incidence::StatusCanceled);
+            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
+        }
+        mExceptionEvents.clear();
+    }
 }
 
 void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
@@ -408,6 +433,27 @@ bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEv
         alarm->setType(KCalCore::Alarm::Display);
     }
 
+    return true;
+}
+
+bool NemoCalendarWorker::needSendCancellation(KCalCore::Event::Ptr &event) const
+{
+    if (!event) {
+        qWarning() << Q_FUNC_INFO << "event is NULL";
+        return false;
+    }
+    KCalCore::Attendee::List attendees = event->attendees();
+    if (attendees.size() == 0) {
+        return false;
+    }
+    KCalCore::Person::Ptr calOrganizer = event->organizer();
+    if (calOrganizer.isNull() || calOrganizer->isEmpty()) {
+        return false;
+    }
+    // we shouldn't send a response if we are not an organizer
+    if (calOrganizer->email() != mKCal::ServiceHandler::instance().emailAddress(mStorage->notebook(mCalendar->notebook(event)), mStorage)) {
+        return false;
+    }
     return true;
 }
 
