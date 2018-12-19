@@ -60,6 +60,7 @@ class NemoCalendarEvent : public QObject
     Q_PROPERTY(QDateTime recurEndDate READ recurEndDate NOTIFY recurEndDateChanged)
     Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
     Q_PROPERTY(NemoCalendarEvent::Reminder reminder READ reminder NOTIFY reminderChanged)
+    Q_PROPERTY(int customReminder READ customReminder NOTIFY customReminderChanged)
     Q_PROPERTY(QString uniqueId READ uniqueId NOTIFY uniqueIdChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
     Q_PROPERTY(QString color READ color NOTIFY colorChanged)
@@ -90,7 +91,8 @@ public:
         Reminder1Hour,
         Reminder2Hour,
         Reminder1Day,
-        Reminder2Day
+        Reminder2Day,
+        ReminderCustom
     };
 
     enum TimeSpec {
@@ -138,6 +140,7 @@ public:
     QDateTime recurEndDate() const;
     bool hasRecurEndDate() const;
     Reminder reminder() const;
+    int customReminder() const;
     QString uniqueId() const;
     QString color() const;
     bool readonly() const;
@@ -164,6 +167,7 @@ signals:
     void allDayChanged();
     void recurChanged();
     void reminderChanged();
+    void customReminderChanged();
     void uniqueIdChanged();
     void colorChanged();
     void calendarUidChanged();

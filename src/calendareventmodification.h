@@ -21,6 +21,7 @@ class NemoCalendarEventModification : public QObject
     Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
     Q_PROPERTY(NemoCalendarEvent::Reminder reminder READ reminder WRITE setReminder NOTIFY reminderChanged)
+    Q_PROPERTY(int customReminder READ customReminder WRITE setCustomReminder NOTIFY customReminderChanged)
     Q_PROPERTY(QString location READ location WRITE setLocation NOTIFY locationChanged)
     Q_PROPERTY(QString calendarUid READ calendarUid WRITE setCalendarUid NOTIFY calendarUidChanged)
 
@@ -57,6 +58,9 @@ public:
     NemoCalendarEvent::Reminder reminder() const;
     void setReminder(NemoCalendarEvent::Reminder);
 
+    int customReminder() const;
+    void setCustomReminder(int minutes);
+
     QString location() const;
     void setLocation(const QString &newLocation);
 
@@ -74,6 +78,7 @@ signals:
     void allDayChanged();
     void recurChanged();
     void reminderChanged();
+    void customReminderChanged();
     void locationChanged();
     void recurEndDateChanged();
     void hasRecurEndDateChanged();

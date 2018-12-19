@@ -101,12 +101,23 @@ NemoCalendarEvent::Reminder CalendarImportEvent::reminder() const
     return NemoCalendarUtils::getReminder(mEvent);
 }
 
+int CalendarImportEvent::customReminder() const
+{
+    if (reminder() == NemoCalendarEvent::ReminderNone) {
+        return 0; // FIXME: this doesn't know how to say "no reminder"
+    }
+
+    // note: returns minutes before event, so 15 minutes before = 15
+    return NemoCalendarUtils::getCustomReminder(mEvent);
+}
+
 int CalendarImportEvent::reminderSeconds() const
 {
-    // FIXME: this doesn't know how to say "no reminder".
-    if (!mEvent)
-        return 0;
+    if (reminder() == NemoCalendarEvent::ReminderNone) {
+        return 0; // FIXME: this doesn't know how to say "no reminder"
+    }
 
+    // note: returns seconds after event, so 15 minutes before = -900
     bool hasReminder = false;
     return NemoCalendarUtils::getReminderSeconds(mEvent, &hasReminder);
 }

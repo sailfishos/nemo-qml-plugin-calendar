@@ -277,7 +277,7 @@ void NemoCalendarWorker::setEventData(KCalCore::Event::Ptr &event, const NemoCal
     // setDtStart() overwrites allDay status based on KDateTime::isDateOnly(), avoid by setting that later
     event->setAllDay(eventData.allDay);
     event->setLocation(eventData.location);
-    setReminder(event, eventData.reminder);
+    setReminder(event, eventData.reminder, eventData.customReminder);
     setRecurrence(event, eventData.recur);
 
     if (eventData.recur != NemoCalendarEvent::RecurOnce) {
@@ -378,6 +378,11 @@ bool NemoCalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, NemoCalendar
     return false;
 }
 
+KCalCore::Duration NemoCalendarWorker::customReminderToDuration(int minutes) const
+{
+    return KCalCore::Duration(-1 * minutes * 60);
+}
+
 KCalCore::Duration NemoCalendarWorker::reminderToDuration(NemoCalendarEvent::Reminder reminder) const
 {
     KCalCore::Duration offset(0);
@@ -411,12 +416,13 @@ KCalCore::Duration NemoCalendarWorker::reminderToDuration(NemoCalendarEvent::Rem
     return offset;
 }
 
-bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEvent::Reminder reminder)
+bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEvent::Reminder reminder, int customReminder)
 {
     if (!event)
         return false;
 
-    if (NemoCalendarUtils::getReminder(event) == reminder)
+    if (reminder != NemoCalendarEvent::ReminderCustom
+            && NemoCalendarUtils::getReminder(event) == reminder)
         return false;
 
     KCalCore::Alarm::List alarms = event->alarms();
@@ -429,7 +435,11 @@ bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEv
     if (reminder != NemoCalendarEvent::ReminderNone) {
         KCalCore::Alarm::Ptr alarm = event->newAlarm();
         alarm->setEnabled(true);
-        alarm->setStartOffset(reminderToDuration(reminder));
+        if (reminder == NemoCalendarEvent::ReminderCustom) {
+            alarm->setStartOffset(customReminderToDuration(customReminder));
+        } else {
+            alarm->setStartOffset(reminderToDuration(reminder));
+        }
         alarm->setType(KCalCore::Alarm::Display);
     }
 
@@ -710,6 +720,9 @@ NemoCalendarData::Event NemoCalendarWorker::createEventStruct(const KCalCore::Ev
         event.recurEndDate = defaultRule->endDt().date();
     }
     event.reminder = NemoCalendarUtils::getReminder(e);
+    if (event.reminder == NemoCalendarEvent::ReminderCustom) {
+        event.customReminder = NemoCalendarUtils::getCustomReminder(e);
+    }
     event.startTime = e->dtStart();
     return event;
 }

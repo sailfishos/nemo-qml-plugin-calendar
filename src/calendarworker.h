@@ -114,10 +114,11 @@ private:
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
     bool setRecurrence(KCalCore::Event::Ptr &event, NemoCalendarEvent::Recur recur);
-    bool setReminder(KCalCore::Event::Ptr &event, NemoCalendarEvent::Reminder reminder);
+    bool setReminder(KCalCore::Event::Ptr &event, NemoCalendarEvent::Reminder reminder, int customReminder);
     bool needSendCancellation(KCalCore::Event::Ptr &event) const;
 
     KCalCore::Duration reminderToDuration(NemoCalendarEvent::Reminder reminder) const;
+    KCalCore::Duration customReminderToDuration(int minutes) const;
     NemoCalendarData::Event createEventStruct(const KCalCore::Event::Ptr &event) const;
     QHash<QString, NemoCalendarData::EventOccurrence> eventOccurrences(const QList<NemoCalendarData::Range> &ranges) const;
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<NemoCalendarData::Range> &ranges,

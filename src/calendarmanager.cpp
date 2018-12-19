@@ -778,6 +778,9 @@ void NemoCalendarManager::sendEventChangeSignals(const NemoCalendarData::Event &
     if (newEvent.reminder != oldEvent.reminder)
         emit eventObject->reminderChanged();
 
+    if (newEvent.customReminder != oldEvent.customReminder)
+        emit eventObject->customReminderChanged();
+
     if (newEvent.startTime != oldEvent.startTime)
         emit eventObject->startTimeChanged();
 

@@ -33,6 +33,7 @@ struct Event {
     NemoCalendarEvent::Recur recur;
     QDate recurEndDate;
     NemoCalendarEvent::Reminder reminder;
+    int customReminder; // minutes
     QString uniqueId;
     KDateTime recurrenceId;
     bool readonly;

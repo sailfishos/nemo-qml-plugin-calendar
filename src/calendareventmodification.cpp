@@ -11,6 +11,7 @@ NemoCalendarEventModification::NemoCalendarEventModification(QObject *parent) :
 {
     m_event.recur = NemoCalendarEvent::RecurOnce;
     m_event.reminder = NemoCalendarEvent::ReminderNone;
+    m_event.customReminder = 0;
     m_event.allDay = false;
     m_event.readonly = false;
     m_event.startTime = KDateTime(QDateTime(), KDateTime::LocalZone);
@@ -160,6 +161,19 @@ void NemoCalendarEventModification::setReminder(NemoCalendarEvent::Reminder remi
     if (reminder != m_event.reminder) {
         m_event.reminder = reminder;
         emit reminderChanged();
+    }
+}
+
+int NemoCalendarEventModification::customReminder() const
+{
+    return m_event.customReminder;
+}
+
+void NemoCalendarEventModification::setCustomReminder(int minutes)
+{
+    if (minutes != m_event.customReminder) {
+        m_event.customReminder = minutes;
+        emit customReminderChanged();
     }
 }
 

@@ -97,6 +97,11 @@ NemoCalendarEvent::Reminder NemoCalendarEvent::reminder() const
     return mManager->getEvent(mUniqueId, mRecurrenceId).reminder;
 }
 
+int NemoCalendarEvent::customReminder() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).customReminder;
+}
+
 QString NemoCalendarEvent::uniqueId() const
 {
     return mUniqueId;
