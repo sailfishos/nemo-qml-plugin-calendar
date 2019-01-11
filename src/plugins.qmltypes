@@ -104,20 +104,6 @@ Module {
             }
         }
         Enum {
-            name: "Reminder"
-            values: {
-                "ReminderNone": 0,
-                "ReminderTime": 1,
-                "Reminder5Min": 2,
-                "Reminder15Min": 3,
-                "Reminder30Min": 4,
-                "Reminder1Hour": 5,
-                "Reminder2Hour": 6,
-                "Reminder1Day": 7,
-                "Reminder2Day": 8
-            }
-        }
-        Enum {
             name: "TimeSpec"
             values: {
                 "SpecLocalZone": 0,
@@ -168,7 +154,7 @@ Module {
         Property { name: "recur"; type: "NemoCalendarEvent::Recur"; isReadonly: true }
         Property { name: "recurEndDate"; type: "QDateTime"; isReadonly: true }
         Property { name: "hasRecurEndDate"; type: "bool"; isReadonly: true }
-        Property { name: "reminder"; type: "NemoCalendarEvent::Reminder"; isReadonly: true }
+        Property { name: "reminder"; type: "int"; isReadonly: true }
         Property { name: "uniqueId"; type: "string"; isReadonly: true }
         Property { name: "recurrenceId"; type: "string"; isReadonly: true }
         Property { name: "color"; type: "string"; isReadonly: true }
@@ -205,7 +191,7 @@ Module {
         Property { name: "recurEndDate"; type: "QDateTime"; isReadonly: true }
         Property { name: "hasRecurEndDate"; type: "bool"; isReadonly: true }
         Property { name: "recurrenceId"; type: "string"; isReadonly: true }
-        Property { name: "reminder"; type: "NemoCalendarEvent::Reminder" }
+        Property { name: "reminder"; type: "int" }
         Property { name: "location"; type: "string" }
         Property { name: "calendarUid"; type: "string" }
         Method {

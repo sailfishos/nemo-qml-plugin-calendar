@@ -44,9 +44,7 @@ namespace NemoCalendarUtils {
 
 NemoCalendarEvent::Recur convertRecurrence(const KCalCore::Event::Ptr &event);
 NemoCalendarEvent::Secrecy convertSecrecy(const KCalCore::Event::Ptr &event);
-int getReminderSeconds(const KCalCore::Event::Ptr &event, bool *hasReminder);
-NemoCalendarEvent::Reminder getReminder(const KCalCore::Event::Ptr &event);
-int getCustomReminder(const KCalCore::Event::Ptr &event);
+int getReminder(const KCalCore::Event::Ptr &event);
 QList<NemoCalendarData::Attendee> getEventAttendees(const KCalCore::Event::Ptr &event, const QString &ownerEmail);
 QList<QObject*> convertAttendeeList(const QList<NemoCalendarData::Attendee> &list);
 NemoCalendarData::EventOccurrence getNextOccurrence(const KCalCore::Event::Ptr &event,

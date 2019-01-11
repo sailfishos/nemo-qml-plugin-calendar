@@ -51,7 +51,6 @@ NemoCalendarManager::NemoCalendarManager() :
     qRegisterMetaType<KDateTime>("KDateTime");
     qRegisterMetaType<QList<KDateTime> >("QList<KDateTime>");
     qRegisterMetaType<NemoCalendarEvent::Recur>("NemoCalendarEvent::Recur");
-    qRegisterMetaType<NemoCalendarEvent::Reminder>("NemoCalendarEvent::Reminder");
     qRegisterMetaType<QHash<QString,NemoCalendarData::EventOccurrence> >("QHash<QString,NemoCalendarData::EventOccurrence>");
     qRegisterMetaType<NemoCalendarData::Event>("NemoCalendarData::Event");
     qRegisterMetaType<QMultiHash<QString,NemoCalendarData::Event> >("QMultiHash<QString,NemoCalendarData::Event>");
@@ -777,9 +776,6 @@ void NemoCalendarManager::sendEventChangeSignals(const NemoCalendarData::Event &
 
     if (newEvent.reminder != oldEvent.reminder)
         emit eventObject->reminderChanged();
-
-    if (newEvent.customReminder != oldEvent.customReminder)
-        emit eventObject->customReminderChanged();
 
     if (newEvent.startTime != oldEvent.startTime)
         emit eventObject->startTimeChanged();

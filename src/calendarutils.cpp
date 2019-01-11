@@ -88,62 +88,28 @@ NemoCalendarEvent::Secrecy NemoCalendarUtils::convertSecrecy(const KCalCore::Eve
     }
 }
 
-int NemoCalendarUtils::getReminderSeconds(const KCalCore::Event::Ptr &event, bool *hasReminder)
+int NemoCalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
 {
     KCalCore::Alarm::List alarms = event->alarms();
 
     KCalCore::Alarm::Ptr alarm;
 
+    int seconds = -1;
     for (int ii = 0; ii < alarms.count(); ++ii) {
         if (alarms.at(ii)->type() == KCalCore::Alarm::Procedure)
             continue;
         alarm = alarms.at(ii);
+        if (alarm) {
+            KCalCore::Duration d = alarm->startOffset();
+            seconds = d.asSeconds() * -1; // backend stores as "offset in seconds to dtStart", we return "seconds before"
+            if (seconds >= 0) {
+                break;
+            }
+        }
         break;
     }
 
-    if (!alarm) {
-        *hasReminder = false;
-        return 0;
-    }
-
-    KCalCore::Duration d = alarm->startOffset();
-    *hasReminder = true;
-    return d.asSeconds();
-}
-
-int NemoCalendarUtils::getCustomReminder(const KCalCore::Event::Ptr &event)
-{
-    bool hasReminder = false;
-    int sec = getReminderSeconds(event, &hasReminder);
-
-    if (!hasReminder) {
-        return 0;
-    }
-
-    return -1 * sec / 60; // inverse of customReminderToDuration
-}
-
-NemoCalendarEvent::Reminder NemoCalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
-{
-    bool hasReminder = false;
-    int sec = getReminderSeconds(event, &hasReminder);
-
-    if (!hasReminder) {
-        return NemoCalendarEvent::ReminderNone;
-    }
-
-    switch (sec) {
-    case 0: return NemoCalendarEvent::ReminderTime;
-    case (-5 * 60):             return NemoCalendarEvent::Reminder5Min;
-    case (-15 * 60):            return NemoCalendarEvent::Reminder15Min;
-    case (-30 * 60):            return NemoCalendarEvent::Reminder30Min;
-    case (-60 * 60):            return NemoCalendarEvent::Reminder1Hour;
-    case (-2 * 60 * 60):        return NemoCalendarEvent::Reminder2Hour;
-    case (-24 * 60 * 60):       return NemoCalendarEvent::Reminder1Day;
-    case (-2 * 24 * 60 * 60):   return NemoCalendarEvent::Reminder2Day;
-    default: return (sec > 0) ? NemoCalendarEvent::ReminderCustom
-                              : NemoCalendarEvent::ReminderNone;
-    }
+    return seconds;
 }
 
 QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCalCore::Event::Ptr &event, const QString &ownerEmail)

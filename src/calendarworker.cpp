@@ -277,7 +277,7 @@ void NemoCalendarWorker::setEventData(KCalCore::Event::Ptr &event, const NemoCal
     // setDtStart() overwrites allDay status based on KDateTime::isDateOnly(), avoid by setting that later
     event->setAllDay(eventData.allDay);
     event->setLocation(eventData.location);
-    setReminder(event, eventData.reminder, eventData.customReminder);
+    setReminder(event, eventData.reminder);
     setRecurrence(event, eventData.recur);
 
     if (eventData.recur != NemoCalendarEvent::RecurOnce) {
@@ -378,51 +378,12 @@ bool NemoCalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, NemoCalendar
     return false;
 }
 
-KCalCore::Duration NemoCalendarWorker::customReminderToDuration(int minutes) const
-{
-    return KCalCore::Duration(-1 * minutes * 60);
-}
-
-KCalCore::Duration NemoCalendarWorker::reminderToDuration(NemoCalendarEvent::Reminder reminder) const
-{
-    KCalCore::Duration offset(0);
-    switch (reminder) {
-    default:
-    case NemoCalendarEvent::ReminderNone:
-    case NemoCalendarEvent::ReminderTime:
-        break;
-    case NemoCalendarEvent::Reminder5Min:
-        offset = KCalCore::Duration(-5 * 60);
-        break;
-    case NemoCalendarEvent::Reminder15Min:
-        offset = KCalCore::Duration(-15 * 60);
-        break;
-    case NemoCalendarEvent::Reminder30Min:
-        offset = KCalCore::Duration(-30 * 60);
-        break;
-    case NemoCalendarEvent::Reminder1Hour:
-        offset = KCalCore::Duration(-60 * 60);
-        break;
-    case NemoCalendarEvent::Reminder2Hour:
-        offset = KCalCore::Duration(-2 * 60 * 60);
-        break;
-    case NemoCalendarEvent::Reminder1Day:
-        offset = KCalCore::Duration(-24 * 60 * 60);
-        break;
-    case NemoCalendarEvent::Reminder2Day:
-        offset = KCalCore::Duration(-2 * 24 * 60 * 60);
-        break;
-    }
-    return offset;
-}
-
-bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEvent::Reminder reminder, int customReminder)
+bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, int seconds)
 {
     if (!event)
         return false;
 
-    if (reminder != NemoCalendarEvent::ReminderCustom
-            && NemoCalendarUtils::getReminder(event) == reminder)
+    if (NemoCalendarUtils::getReminder(event) == seconds)
         return false;
 
     KCalCore::Alarm::List alarms = event->alarms();
@@ -432,14 +393,13 @@ bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEv
         event->removeAlarm(alarms.at(ii));
     }
 
-    if (reminder != NemoCalendarEvent::ReminderNone) {
+    // negative reminder seconds means "no reminder", so only
+    // deal with positive (or zero = at time of event) reminders.
+    if (seconds >= 0) {
         KCalCore::Alarm::Ptr alarm = event->newAlarm();
         alarm->setEnabled(true);
-        if (reminder == NemoCalendarEvent::ReminderCustom) {
-            alarm->setStartOffset(customReminderToDuration(customReminder));
-        } else {
-            alarm->setStartOffset(reminderToDuration(reminder));
-        }
+        // backend stores as "offset to dtStart", i.e negative if reminder before event.
+        alarm->setStartOffset(-1 * seconds);
         alarm->setType(KCalCore::Alarm::Display);
     }
 
@@ -720,9 +680,6 @@ NemoCalendarData::Event NemoCalendarWorker::createEventStruct(const KCalCore::Ev
         event.recurEndDate = defaultRule->endDt().date();
     }
     event.reminder = NemoCalendarUtils::getReminder(e);
-    if (event.reminder == NemoCalendarEvent::ReminderCustom) {
-        event.customReminder = NemoCalendarUtils::getCustomReminder(e);
-    }
     event.startTime = e->dtStart();
     return event;
 }

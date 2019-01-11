@@ -32,8 +32,7 @@ struct Event {
     bool allDay;
     NemoCalendarEvent::Recur recur;
     QDate recurEndDate;
-    NemoCalendarEvent::Reminder reminder;
-    int customReminder; // minutes
+    int reminder; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
     QString uniqueId;
     KDateTime recurrenceId;
     bool readonly;
