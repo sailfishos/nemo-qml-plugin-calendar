@@ -93,22 +93,12 @@ NemoCalendarEvent::Recur CalendarImportEvent::recur()
     return NemoCalendarUtils::convertRecurrence(mEvent);
 }
 
-NemoCalendarEvent::Reminder CalendarImportEvent::reminder() const
+int CalendarImportEvent::reminder() const
 {
-    if (!mEvent)
-        return NemoCalendarEvent::ReminderNone;
-
+    // note: returns seconds before event, so 15 minutes before = 900.
+    //       zero value means "reminder at time of the event".
+    //       negative value means "no reminder".
     return NemoCalendarUtils::getReminder(mEvent);
-}
-
-int CalendarImportEvent::reminderSeconds() const
-{
-    // FIXME: this doesn't know how to say "no reminder".
-    if (!mEvent)
-        return 0;
-
-    bool hasReminder = false;
-    return NemoCalendarUtils::getReminderSeconds(mEvent, &hasReminder);
 }
 
 QString CalendarImportEvent::uniqueId() const

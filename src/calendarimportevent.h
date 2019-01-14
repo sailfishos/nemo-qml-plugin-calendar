@@ -49,8 +49,7 @@ class CalendarImportEvent : public QObject
     Q_PROPERTY(QDateTime endTime READ endTime CONSTANT)
     Q_PROPERTY(bool allDay READ allDay CONSTANT)
     Q_PROPERTY(NemoCalendarEvent::Recur recur READ recur CONSTANT)
-    Q_PROPERTY(int reminderSeconds READ reminderSeconds CONSTANT)
-    Q_PROPERTY(NemoCalendarEvent::Reminder reminder READ reminder CONSTANT)
+    Q_PROPERTY(int reminder READ reminder CONSTANT)
     Q_PROPERTY(QString uniqueId READ uniqueId CONSTANT)
     Q_PROPERTY(QString color READ color WRITE setColor NOTIFY colorChanged)
     Q_PROPERTY(QString location READ location CONSTANT)
@@ -71,8 +70,7 @@ public:
     QDateTime endTime() const;
     bool allDay() const;
     NemoCalendarEvent::Recur recur();
-    int reminderSeconds() const;
-    NemoCalendarEvent::Reminder reminder() const;
+    int reminder() const;
     QString uniqueId() const;
     QString color() const;
     QString location() const;

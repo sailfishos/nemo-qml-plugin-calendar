@@ -92,7 +92,7 @@ bool NemoCalendarEvent::hasRecurEndDate() const
     return mManager->getEvent(mUniqueId, mRecurrenceId).recurEndDate.isValid();
 }
 
-NemoCalendarEvent::Reminder NemoCalendarEvent::reminder() const
+int NemoCalendarEvent::reminder() const
 {
     return mManager->getEvent(mUniqueId, mRecurrenceId).reminder;
 }

@@ -98,7 +98,8 @@ void tst_CalendarEvent::modSetters()
     QCOMPARE(eventMod->recurEndDate(), QDateTime(recurEnd.date())); // day precision
 
     QSignalSpy reminderSpy(eventMod, SIGNAL(reminderChanged()));
-    NemoCalendarEvent::Reminder reminder = NemoCalendarEvent::ReminderTime; // default is ReminderNone
+    QVERIFY(eventMod->reminder() < 0); // default is ReminderNone == negative reminder.
+    int reminder = 900; // 15 minutes before
     eventMod->setReminder(reminder);
     QCOMPARE(reminderSpy.count(), 1);
     QCOMPARE(eventMod->reminder(), reminder);
@@ -145,7 +146,7 @@ void tst_CalendarEvent::testSave()
     eventMod->setRecurEndDate(recurEnd);
     QCOMPARE(eventMod->recurEndDate(), QDateTime(recurEnd.date()));
 
-    NemoCalendarEvent::Reminder reminder = NemoCalendarEvent::ReminderTime;
+    int reminder = 0; // at the time of the event
     eventMod->setReminder(reminder);
     QCOMPARE(eventMod->reminder(), reminder);
 

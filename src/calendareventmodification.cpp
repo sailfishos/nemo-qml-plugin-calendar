@@ -10,7 +10,7 @@ NemoCalendarEventModification::NemoCalendarEventModification(QObject *parent) :
     QObject(parent)
 {
     m_event.recur = NemoCalendarEvent::RecurOnce;
-    m_event.reminder = NemoCalendarEvent::ReminderNone;
+    m_event.reminder = -1; // ReminderNone
     m_event.allDay = false;
     m_event.readonly = false;
     m_event.startTime = KDateTime(QDateTime(), KDateTime::LocalZone);
@@ -150,15 +150,15 @@ QString NemoCalendarEventModification::recurrenceIdString() const
     }
 }
 
-NemoCalendarEvent::Reminder NemoCalendarEventModification::reminder() const
+int NemoCalendarEventModification::reminder() const
 {
     return m_event.reminder;
 }
 
-void NemoCalendarEventModification::setReminder(NemoCalendarEvent::Reminder reminder)
+void NemoCalendarEventModification::setReminder(int seconds)
 {
-    if (reminder != m_event.reminder) {
-        m_event.reminder = reminder;
+    if (seconds != m_event.reminder) {
+        m_event.reminder = seconds;
         emit reminderChanged();
     }
 }

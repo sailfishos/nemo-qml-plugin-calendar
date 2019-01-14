@@ -378,45 +378,12 @@ bool NemoCalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, NemoCalendar
     return false;
 }
 
-KCalCore::Duration NemoCalendarWorker::reminderToDuration(NemoCalendarEvent::Reminder reminder) const
-{
-    KCalCore::Duration offset(0);
-    switch (reminder) {
-    default:
-    case NemoCalendarEvent::ReminderNone:
-    case NemoCalendarEvent::ReminderTime:
-        break;
-    case NemoCalendarEvent::Reminder5Min:
-        offset = KCalCore::Duration(-5 * 60);
-        break;
-    case NemoCalendarEvent::Reminder15Min:
-        offset = KCalCore::Duration(-15 * 60);
-        break;
-    case NemoCalendarEvent::Reminder30Min:
-        offset = KCalCore::Duration(-30 * 60);
-        break;
-    case NemoCalendarEvent::Reminder1Hour:
-        offset = KCalCore::Duration(-60 * 60);
-        break;
-    case NemoCalendarEvent::Reminder2Hour:
-        offset = KCalCore::Duration(-2 * 60 * 60);
-        break;
-    case NemoCalendarEvent::Reminder1Day:
-        offset = KCalCore::Duration(-24 * 60 * 60);
-        break;
-    case NemoCalendarEvent::Reminder2Day:
-        offset = KCalCore::Duration(-2 * 24 * 60 * 60);
-        break;
-    }
-    return offset;
-}
-
-bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEvent::Reminder reminder)
+bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, int seconds)
 {
     if (!event)
         return false;
 
-    if (NemoCalendarUtils::getReminder(event) == reminder)
+    if (NemoCalendarUtils::getReminder(event) == seconds)
         return false;
 
     KCalCore::Alarm::List alarms = event->alarms();
@@ -426,10 +393,13 @@ bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, NemoCalendarEv
         event->removeAlarm(alarms.at(ii));
     }
 
-    if (reminder != NemoCalendarEvent::ReminderNone) {
+    // negative reminder seconds means "no reminder", so only
+    // deal with positive (or zero = at time of event) reminders.
+    if (seconds >= 0) {
         KCalCore::Alarm::Ptr alarm = event->newAlarm();
         alarm->setEnabled(true);
-        alarm->setStartOffset(reminderToDuration(reminder));
+        // backend stores as "offset to dtStart", i.e negative if reminder before event.
+        alarm->setStartOffset(-1 * seconds);
         alarm->setType(KCalCore::Alarm::Display);
     }
 
