@@ -77,7 +77,7 @@ public slots:
     void setDefaultNotebook(const QString &notebookUid);
 
     void loadData(const QList<NemoCalendarData::Range> &ranges,
-                    const QStringList &uidList, bool reset);
+                  const QStringList &uidList, bool reset);
 
     NemoCalendarData::EventOccurrence getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
                                                         const QDateTime &startTime) const;
@@ -95,11 +95,11 @@ signals:
     void notebooksChanged(QList<NemoCalendarData::Notebook> notebooks);
 
     void dataLoaded(QList<NemoCalendarData::Range> ranges,
-                      QStringList uidList,
-                      QMultiHash<QString, NemoCalendarData::Event> events,
-                      QHash<QString, NemoCalendarData::EventOccurrence> occurrences,
-                      QHash<QDate, QStringList> dailyOccurrences,
-                      bool reset);
+                    QStringList uidList,
+                    QMultiHash<QString, NemoCalendarData::Event> events,
+                    QHash<QString, NemoCalendarData::EventOccurrence> occurrences,
+                    QHash<QDate, QStringList> dailyOccurrences,
+                    bool reset);
 
     void occurrenceExceptionFailed(NemoCalendarData::Event eventData, QDateTime startTime);
     void occurrenceExceptionCreated(NemoCalendarData::Event eventData, QDateTime startTime, KDateTime newRecurrenceId);

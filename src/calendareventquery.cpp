@@ -129,7 +129,7 @@ QObject *NemoCalendarEventQuery::event() const
     if (mEvent.isValid() && mEvent.uniqueId == mUid)
         return NemoCalendarManager::instance()->eventObject(mUid, mRecurrenceId);
     else
-        return 0;
+        return nullptr;
 }
 
 QObject *NemoCalendarEventQuery::occurrence() const

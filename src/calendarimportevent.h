@@ -57,9 +57,8 @@ class CalendarImportEvent : public QObject
     Q_PROPERTY(QString organizer READ organizer CONSTANT)
     Q_PROPERTY(QString organizerEmail READ organizerEmail CONSTANT)
     Q_PROPERTY(NemoCalendarEvent::Secrecy secrecy READ secrecy CONSTANT)
-
-    Q_PROPERTY(NemoCalendarEvent::Response ownerStatus READ ownerStatus NOTIFY ownerStatusChanged)
-    Q_PROPERTY(bool rsvp READ rsvp NOTIFY rsvpChanged)
+    Q_PROPERTY(NemoCalendarEvent::Response ownerStatus READ ownerStatus CONSTANT)
+    Q_PROPERTY(bool rsvp READ rsvp CONSTANT)
 
 public:
     CalendarImportEvent(KCalCore::Event::Ptr event);
@@ -91,9 +90,6 @@ public slots:
 
 signals:
     void colorChanged();
-    void ownerStatusChanged();
-    void attendeeListChanged();
-    void rsvpChanged();
 
 private:
     KCalCore::Event::Ptr mEvent;

@@ -45,8 +45,8 @@
 // kCalCore
 #include <calformat.h>
 
-NemoCalendarManager::NemoCalendarManager() :
-    QObject(0), mLoadPending(false), mResetPending(false)
+NemoCalendarManager::NemoCalendarManager()
+    : mLoadPending(false), mResetPending(false)
 {
     qRegisterMetaType<KDateTime>("KDateTime");
     qRegisterMetaType<QList<KDateTime> >("QList<KDateTime>");
@@ -123,7 +123,7 @@ QString NemoCalendarManager::defaultNotebook() const
         if (notebook.isDefault)
             return notebook.uid;
     }
-    return "";
+    return QString();
 }
 
 void NemoCalendarManager::setDefaultNotebook(const QString &notebookUid)
@@ -152,7 +152,7 @@ NemoCalendarEvent* NemoCalendarManager::eventObject(const QString &eventUid, con
     // TODO: maybe attempt to read event from DB? This situation should not happen.
     qWarning() << Q_FUNC_INFO << "No event with uid" << eventUid << recurrenceId.toString() << ", returning empty event";
 
-    return new NemoCalendarEvent(this, "", KDateTime());
+    return new NemoCalendarEvent(this, QString(), KDateTime());
 }
 
 void NemoCalendarManager::saveModification(NemoCalendarData::Event eventData)
@@ -167,12 +167,12 @@ NemoCalendarManager::replaceOccurrence(NemoCalendarData::Event eventData, NemoCa
 {
     if (!occurrence) {
         qWarning() << Q_FUNC_INFO << "no occurrence given";
-        return 0;
+        return nullptr;
     }
 
     if (eventData.uniqueId.isEmpty()) {
         qWarning("NemocalendarManager::replaceOccurrence() - empty uid given");
-        return 0;
+        return nullptr;
     }
 
     // save request information for signal handling
@@ -222,7 +222,7 @@ QString NemoCalendarManager::getNotebookColor(const QString &notebookUid) const
     if (mNotebooks.contains(notebookUid))
         return mNotebooks.value(notebookUid, NemoCalendarData::Notebook()).color;
     else
-        return "";
+        return QString();
 }
 
 void NemoCalendarManager::cancelAgendaRefresh(NemoCalendarAgendaModel *model)
@@ -528,7 +528,7 @@ void NemoCalendarManager::save()
 QString NemoCalendarManager::convertEventToVCalendarSync(const QString &uid, const QString &prodId)
 {
     QString vEvent;
-    QMetaObject::invokeMethod(mCalendarWorker, "convertEventToVCalendar",Qt::BlockingQueuedConnection,
+    QMetaObject::invokeMethod(mCalendarWorker, "convertEventToVCalendar", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QString, vEvent),
                               Q_ARG(QString, uid),
                               Q_ARG(QString, prodId));

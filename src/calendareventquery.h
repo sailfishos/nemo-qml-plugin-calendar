@@ -55,10 +55,10 @@ class Person : public QObject
 public:
     // mapping to KCalcore::Attendee::Role
     enum AttendeeRole {
-      RequiredParticipant,
-      OptionalParticipant,
-      NonParticipant,
-      ChairParticipant
+        RequiredParticipant,
+        OptionalParticipant,
+        NonParticipant,
+        ChairParticipant
     };
 
     Person(const QString &aName, const QString &aEmail, bool aIsOrganizer, bool aParticipationRole)

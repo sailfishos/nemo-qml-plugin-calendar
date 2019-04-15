@@ -56,8 +56,8 @@
 #include <Accounts/Provider>
 #include <Accounts/Account>
 
-NemoCalendarWorker::NemoCalendarWorker() :
-    QObject(0), mAccountManager(0)
+NemoCalendarWorker::NemoCalendarWorker()
+    : QObject(0), mAccountManager(0)
 {
 }
 
@@ -173,7 +173,7 @@ QString NemoCalendarWorker::convertEventToVCalendar(const QString &uid, const QS
     KCalCore::Event::Ptr event = mCalendar->event(uid);
     if (event.isNull()) {
         qWarning() << "No event with uid " << uid << ", unable to create VCalendar";
-        return "";
+        return QString();
     }
 
     NemoCalendarVCalFormat fmt;
