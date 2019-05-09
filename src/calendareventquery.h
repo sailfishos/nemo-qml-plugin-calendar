@@ -47,10 +47,10 @@ class Person : public QObject
 {
     Q_OBJECT
     Q_ENUMS(AttendeeRole)
-    Q_PROPERTY(QString name READ name FINAL)
-    Q_PROPERTY(QString email READ email FINAL)
-    Q_PROPERTY(bool isOrganizer READ isOrganizer FINAL)
-    Q_PROPERTY(int participationRole READ participationRole FINAL)
+    Q_PROPERTY(QString name READ name CONSTANT FINAL)
+    Q_PROPERTY(QString email READ email CONSTANT FINAL)
+    Q_PROPERTY(bool isOrganizer READ isOrganizer CONSTANT FINAL)
+    Q_PROPERTY(int participationRole READ participationRole CONSTANT FINAL)
 
 public:
     // mapping to KCalcore::Attendee::Role
