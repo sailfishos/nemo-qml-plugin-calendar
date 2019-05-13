@@ -53,7 +53,6 @@ class Person : public QObject
     Q_PROPERTY(int participationRole READ participationRole CONSTANT FINAL)
 
 public:
-    // mapping to KCalcore::Attendee::Role
     enum AttendeeRole {
         RequiredParticipant,
         OptionalParticipant,
@@ -61,7 +60,7 @@ public:
         ChairParticipant
     };
 
-    Person(const QString &aName, const QString &aEmail, bool aIsOrganizer, bool aParticipationRole)
+    Person(const QString &aName, const QString &aEmail, bool aIsOrganizer, AttendeeRole aParticipationRole)
         : m_name(aName), m_email(aEmail), m_isOrganizer(aIsOrganizer), m_participationRole(aParticipationRole)
     {
     }

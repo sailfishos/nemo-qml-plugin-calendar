@@ -152,8 +152,22 @@ QList<QObject *> NemoCalendarUtils::convertAttendeeList(const QList<NemoCalendar
 {
     QList<QObject*> result;
     foreach (const NemoCalendarData::Attendee &attendee, list) {
-        QObject *person = new Person(attendee.name, attendee.email, attendee.isOrganizer,
-                                     attendee.participationRole);
+        Person::AttendeeRole role;
+        switch (attendee.participationRole) {
+        case KCalCore::Attendee::ReqParticipant:
+            role = Person::RequiredParticipant;
+            break;
+        case KCalCore::Attendee::OptParticipant:
+            role = Person::OptionalParticipant;
+            break;
+        case KCalCore::Attendee::Chair:
+            role = Person::ChairParticipant;
+            break;
+        default:
+            role = Person::NonParticipant;
+            break;
+        }
+        QObject *person = new Person(attendee.name, attendee.email, attendee.isOrganizer, role);
         result.append(person);
     }
 
