@@ -123,7 +123,6 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
         organizer.isOrganizer = true;
         organizer.name = calOrganizer->name();
         organizer.email = calOrganizer->email();
-        organizer.isOwner = organizer.email == ownerEmail;
         organizer.participationRole = KCalCore::Attendee::Chair;
         result.append(organizer);
     }
@@ -131,7 +130,6 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
     KCalCore::Attendee::List attendees = event->attendees();
     NemoCalendarData::Attendee attendee;
     attendee.isOrganizer = false;
-    attendee.isOwner = false;
 
     foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
         attendee.name = calAttendee->name();
@@ -140,8 +138,7 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
             // avoid duplicate info
             continue;
         }
-        attendee.isOwner = attendee.email == ownerEmail;
-        if (attendee.isOwner) {
+        if (attendee.email == ownerEmail) {
             attendee.status = calAttendee->status();
         }
         attendee.participationRole = calAttendee->role();

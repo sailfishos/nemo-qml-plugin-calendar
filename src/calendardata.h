@@ -85,7 +85,6 @@ struct Notebook {
 typedef QPair<QDate,QDate> Range;
 
 struct Attendee {
-    bool isOwner;
     bool isOrganizer;
     QString name;
     QString email;

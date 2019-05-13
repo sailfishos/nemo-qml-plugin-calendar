@@ -48,8 +48,6 @@ class NemoCalendarEvent : public QObject
     Q_ENUMS(TimeSpec)
     Q_ENUMS(Secrecy)
     Q_ENUMS(Response)
-    Q_ENUMS(ParticipantStatus)
-    Q_ENUMS(AttendeeRole)
 
     Q_PROPERTY(QString displayLabel READ displayLabel NOTIFY displayLabelChanged)
     Q_PROPERTY(QString description READ description NOTIFY descriptionChanged)
@@ -97,21 +95,6 @@ public:
         ResponseAccept,
         ResponseTentative,
         ResponseDecline
-    };
-
-    enum ParticipantStatus {
-        NeedsAction,
-        Accepted,
-        Declined,
-        Tentative,
-        Delegated
-    };
-
-    enum AttendeeRole {
-        ReqParticipant,
-        OptParticipant,
-        NonParticipant,
-        Chair
     };
 
     NemoCalendarEvent(NemoCalendarManager *manager, const QString &uid, const KDateTime &recurrenceId);
