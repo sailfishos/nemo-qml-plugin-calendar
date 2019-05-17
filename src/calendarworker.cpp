@@ -421,10 +421,17 @@ bool NemoCalendarWorker::needSendCancellation(KCalCore::Event::Ptr &event) const
         return false;
     }
     // we shouldn't send a response if we are not an organizer
-    if (calOrganizer->email() != mKCal::ServiceHandler::instance().emailAddress(mStorage->notebook(mCalendar->notebook(event)), mStorage)) {
+    if (calOrganizer->email() != getNotebookAddress(event)) {
         return false;
     }
     return true;
+}
+
+QString NemoCalendarWorker::getNotebookAddress(const KCalCore::Event::Ptr &event) const
+{
+    const QString &notebookUid = mCalendar->notebook(event);
+    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
+                                            : QString();
 }
 
 QList<NemoCalendarData::Notebook> NemoCalendarWorker::notebooks() const
@@ -663,8 +670,8 @@ NemoCalendarData::Event NemoCalendarWorker::createEventStruct(const KCalCore::Ev
     event.recur = NemoCalendarUtils::convertRecurrence(e);
 
     KCalCore::Attendee::List attendees = e->attendees();
-    const QString &calendarOwnerEmail = mNotebooks.contains(event.calendarUid) ? mNotebooks.value(event.calendarUid).emailAddress
-                                                                               : QString();
+    const QString &calendarOwnerEmail = getNotebookAddress(e);
+
     foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
         if (calAttendee->email() == calendarOwnerEmail) {
             event.ownerStatus = NemoCalendarUtils::convertPartStat(calAttendee->status());
@@ -770,7 +777,8 @@ QList<NemoCalendarData::Attendee> NemoCalendarWorker::getEventAttendees(const QS
         return result;
     }
 
-    return NemoCalendarUtils::getEventAttendees(event, mKCal::ServiceHandler::instance().emailAddress(mStorage->notebook(mCalendar->notebook(event)), mStorage));
+    const QString &ownerEmail = getNotebookAddress(event);
+    return NemoCalendarUtils::getEventAttendees(event, ownerEmail);
 }
 
 void NemoCalendarWorker::findMatchingEvent(const QString &invitationFile)

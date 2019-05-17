@@ -116,6 +116,7 @@ private:
     bool setRecurrence(KCalCore::Event::Ptr &event, NemoCalendarEvent::Recur recur);
     bool setReminder(KCalCore::Event::Ptr &event, int reminderSeconds);
     bool needSendCancellation(KCalCore::Event::Ptr &event) const;
+    QString getNotebookAddress(const KCalCore::Event::Ptr &event) const;
 
     NemoCalendarData::Event createEventStruct(const KCalCore::Event::Ptr &event) const;
     QHash<QString, NemoCalendarData::EventOccurrence> eventOccurrences(const QList<NemoCalendarData::Range> &ranges) const;
