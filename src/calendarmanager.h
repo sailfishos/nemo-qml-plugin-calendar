@@ -64,9 +64,14 @@ public:
 
     NemoCalendarEvent* eventObject(const QString &eventUid, const KDateTime &recurrenceId);
 
-    void saveModification(NemoCalendarData::Event eventData);
+    void saveModification(NemoCalendarData::Event eventData, bool updateAttendees,
+                          const QList<NemoCalendarData::EmailContact> &required,
+                          const QList<NemoCalendarData::EmailContact> &optional);
     NemoCalendarChangeInformation * replaceOccurrence(NemoCalendarData::Event eventData,
-                                                      NemoCalendarEventOccurrence *occurrence);
+                                                      NemoCalendarEventOccurrence *occurrence,
+                                                      bool updateAttendees,
+                                                      const QList<NemoCalendarData::EmailContact> &required,
+                                                      const QList<NemoCalendarData::EmailContact> &optional);
     void deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     void save();

@@ -58,6 +58,7 @@ NemoCalendarManager::NemoCalendarManager()
     qRegisterMetaType<NemoCalendarData::Range>("NemoCalendarData::Range");
     qRegisterMetaType<QList<NemoCalendarData::Range > >("QList<NemoCalendarData::Range>");
     qRegisterMetaType<QList<NemoCalendarData::Notebook> >("QList<NemoCalendarData::Notebook>");
+    qRegisterMetaType<QList<NemoCalendarData::EmailContact> >("QList<NemoCalendarData::EmailContact>");
 
     mCalendarWorker = new NemoCalendarWorker();
     mCalendarWorker->moveToThread(&mWorkerThread);
@@ -155,15 +156,23 @@ NemoCalendarEvent* NemoCalendarManager::eventObject(const QString &eventUid, con
     return new NemoCalendarEvent(this, QString(), KDateTime());
 }
 
-void NemoCalendarManager::saveModification(NemoCalendarData::Event eventData)
+void NemoCalendarManager::saveModification(NemoCalendarData::Event eventData, bool updateAttendees,
+                                           const QList<NemoCalendarData::EmailContact> &required,
+                                           const QList<NemoCalendarData::EmailContact> &optional)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "saveEvent", Qt::QueuedConnection,
-                              Q_ARG(NemoCalendarData::Event, eventData));
+                              Q_ARG(NemoCalendarData::Event, eventData),
+                              Q_ARG(bool, updateAttendees),
+                              Q_ARG(QList<NemoCalendarData::EmailContact>, required),
+                              Q_ARG(QList<NemoCalendarData::EmailContact>, optional));
 }
 
 // caller owns returned object
 NemoCalendarChangeInformation *
-NemoCalendarManager::replaceOccurrence(NemoCalendarData::Event eventData, NemoCalendarEventOccurrence *occurrence)
+NemoCalendarManager::replaceOccurrence(NemoCalendarData::Event eventData, NemoCalendarEventOccurrence *occurrence,
+                                       bool updateAttendees,
+                                       const QList<NemoCalendarData::EmailContact> &required,
+                                       const QList<NemoCalendarData::EmailContact> &optional)
 {
     if (!occurrence) {
         qWarning() << Q_FUNC_INFO << "no occurrence given";
@@ -182,7 +191,10 @@ NemoCalendarManager::replaceOccurrence(NemoCalendarData::Event eventData, NemoCa
 
     QMetaObject::invokeMethod(mCalendarWorker, "replaceOccurrence", Qt::QueuedConnection,
                               Q_ARG(NemoCalendarData::Event, eventData),
-                              Q_ARG(QDateTime, occurrence->startTime()));
+                              Q_ARG(QDateTime, occurrence->startTime()),
+                              Q_ARG(bool, updateAttendees),
+                              Q_ARG(QList<NemoCalendarData::EmailContact>, required),
+                              Q_ARG(QList<NemoCalendarData::EmailContact>, optional));
     return changes;
 }
 

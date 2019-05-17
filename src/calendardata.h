@@ -92,5 +92,12 @@ struct Attendee {
     KCalCore::Attendee::PartStat status;
 };
 
+struct EmailContact {
+    EmailContact(const QString &aName, const QString &aEmail)
+        : name(aName), email(aEmail) {}
+    QString name;
+    QString email;
+};
+
 }
 #endif // NEMOCALENDARDATA_H

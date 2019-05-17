@@ -63,8 +63,12 @@ public slots:
     void init();
     void save();
 
-    void saveEvent(const NemoCalendarData::Event &eventData);
-    void replaceOccurrence(const NemoCalendarData::Event &eventData, const QDateTime &startTime);
+    void saveEvent(const NemoCalendarData::Event &eventData, bool updateAttendees,
+                   const QList<NemoCalendarData::EmailContact> &required,
+                   const QList<NemoCalendarData::EmailContact> &optional);
+    void replaceOccurrence(const NemoCalendarData::Event &eventData, const QDateTime &startTime, bool updateAttendees,
+                           const QList<NemoCalendarData::EmailContact> &required,
+                           const QList<NemoCalendarData::EmailContact> &optional);
     void deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     bool sendResponse(const NemoCalendarData::Event &eventData, const NemoCalendarEvent::Response response);
@@ -116,6 +120,10 @@ private:
     bool setRecurrence(KCalCore::Event::Ptr &event, NemoCalendarEvent::Recur recur);
     bool setReminder(KCalCore::Event::Ptr &event, int reminderSeconds);
     bool needSendCancellation(KCalCore::Event::Ptr &event) const;
+    void updateEventAttendees(KCalCore::Event::Ptr event, bool newEvent,
+                              const QList<NemoCalendarData::EmailContact> &required,
+                              const QList<NemoCalendarData::EmailContact> &optional,
+                              const QString &notebookUid);
     QString getNotebookAddress(const KCalCore::Event::Ptr &event) const;
 
     NemoCalendarData::Event createEventStruct(const KCalCore::Event::Ptr &event) const;

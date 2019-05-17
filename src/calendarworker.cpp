@@ -37,11 +37,12 @@
 #include <QSettings>
 
 // mkcal
-#include <event.h>
 #include <notebook.h>
 #include <servicehandler.h>
 
 // kCalCore
+#include <attendee.h>
+#include <event.h>
 #include <calformat.h>
 #include <vcalformat.h>
 #include <recurrence.h>
@@ -185,6 +186,8 @@ QString NemoCalendarWorker::convertEventToVCalendar(const QString &uid, const QS
 void NemoCalendarWorker::save()
 {
     mStorage->save();
+    // FIXME: should send response update if deleting an even we have responded to.
+    // FIXME: should send cancel only if we own the event
     if (!mDeletedEvents.isEmpty()) {
         for (const QString &uid: mDeletedEvents) {
             KCalCore::Event::Ptr event = mCalendar->deletedEvent(uid);
@@ -210,7 +213,9 @@ void NemoCalendarWorker::save()
     }
 }
 
-void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
+void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData, bool updateAttendees,
+                                   const QList<NemoCalendarData::EmailContact> &required,
+                                   const QList<NemoCalendarData::EmailContact> &optional)
 {
     QString notebookUid = eventData.calendarUid;
 
@@ -222,6 +227,13 @@ void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
 
     if (createNew) {
         event = KCalCore::Event::Ptr(new KCalCore::Event);
+
+        // For exchange it is better to use upper case UIDs, because for some reason when
+        // UID is generated out of Global object id of the email message we are getting a lowercase
+        // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
+        // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
+        // for new events than trying to implement some complex logic in basesailfish-eas.
+        event->setUid(event->uid().toUpper());
     } else {
         event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
 
@@ -247,13 +259,11 @@ void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
 
     setEventData(event, eventData);
 
+    if (updateAttendees) {
+        updateEventAttendees(event, createNew, required, optional, notebookUid);
+    }
+
     if (createNew) {
-        // For exchange it is better to use upper case UIDs, because for some reason when
-        // UID is generated out of Global object id of the email message we are getting a lowercase
-        // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
-        // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
-        // for new events than trying to implement some complex logic in basesailfish-eas.
-        event->setUid(event->uid().toUpper());
         bool eventAdded;
         if (notebookUid.isEmpty())
             eventAdded = mCalendar->addEvent(event);
@@ -290,7 +300,10 @@ void NemoCalendarWorker::setEventData(KCalCore::Event::Ptr &event, const NemoCal
     }
 }
 
-void NemoCalendarWorker::replaceOccurrence(const NemoCalendarData::Event &eventData, const QDateTime &startTime)
+void NemoCalendarWorker::replaceOccurrence(const NemoCalendarData::Event &eventData, const QDateTime &startTime,
+                                           bool updateAttendees,
+                                           const QList<NemoCalendarData::EmailContact> &required,
+                                           const QList<NemoCalendarData::EmailContact> &optional)
 {
     QString notebookUid = eventData.calendarUid;
     if (!notebookUid.isEmpty() && !mStorage->isValidNotebook(notebookUid)) {
@@ -320,6 +333,10 @@ void NemoCalendarWorker::replaceOccurrence(const NemoCalendarData::Event &eventD
     }
 
     setEventData(replacement, eventData);
+
+    if (updateAttendees) {
+        updateEventAttendees(replacement, false, required, optional, notebookUid);
+    }
 
     mCalendar->addEvent(replacement, notebookUid);
     emit occurrenceExceptionCreated(eventData, startTime, replacement->recurrenceId());
@@ -425,6 +442,111 @@ bool NemoCalendarWorker::needSendCancellation(KCalCore::Event::Ptr &event) const
         return false;
     }
     return true;
+}
+
+// use explicit notebook uid so we don't need to assume the events involved being added there.
+// the related notebook is just needed to associate updates to some plugin/account
+void NemoCalendarWorker::updateEventAttendees(KCalCore::Event::Ptr event, bool newEvent,
+                                              const QList<NemoCalendarData::EmailContact> &required,
+                                              const QList<NemoCalendarData::EmailContact> &optional,
+                                              const QString &notebookUid)
+{
+    if (notebookUid.isEmpty()) {
+        qWarning() << "No notebook passed, refusing to send event updates from random source";
+        return;
+    }
+
+    mKCal::Notebook::Ptr notebook = mStorage->notebook(notebookUid);
+    if (notebook.isNull()) {
+        qWarning() << "No notebook found with UID" << notebookUid;
+        return;
+    }
+
+    if (!newEvent) {
+        // if existing attendees are removed, those should get a cancel update
+        KCalCore::Event::Ptr cancelEvent = KCalCore::Event::Ptr(event->clone());
+
+        // first remove everyone still listed as included
+        for (int i = 0; i < required.length(); ++i) {
+            KCalCore::Attendee::Ptr toRemove = cancelEvent->attendeeByMail(required.at(i).email);
+            if (toRemove) {
+                cancelEvent->deleteAttendee(toRemove);
+            }
+        }
+        for (int i = 0; i < optional.length(); ++i) {
+            KCalCore::Attendee::Ptr toRemove = cancelEvent->attendeeByMail(optional.at(i).email);
+            if (toRemove) {
+                cancelEvent->deleteAttendee(toRemove);
+            }
+        }
+
+        QString organizer = cancelEvent->organizer()->email();
+        if (!organizer.isEmpty()) {
+            KCalCore::Attendee::Ptr toRemove = cancelEvent->attendeeByMail(organizer);
+            if (toRemove) {
+                cancelEvent->deleteAttendee(toRemove);
+            }
+        }
+
+        KCalCore::Attendee::List remainingAttendees = cancelEvent->attendees();
+
+        for (int i = remainingAttendees.length() - 1; i >= 0; --i) {
+            KCalCore::Attendee::Ptr attendee = remainingAttendees.at(i);
+
+            // if there are non-participants getting update as FYI, or chair for any reason,
+            // avoid sending them the cancel
+            if (attendee->role() != KCalCore::Attendee::ReqParticipant
+                    && attendee->role() != KCalCore::Attendee::OptParticipant) {
+                cancelEvent->deleteAttendee(attendee);
+                continue;
+            }
+
+            // this one really gets cancel so remove from update event side
+            KCalCore::Attendee::Ptr toRemove = event->attendeeByMail(attendee->email());
+            if (toRemove) {
+                event->deleteAttendee(toRemove);
+            }
+        }
+        if (cancelEvent->attendees().length() > 0) {
+            cancelEvent->setStatus(KCalCore::Incidence::StatusCanceled);
+            mKCal::ServiceHandler::instance().sendUpdate(cancelEvent, QString(), mCalendar, mStorage, notebook);
+        }
+    }
+
+    if (required.length() > 0 || optional.length() > 0) {
+        for (int i = 0; i < required.length(); ++i) {
+            KCalCore::Attendee::Ptr existing = event->attendeeByMail(required.at(i).email);
+            if (existing) {
+                existing->setRole(KCalCore::Attendee::ReqParticipant);
+            } else {
+                auto attendee = new KCalCore::Attendee(required.at(i).name, required.at(i).email, true /* rsvp */,
+                                                       KCalCore::Attendee::NeedsAction,
+                                                       KCalCore::Attendee::ReqParticipant);
+                event->addAttendee(KCalCore::Attendee::Ptr(attendee));
+            }
+        }
+        for (int i = 0; i < optional.length(); ++i) {
+            KCalCore::Attendee::Ptr existing = event->attendeeByMail(optional.at(i).email);
+            if (existing) {
+                existing->setRole(KCalCore::Attendee::OptParticipant);
+            } else {
+                auto attendee = new KCalCore::Attendee(optional.at(i).name, optional.at(i).email, true,
+                                                       KCalCore::Attendee::NeedsAction,
+                                                       KCalCore::Attendee::OptParticipant);
+                event->addAttendee(KCalCore::Attendee::Ptr(attendee));
+            }
+        }
+
+        // The separation between sendInvitation and sendUpdate it not really good,
+        // when modifying an existing event and adding attendees, should it be which?
+        // Probably those should be combined into a single function on the API, but
+        // until that is done, let's just handle new events as invitations and rest as updates.
+        if (newEvent) {
+            mKCal::ServiceHandler::instance().sendInvitation(event, QString(), mCalendar, mStorage, notebook);
+        } else {
+            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage, notebook);
+        }
+    }
 }
 
 QString NemoCalendarWorker::getNotebookAddress(const KCalCore::Event::Ptr &event) const

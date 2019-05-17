@@ -7,6 +7,7 @@
 #include "calendarevent.h"
 #include "calendareventoccurrence.h"
 #include "calendarchangeinformation.h"
+#include "calendarcontactmodel.h"
 
 class NemoCalendarEventModification : public QObject
 {
@@ -63,6 +64,8 @@ public:
     QString calendarUid() const;
     void setCalendarUid(const QString &uid);
 
+    Q_INVOKABLE void setAttendees(CalendarContactModel *required, CalendarContactModel *optional);
+
     Q_INVOKABLE void save();
     Q_INVOKABLE NemoCalendarChangeInformation * replaceOccurrence(NemoCalendarEventOccurrence *occurrence);
 
@@ -81,6 +84,9 @@ signals:
 
 private:
     NemoCalendarData::Event m_event;
+    bool m_attendeesSet;
+    QList<NemoCalendarData::EmailContact> m_requiredAttendees;
+    QList<NemoCalendarData::EmailContact> m_optionalAttendees;
 };
 
 #endif

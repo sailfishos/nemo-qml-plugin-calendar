@@ -1,13 +1,15 @@
 #include "calendareventmodification.h"
 #include "calendarmanager.h"
 
+#include <QDebug>
+
 NemoCalendarEventModification::NemoCalendarEventModification(NemoCalendarData::Event data, QObject *parent)
-    : QObject(parent), m_event(data)
+    : QObject(parent), m_event(data), m_attendeesSet(false)
 {
 }
 
 NemoCalendarEventModification::NemoCalendarEventModification(QObject *parent) :
-    QObject(parent)
+    QObject(parent), m_attendeesSet(false)
 {
     m_event.recur = NemoCalendarEvent::RecurOnce;
     m_event.reminder = -1; // ReminderNone
@@ -189,13 +191,27 @@ void NemoCalendarEventModification::setCalendarUid(const QString &uid)
     }
 }
 
+void NemoCalendarEventModification::setAttendees(CalendarContactModel *required, CalendarContactModel *optional)
+{
+    if (!required || !optional) {
+        qWarning() << "Missing attendeeList";
+        return;
+    }
+
+    m_attendeesSet = true;
+    m_requiredAttendees = required->getList();
+    m_optionalAttendees = optional->getList();
+}
+
 void NemoCalendarEventModification::save()
 {
-    NemoCalendarManager::instance()->saveModification(m_event);
+    NemoCalendarManager::instance()->saveModification(m_event, m_attendeesSet,
+                                                      m_requiredAttendees, m_optionalAttendees);
 }
 
 NemoCalendarChangeInformation *
 NemoCalendarEventModification::replaceOccurrence(NemoCalendarEventOccurrence *occurrence)
 {
-    return NemoCalendarManager::instance()->replaceOccurrence(m_event, occurrence);
+    return NemoCalendarManager::instance()->replaceOccurrence(m_event, occurrence, m_attendeesSet,
+                                                              m_requiredAttendees, m_optionalAttendees);
 }

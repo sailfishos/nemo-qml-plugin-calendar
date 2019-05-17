@@ -39,7 +39,8 @@ SOURCES += \
     $$SRCDIR/calendarchangeinformation.cpp \
     $$SRCDIR/calendarutils.cpp \
     $$SRCDIR/calendarimportmodel.cpp \
-    $$SRCDIR/calendarimportevent.cpp
+    $$SRCDIR/calendarimportevent.cpp \
+    $$SRCDIR/calendarcontactmodel.cpp
 
 HEADERS += \
     $$SRCDIR/calendarevent.h \
@@ -57,7 +58,8 @@ HEADERS += \
     $$SRCDIR/calendarchangeinformation.h \
     $$SRCDIR/calendarutils.h \
     $$SRCDIR/calendarimportmodel.h \
-    $$SRCDIR/calendarimportevent.h
+    $$SRCDIR/calendarimportevent.h \
+    $$SRCDIR/calendarcontactmodel.h
 
 OTHER_FILES += qmldir
 
