@@ -114,23 +114,20 @@ public:
     QList<NemoCalendarData::Attendee> getEventAttendees(const QString &uid, const KDateTime &recurrenceId);
 
 private slots:
-    void storageModifiedSlot(QString info);
-
-    void eventNotebookChanged(QString oldEventUid, QString newEventUid, QString notebookUid);
-
-    void excludedNotebooksChangedSlot(QStringList excludedNotebooks);
-    void notebooksChangedSlot(QList<NemoCalendarData::Notebook> notebooks);
-
-    void dataLoadedSlot(QList<NemoCalendarData::Range> ranges,
-                          QStringList uidList,
-                          QMultiHash<QString, NemoCalendarData::Event> events,
-                          QHash<QString, NemoCalendarData::EventOccurrence> occurrences,
-                          QHash<QDate, QStringList> dailyOccurrences,
-                          bool reset);
+    void storageModifiedSlot(const QString &info);
+    void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
+    void excludedNotebooksChangedSlot(const QStringList &excludedNotebooks);
+    void notebooksChangedSlot(const QList<NemoCalendarData::Notebook> &notebooks);
+    void dataLoadedSlot(const QList<NemoCalendarData::Range> &ranges,
+                        const QStringList &uidList,
+                        const QMultiHash<QString, NemoCalendarData::Event> &events,
+                        const QHash<QString, NemoCalendarData::EventOccurrence> &occurrences,
+                        const QHash<QDate, QStringList> &dailyOccurrences,
+                        bool reset);
     void timeout();
-    void occurrenceExceptionFailedSlot(NemoCalendarData::Event data, QDateTime occurrence);
-    void occurrenceExceptionCreatedSlot(NemoCalendarData::Event data, QDateTime occurrence, KDateTime newRecurrenceId);
-
+    void occurrenceExceptionFailedSlot(const NemoCalendarData::Event &data, const QDateTime &occurrence);
+    void occurrenceExceptionCreatedSlot(const NemoCalendarData::Event &data, const QDateTime &occurrence,
+                                        const KDateTime &newRecurrenceId);
     void findMatchingEventFinished(const QString &invitationFile,
                                    const NemoCalendarData::Event &event);
 
