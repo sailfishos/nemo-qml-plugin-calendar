@@ -41,7 +41,7 @@
 
 #include "calendardata.h"
 
-class NemoCalendarEventOccurrence;
+class CalendarEventOccurrence;
 
 class Person : public QObject
 {
@@ -77,7 +77,7 @@ private:
     int m_participationRole;
 };
 
-class NemoCalendarEventQuery : public QObject, public QQmlParserStatus
+class CalendarEventQuery : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
@@ -89,8 +89,8 @@ class NemoCalendarEventQuery : public QObject, public QQmlParserStatus
     Q_PROPERTY(QList<QObject*> attendees READ attendees NOTIFY attendeesChanged)
 
 public:
-    NemoCalendarEventQuery();
-    ~NemoCalendarEventQuery();
+    CalendarEventQuery();
+    ~CalendarEventQuery();
 
     QString uniqueId() const;
     void setUniqueId(const QString &);
@@ -111,7 +111,7 @@ public:
     virtual void classBegin();
     virtual void componentComplete();
 
-    void doRefresh(NemoCalendarData::Event event);
+    void doRefresh(CalendarData::Event event);
 
 signals:
     void uniqueIdChanged();
@@ -135,10 +135,10 @@ private:
     QString mUid;
     KDateTime mRecurrenceId;
     QDateTime mStartTime;
-    NemoCalendarData::Event mEvent;
-    NemoCalendarEventOccurrence *mOccurrence;
+    CalendarData::Event mEvent;
+    CalendarEventOccurrence *mOccurrence;
     bool mAttendeesCached;
-    QList<NemoCalendarData::Attendee> mAttendees;
+    QList<CalendarData::Attendee> mAttendees;
 };
 
 #endif

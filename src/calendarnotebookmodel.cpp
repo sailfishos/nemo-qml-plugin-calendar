@@ -35,28 +35,28 @@
 #include "calendardata.h"
 #include "calendarmanager.h"
 
-NemoCalendarNotebookModel::NemoCalendarNotebookModel()
+CalendarNotebookModel::CalendarNotebookModel()
 {
-    connect(NemoCalendarManager::instance(), SIGNAL(notebooksChanged(QList<NemoCalendarData::Notebook>)),
+    connect(CalendarManager::instance(), SIGNAL(notebooksChanged(QList<CalendarData::Notebook>)),
             this, SLOT(notebooksChanged()));
-    connect(NemoCalendarManager::instance(), SIGNAL(notebooksAboutToChange()),
+    connect(CalendarManager::instance(), SIGNAL(notebooksAboutToChange()),
             this, SLOT(notebooksAboutToChange()));
 }
 
-int NemoCalendarNotebookModel::rowCount(const QModelIndex &index) const
+int CalendarNotebookModel::rowCount(const QModelIndex &index) const
 {
     if (index != QModelIndex())
         return 0;
 
-    return NemoCalendarManager::instance()->notebooks().count();
+    return CalendarManager::instance()->notebooks().count();
 }
 
-QVariant NemoCalendarNotebookModel::data(const QModelIndex &index, int role) const
+QVariant CalendarNotebookModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() >= NemoCalendarManager::instance()->notebooks().count())
+    if (!index.isValid() || index.row() >= CalendarManager::instance()->notebooks().count())
         return QVariant();
 
-    NemoCalendarData::Notebook notebook = NemoCalendarManager::instance()->notebooks().at(index.row());
+    CalendarData::Notebook notebook = CalendarManager::instance()->notebooks().at(index.row());
 
     switch (role) {
     case NameRole:
@@ -82,39 +82,39 @@ QVariant NemoCalendarNotebookModel::data(const QModelIndex &index, int role) con
     }
 }
 
-bool NemoCalendarNotebookModel::setData(const QModelIndex &index, const QVariant &data, int role)
+bool CalendarNotebookModel::setData(const QModelIndex &index, const QVariant &data, int role)
 {
     // QAbstractItemModel::setData() appears to assume values getting set synchronously, however
-    // we use asynchronous functions from NemoCalendarManager in this function.
+    // we use asynchronous functions from CalendarManager in this function.
     // TODO: cache the notebook data to improve change signaling
 
     if (!index.isValid()
-            || index.row() >= NemoCalendarManager::instance()->notebooks().count()
+            || index.row() >= CalendarManager::instance()->notebooks().count()
             || (role != ColorRole && role != DefaultRole))
         return false;
 
-    NemoCalendarData::Notebook notebook = NemoCalendarManager::instance()->notebooks().at(index.row());
+    CalendarData::Notebook notebook = CalendarManager::instance()->notebooks().at(index.row());
 
     if (role == ColorRole) {
-        NemoCalendarManager::instance()->setNotebookColor(notebook.uid, data.toString());
+        CalendarManager::instance()->setNotebookColor(notebook.uid, data.toString());
     } else if (role == DefaultRole) {
-        NemoCalendarManager::instance()->setDefaultNotebook(notebook.uid);
+        CalendarManager::instance()->setDefaultNotebook(notebook.uid);
     }
 
     return true;
 }
 
-void NemoCalendarNotebookModel::notebooksAboutToChange()
+void CalendarNotebookModel::notebooksAboutToChange()
 {
     beginResetModel();
 }
 
-void NemoCalendarNotebookModel::notebooksChanged()
+void CalendarNotebookModel::notebooksChanged()
 {
     endResetModel();
 }
 
-QHash<int, QByteArray> NemoCalendarNotebookModel::roleNames() const
+QHash<int, QByteArray> CalendarNotebookModel::roleNames() const
 {
     QHash<int, QByteArray> roleNames;
     roleNames[NameRole] = "name";

@@ -36,51 +36,51 @@
 #include "calendareventoccurrence.h"
 #include "calendarutils.h"
 
-NemoCalendarInvitationQuery::NemoCalendarInvitationQuery()
+CalendarInvitationQuery::CalendarInvitationQuery()
     : mIsComplete(false)
     , mNeedQuery(false)
 {
 }
 
-NemoCalendarInvitationQuery::~NemoCalendarInvitationQuery()
+CalendarInvitationQuery::~CalendarInvitationQuery()
 {
-    NemoCalendarManager *manager = NemoCalendarManager::instance(false);
+    CalendarManager *manager = CalendarManager::instance(false);
     if (manager) {
         manager->unRegisterInvitationQuery(this);
     }
 }
 
-QString NemoCalendarInvitationQuery::notebookUid() const
+QString CalendarInvitationQuery::notebookUid() const
 {
     return mNotebookUid;
 }
 
-QString NemoCalendarInvitationQuery::uid() const
+QString CalendarInvitationQuery::uid() const
 {
     return mUid;
 }
 
-QString NemoCalendarInvitationQuery::rid() const
+QString CalendarInvitationQuery::rid() const
 {
     return mRid;
 }
 
-QString NemoCalendarInvitationQuery::startTime() const
+QString CalendarInvitationQuery::startTime() const
 {
     return mStartTime;
 }
 
-QString NemoCalendarInvitationQuery::invitationFile() const
+QString CalendarInvitationQuery::invitationFile() const
 {
     return mInvitationFile;
 }
 
-bool NemoCalendarInvitationQuery::busy() const
+bool CalendarInvitationQuery::busy() const
 {
     return mBusy;
 }
 
-void NemoCalendarInvitationQuery::setInvitationFile(const QString &file)
+void CalendarInvitationQuery::setInvitationFile(const QString &file)
 {
     if (mInvitationFile != file) {
         mInvitationFile = file;
@@ -90,12 +90,12 @@ void NemoCalendarInvitationQuery::setInvitationFile(const QString &file)
     query();
 }
 
-void NemoCalendarInvitationQuery::classBegin()
+void CalendarInvitationQuery::classBegin()
 {
     mIsComplete = false;
 }
 
-void NemoCalendarInvitationQuery::componentComplete()
+void CalendarInvitationQuery::componentComplete()
 {
     mIsComplete = true;
     if (mNeedQuery) {
@@ -103,7 +103,7 @@ void NemoCalendarInvitationQuery::componentComplete()
     }
 }
 
-void NemoCalendarInvitationQuery::query()
+void CalendarInvitationQuery::query()
 {
     if (!mInvitationFile.isEmpty()) {
         // note: we allow scheduling the query even if mBusy is true
@@ -116,14 +116,14 @@ void NemoCalendarInvitationQuery::query()
         }
 
         if (mIsComplete) {
-            NemoCalendarManager::instance()->scheduleInvitationQuery(this, mInvitationFile);
+            CalendarManager::instance()->scheduleInvitationQuery(this, mInvitationFile);
         } else {
             mNeedQuery = true;
         }
     }
 }
 
-void NemoCalendarInvitationQuery::queryResult(NemoCalendarData::Event event)
+void CalendarInvitationQuery::queryResult(CalendarData::Event event)
 {
     bool needNUidEmit = false;
     bool needUidEmit = false;

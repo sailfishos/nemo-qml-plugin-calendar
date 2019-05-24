@@ -29,7 +29,7 @@ public:
     Q_INVOKABLE QString name(int index) const;
     Q_INVOKABLE QString email(int index) const;
 
-    QList<NemoCalendarData::EmailContact> getList();
+    QList<CalendarData::EmailContact> getList();
 
 signals:
     void countChanged();
@@ -38,7 +38,7 @@ protected:
     virtual QHash<int, QByteArray> roleNames() const;
 
 private:
-    QList<NemoCalendarData::EmailContact> m_contacts;
+    QList<CalendarData::EmailContact> m_contacts;
 };
 
 #endif

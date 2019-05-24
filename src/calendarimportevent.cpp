@@ -85,12 +85,12 @@ bool CalendarImportEvent::allDay() const
     return mEvent->allDay();
 }
 
-NemoCalendarEvent::Recur CalendarImportEvent::recur()
+CalendarEvent::Recur CalendarImportEvent::recur()
 {
     if (!mEvent)
-        return NemoCalendarEvent::RecurOnce;
+        return CalendarEvent::RecurOnce;
 
-    return NemoCalendarUtils::convertRecurrence(mEvent);
+    return CalendarUtils::convertRecurrence(mEvent);
 }
 
 int CalendarImportEvent::reminder() const
@@ -98,7 +98,7 @@ int CalendarImportEvent::reminder() const
     // note: returns seconds before event, so 15 minutes before = 900.
     //       zero value means "reminder at time of the event".
     //       negative value means "no reminder".
-    return NemoCalendarUtils::getReminder(mEvent);
+    return CalendarUtils::getReminder(mEvent);
 }
 
 QString CalendarImportEvent::uniqueId() const
@@ -128,15 +128,15 @@ QList<QObject *> CalendarImportEvent::attendees() const
         return QList<QObject *>();
 
     // TODO: ownerEmail to be fixed later when invitation creation is done in calendar
-    return NemoCalendarUtils::convertAttendeeList(NemoCalendarUtils::getEventAttendees(mEvent, QString()));
+    return CalendarUtils::convertAttendeeList(CalendarUtils::getEventAttendees(mEvent, QString()));
 }
 
-NemoCalendarEvent::Secrecy CalendarImportEvent::secrecy() const
+CalendarEvent::Secrecy CalendarImportEvent::secrecy() const
 {
     if (!mEvent)
-        return NemoCalendarEvent::SecrecyPublic;
+        return CalendarEvent::SecrecyPublic;
 
-    return NemoCalendarUtils::convertSecrecy(mEvent);
+    return CalendarUtils::convertSecrecy(mEvent);
 }
 
 QString CalendarImportEvent::organizer() const
@@ -164,9 +164,9 @@ void CalendarImportEvent::setColor(const QString &color)
     emit colorChanged();
 }
 
-NemoCalendarEvent::Response CalendarImportEvent::ownerStatus() const
+CalendarEvent::Response CalendarImportEvent::ownerStatus() const
 {
-    return NemoCalendarEvent::ResponseUnspecified;
+    return CalendarEvent::ResponseUnspecified;
 }
 
 bool CalendarImportEvent::rsvp() const
@@ -185,9 +185,9 @@ QObject *CalendarImportEvent::nextOccurrence()
     if (!mEvent)
         return 0;
 
-    NemoCalendarData::EventOccurrence eo = NemoCalendarUtils::getNextOccurrence(mEvent);
-    return new NemoCalendarEventOccurrence(eo.eventUid,
-                                           eo.recurrenceId,
-                                           eo.startTime,
-                                           eo.endTime);
+    CalendarData::EventOccurrence eo = CalendarUtils::getNextOccurrence(mEvent);
+    return new CalendarEventOccurrence(eo.eventUid,
+                                       eo.recurrenceId,
+                                       eo.startTime,
+                                       eo.endTime);
 }

@@ -4,7 +4,7 @@
 #include <QObject>
 #include "calendardata.h"
 
-class NemoCalendarNotebookQuery : public QObject
+class CalendarNotebookQuery : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString targetUid READ targetUid WRITE setTargetUid NOTIFY targetUidChanged)
@@ -19,8 +19,8 @@ class NemoCalendarNotebookQuery : public QObject
     Q_PROPERTY(bool isReadOnly READ isReadOnly NOTIFY isReadOnlyChanged)
 
 public:
-    explicit NemoCalendarNotebookQuery(QObject *parent = 0);
-    ~NemoCalendarNotebookQuery();
+    explicit CalendarNotebookQuery(QObject *parent = 0);
+    ~CalendarNotebookQuery();
 
     QString targetUid() const;
     void setTargetUid(const QString &target);
@@ -51,7 +51,7 @@ private slots:
     void updateData();
 
 private:
-    NemoCalendarData::Notebook m_notebook;
+    CalendarData::Notebook m_notebook;
     QString m_targetUid;
     bool m_isValid;
 };

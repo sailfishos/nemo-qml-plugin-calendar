@@ -88,11 +88,11 @@ void CalendarDataService::updated()
 {
     EventDataList reply;
     for (int i = 0; i < mAgendaModel->count(); i++) {
-        QVariant variant = mAgendaModel->get(i, NemoCalendarAgendaModel::EventObjectRole);
-        QVariant occurrenceVariant = mAgendaModel->get(i, NemoCalendarAgendaModel::OccurrenceObjectRole);
-        if (variant.canConvert<NemoCalendarEvent *>() && occurrenceVariant.canConvert<NemoCalendarEventOccurrence *>()) {
-            NemoCalendarEvent* event = variant.value<NemoCalendarEvent *>();
-            NemoCalendarEventOccurrence* occurrence = occurrenceVariant.value<NemoCalendarEventOccurrence *>();
+        QVariant variant = mAgendaModel->get(i, CalendarAgendaModel::EventObjectRole);
+        QVariant occurrenceVariant = mAgendaModel->get(i, CalendarAgendaModel::OccurrenceObjectRole);
+        if (variant.canConvert<CalendarEvent *>() && occurrenceVariant.canConvert<CalendarEventOccurrence *>()) {
+            CalendarEvent* event = variant.value<CalendarEvent *>();
+            CalendarEventOccurrence* occurrence = occurrenceVariant.value<CalendarEventOccurrence *>();
             EventData eventStruct;
             eventStruct.displayLabel = event->displayLabel();
             eventStruct.description = event->description();
@@ -128,11 +128,11 @@ void CalendarDataService::shutdown()
     connection.unregisterObject("/org/nemomobile/calendardataservice");
 
     if (mAgendaModel) {
-        // Call NemoCalendarManager dtor to ensure that the QThread managed by it
+        // Call CalendarManager dtor to ensure that the QThread managed by it
         // will be destroyed via deleteLater when control returns to the event loop.
-        // Delete the AgendaModel first, its destructor refers to NemoCalendarManager
+        // Delete the AgendaModel first, its destructor refers to CalendarManager
         delete mAgendaModel;
-        delete NemoCalendarManager::instance();
+        delete CalendarManager::instance();
     }
     QTimer::singleShot(0, QCoreApplication::instance(), SLOT(quit()));
 }
@@ -140,7 +140,7 @@ void CalendarDataService::shutdown()
 void CalendarDataService::initialize()
 {
     if (!mAgendaModel) {
-        mAgendaModel = new NemoCalendarAgendaModel(this);
+        mAgendaModel = new CalendarAgendaModel(this);
         connect(mAgendaModel, SIGNAL(updated()), this, SLOT(updated()));
     }
 }

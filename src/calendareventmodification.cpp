@@ -3,15 +3,15 @@
 
 #include <QDebug>
 
-NemoCalendarEventModification::NemoCalendarEventModification(NemoCalendarData::Event data, QObject *parent)
+CalendarEventModification::CalendarEventModification(CalendarData::Event data, QObject *parent)
     : QObject(parent), m_event(data), m_attendeesSet(false)
 {
 }
 
-NemoCalendarEventModification::NemoCalendarEventModification(QObject *parent) :
+CalendarEventModification::CalendarEventModification(QObject *parent) :
     QObject(parent), m_attendeesSet(false)
 {
-    m_event.recur = NemoCalendarEvent::RecurOnce;
+    m_event.recur = CalendarEvent::RecurOnce;
     m_event.reminder = -1; // ReminderNone
     m_event.allDay = false;
     m_event.readonly = false;
@@ -19,16 +19,16 @@ NemoCalendarEventModification::NemoCalendarEventModification(QObject *parent) :
     m_event.endTime = KDateTime(QDateTime(), KDateTime::LocalZone);
 }
 
-NemoCalendarEventModification::~NemoCalendarEventModification()
+CalendarEventModification::~CalendarEventModification()
 {
 }
 
-QString NemoCalendarEventModification::displayLabel() const
+QString CalendarEventModification::displayLabel() const
 {
     return m_event.displayLabel;
 }
 
-void NemoCalendarEventModification::setDisplayLabel(const QString &displayLabel)
+void CalendarEventModification::setDisplayLabel(const QString &displayLabel)
 {
     if (m_event.displayLabel != displayLabel) {
         m_event.displayLabel = displayLabel;
@@ -36,12 +36,12 @@ void NemoCalendarEventModification::setDisplayLabel(const QString &displayLabel)
     }
 }
 
-QString NemoCalendarEventModification::description() const
+QString CalendarEventModification::description() const
 {
     return m_event.description;
 }
 
-void NemoCalendarEventModification::setDescription(const QString &description)
+void CalendarEventModification::setDescription(const QString &description)
 {
     if (m_event.description != description) {
         m_event.description = description;
@@ -49,15 +49,15 @@ void NemoCalendarEventModification::setDescription(const QString &description)
     }
 }
 
-QDateTime NemoCalendarEventModification::startTime() const
+QDateTime CalendarEventModification::startTime() const
 {
     return m_event.startTime.dateTime();
 }
 
-void NemoCalendarEventModification::setStartTime(const QDateTime &startTime, int spec)
+void CalendarEventModification::setStartTime(const QDateTime &startTime, int spec)
 {
     KDateTime::SpecType kSpec = KDateTime::LocalZone;
-    if (spec == NemoCalendarEvent::SpecClockTime) {
+    if (spec == CalendarEvent::SpecClockTime) {
         kSpec = KDateTime::ClockTime;
     }
 
@@ -68,15 +68,15 @@ void NemoCalendarEventModification::setStartTime(const QDateTime &startTime, int
     }
 }
 
-QDateTime NemoCalendarEventModification::endTime() const
+QDateTime CalendarEventModification::endTime() const
 {
     return m_event.endTime.dateTime();
 }
 
-void NemoCalendarEventModification::setEndTime(const QDateTime &endTime, int spec)
+void CalendarEventModification::setEndTime(const QDateTime &endTime, int spec)
 {
     KDateTime::SpecType kSpec = KDateTime::LocalZone;
-    if (spec == NemoCalendarEvent::SpecClockTime) {
+    if (spec == CalendarEvent::SpecClockTime) {
         kSpec = KDateTime::ClockTime;
     }
     KDateTime time(endTime, kSpec);
@@ -87,12 +87,12 @@ void NemoCalendarEventModification::setEndTime(const QDateTime &endTime, int spe
     }
 }
 
-bool NemoCalendarEventModification::allDay() const
+bool CalendarEventModification::allDay() const
 {
     return m_event.allDay;
 }
 
-void NemoCalendarEventModification::setAllDay(bool allDay)
+void CalendarEventModification::setAllDay(bool allDay)
 {
     if (m_event.allDay != allDay) {
         m_event.allDay = allDay;
@@ -100,12 +100,12 @@ void NemoCalendarEventModification::setAllDay(bool allDay)
     }
 }
 
-NemoCalendarEvent::Recur NemoCalendarEventModification::recur() const
+CalendarEvent::Recur CalendarEventModification::recur() const
 {
     return m_event.recur;
 }
 
-void NemoCalendarEventModification::setRecur(NemoCalendarEvent::Recur recur)
+void CalendarEventModification::setRecur(CalendarEvent::Recur recur)
 {
     if (m_event.recur != recur) {
         m_event.recur = recur;
@@ -113,17 +113,17 @@ void NemoCalendarEventModification::setRecur(NemoCalendarEvent::Recur recur)
     }
 }
 
-QDateTime NemoCalendarEventModification::recurEndDate() const
+QDateTime CalendarEventModification::recurEndDate() const
 {
     return QDateTime(m_event.recurEndDate);
 }
 
-bool NemoCalendarEventModification::hasRecurEndDate() const
+bool CalendarEventModification::hasRecurEndDate() const
 {
     return m_event.recurEndDate.isValid();
 }
 
-void NemoCalendarEventModification::setRecurEndDate(const QDateTime &dateTime)
+void CalendarEventModification::setRecurEndDate(const QDateTime &dateTime)
 {
     bool wasValid = m_event.recurEndDate.isValid();
     QDate date = dateTime.date();
@@ -138,12 +138,12 @@ void NemoCalendarEventModification::setRecurEndDate(const QDateTime &dateTime)
     }
 }
 
-void NemoCalendarEventModification::unsetRecurEndDate()
+void CalendarEventModification::unsetRecurEndDate()
 {
     setRecurEndDate(QDateTime());
 }
 
-QString NemoCalendarEventModification::recurrenceIdString() const
+QString CalendarEventModification::recurrenceIdString() const
 {
     if (m_event.recurrenceId.isValid()) {
         return m_event.recurrenceId.toString();
@@ -152,12 +152,12 @@ QString NemoCalendarEventModification::recurrenceIdString() const
     }
 }
 
-int NemoCalendarEventModification::reminder() const
+int CalendarEventModification::reminder() const
 {
     return m_event.reminder;
 }
 
-void NemoCalendarEventModification::setReminder(int seconds)
+void CalendarEventModification::setReminder(int seconds)
 {
     if (seconds != m_event.reminder) {
         m_event.reminder = seconds;
@@ -165,12 +165,12 @@ void NemoCalendarEventModification::setReminder(int seconds)
     }
 }
 
-QString NemoCalendarEventModification::location() const
+QString CalendarEventModification::location() const
 {
     return m_event.location;
 }
 
-void NemoCalendarEventModification::setLocation(const QString &newLocation)
+void CalendarEventModification::setLocation(const QString &newLocation)
 {
     if (newLocation != m_event.location) {
         m_event.location = newLocation;
@@ -178,12 +178,12 @@ void NemoCalendarEventModification::setLocation(const QString &newLocation)
     }
 }
 
-QString NemoCalendarEventModification::calendarUid() const
+QString CalendarEventModification::calendarUid() const
 {
     return m_event.calendarUid;
 }
 
-void NemoCalendarEventModification::setCalendarUid(const QString &uid)
+void CalendarEventModification::setCalendarUid(const QString &uid)
 {
     if (m_event.calendarUid != uid) {
         m_event.calendarUid = uid;
@@ -191,7 +191,7 @@ void NemoCalendarEventModification::setCalendarUid(const QString &uid)
     }
 }
 
-void NemoCalendarEventModification::setAttendees(CalendarContactModel *required, CalendarContactModel *optional)
+void CalendarEventModification::setAttendees(CalendarContactModel *required, CalendarContactModel *optional)
 {
     if (!required || !optional) {
         qWarning() << "Missing attendeeList";
@@ -203,15 +203,15 @@ void NemoCalendarEventModification::setAttendees(CalendarContactModel *required,
     m_optionalAttendees = optional->getList();
 }
 
-void NemoCalendarEventModification::save()
+void CalendarEventModification::save()
 {
-    NemoCalendarManager::instance()->saveModification(m_event, m_attendeesSet,
-                                                      m_requiredAttendees, m_optionalAttendees);
+    CalendarManager::instance()->saveModification(m_event, m_attendeesSet,
+                                                  m_requiredAttendees, m_optionalAttendees);
 }
 
-NemoCalendarChangeInformation *
-NemoCalendarEventModification::replaceOccurrence(NemoCalendarEventOccurrence *occurrence)
+CalendarChangeInformation *
+CalendarEventModification::replaceOccurrence(CalendarEventOccurrence *occurrence)
 {
-    return NemoCalendarManager::instance()->replaceOccurrence(m_event, occurrence, m_attendeesSet,
-                                                              m_requiredAttendees, m_optionalAttendees);
+    return CalendarManager::instance()->replaceOccurrence(m_event, occurrence, m_attendeesSet,
+                                                          m_requiredAttendees, m_optionalAttendees);
 }

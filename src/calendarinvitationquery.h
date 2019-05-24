@@ -41,8 +41,8 @@
 
 #include <KDateTime>
 
-class NemoCalendarManager;
-class NemoCalendarInvitationQuery : public QObject, public QQmlParserStatus
+class CalendarManager;
+class CalendarInvitationQuery : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
@@ -54,8 +54,8 @@ class NemoCalendarInvitationQuery : public QObject, public QQmlParserStatus
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
 
 public:
-    NemoCalendarInvitationQuery();
-    ~NemoCalendarInvitationQuery();
+    CalendarInvitationQuery();
+    ~CalendarInvitationQuery();
 
     QString invitationFile() const;
     void setInvitationFile(const QString &file);
@@ -82,8 +82,8 @@ signals:
     void queryFinished();
 
 private:
-    friend class NemoCalendarManager;
-    void queryResult(NemoCalendarData::Event event);
+    friend class CalendarManager;
+    void queryResult(CalendarData::Event event);
 
     bool mIsComplete;
     bool mNeedQuery;

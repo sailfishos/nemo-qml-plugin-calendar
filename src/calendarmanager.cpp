@@ -45,47 +45,47 @@
 // kCalCore
 #include <calformat.h>
 
-NemoCalendarManager::NemoCalendarManager()
+CalendarManager::CalendarManager()
     : mLoadPending(false), mResetPending(false)
 {
     qRegisterMetaType<KDateTime>("KDateTime");
     qRegisterMetaType<QList<KDateTime> >("QList<KDateTime>");
-    qRegisterMetaType<NemoCalendarEvent::Recur>("NemoCalendarEvent::Recur");
-    qRegisterMetaType<QHash<QString,NemoCalendarData::EventOccurrence> >("QHash<QString,NemoCalendarData::EventOccurrence>");
-    qRegisterMetaType<NemoCalendarData::Event>("NemoCalendarData::Event");
-    qRegisterMetaType<QMultiHash<QString,NemoCalendarData::Event> >("QMultiHash<QString,NemoCalendarData::Event>");
+    qRegisterMetaType<CalendarEvent::Recur>("CalendarEvent::Recur");
+    qRegisterMetaType<QHash<QString,CalendarData::EventOccurrence> >("QHash<QString,CalendarData::EventOccurrence>");
+    qRegisterMetaType<CalendarData::Event>("CalendarData::Event");
+    qRegisterMetaType<QMultiHash<QString,CalendarData::Event> >("QMultiHash<QString,CalendarData::Event>");
     qRegisterMetaType<QHash<QDate,QStringList> >("QHash<QDate,QStringList>");
-    qRegisterMetaType<NemoCalendarData::Range>("NemoCalendarData::Range");
-    qRegisterMetaType<QList<NemoCalendarData::Range > >("QList<NemoCalendarData::Range>");
-    qRegisterMetaType<QList<NemoCalendarData::Notebook> >("QList<NemoCalendarData::Notebook>");
-    qRegisterMetaType<QList<NemoCalendarData::EmailContact> >("QList<NemoCalendarData::EmailContact>");
+    qRegisterMetaType<CalendarData::Range>("CalendarData::Range");
+    qRegisterMetaType<QList<CalendarData::Range > >("QList<CalendarData::Range>");
+    qRegisterMetaType<QList<CalendarData::Notebook> >("QList<CalendarData::Notebook>");
+    qRegisterMetaType<QList<CalendarData::EmailContact> >("QList<CalendarData::EmailContact>");
 
-    mCalendarWorker = new NemoCalendarWorker();
+    mCalendarWorker = new CalendarWorker();
     mCalendarWorker->moveToThread(&mWorkerThread);
 
     connect(&mWorkerThread, &QThread::finished, mCalendarWorker, &QObject::deleteLater);
 
-    connect(mCalendarWorker, &NemoCalendarWorker::storageModifiedSignal,
-            this, &NemoCalendarManager::storageModifiedSlot);
+    connect(mCalendarWorker, &CalendarWorker::storageModifiedSignal,
+            this, &CalendarManager::storageModifiedSlot);
 
-    connect(mCalendarWorker, &NemoCalendarWorker::eventNotebookChanged,
-            this, &NemoCalendarManager::eventNotebookChanged);
+    connect(mCalendarWorker, &CalendarWorker::eventNotebookChanged,
+            this, &CalendarManager::eventNotebookChanged);
 
-    connect(mCalendarWorker, &NemoCalendarWorker::excludedNotebooksChanged,
-            this, &NemoCalendarManager::excludedNotebooksChangedSlot);
-    connect(mCalendarWorker, &NemoCalendarWorker::notebooksChanged,
-            this, &NemoCalendarManager::notebooksChangedSlot);
+    connect(mCalendarWorker, &CalendarWorker::excludedNotebooksChanged,
+            this, &CalendarManager::excludedNotebooksChangedSlot);
+    connect(mCalendarWorker, &CalendarWorker::notebooksChanged,
+            this, &CalendarManager::notebooksChangedSlot);
 
-    connect(mCalendarWorker, &NemoCalendarWorker::dataLoaded,
-            this, &NemoCalendarManager::dataLoadedSlot);
+    connect(mCalendarWorker, &CalendarWorker::dataLoaded,
+            this, &CalendarManager::dataLoadedSlot);
 
-    connect(mCalendarWorker, &NemoCalendarWorker::occurrenceExceptionFailed,
-            this, &NemoCalendarManager::occurrenceExceptionFailedSlot);
-    connect(mCalendarWorker, &NemoCalendarWorker::occurrenceExceptionCreated,
-            this, &NemoCalendarManager::occurrenceExceptionCreatedSlot);
+    connect(mCalendarWorker, &CalendarWorker::occurrenceExceptionFailed,
+            this, &CalendarManager::occurrenceExceptionFailedSlot);
+    connect(mCalendarWorker, &CalendarWorker::occurrenceExceptionCreated,
+            this, &CalendarManager::occurrenceExceptionCreatedSlot);
 
-    connect(mCalendarWorker, &NemoCalendarWorker::findMatchingEventFinished,
-            this, &NemoCalendarManager::findMatchingEventFinished);
+    connect(mCalendarWorker, &CalendarWorker::findMatchingEventFinished,
+            this, &CalendarManager::findMatchingEventFinished);
 
     mWorkerThread.setObjectName("calendarworker");
     mWorkerThread.start();
@@ -98,46 +98,46 @@ NemoCalendarManager::NemoCalendarManager()
     connect(mTimer, SIGNAL(timeout()), this, SLOT(timeout()));
 }
 
-NemoCalendarManager *NemoCalendarManager::instance(bool createIfNeeded)
+CalendarManager *CalendarManager::instance(bool createIfNeeded)
 {
-    static NemoCalendarManager *managerInstance;
+    static CalendarManager *managerInstance;
     if (!managerInstance && createIfNeeded)
-        managerInstance = new NemoCalendarManager;
+        managerInstance = new CalendarManager;
 
     return managerInstance;
 }
 
-NemoCalendarManager::~NemoCalendarManager()
+CalendarManager::~CalendarManager()
 {
     mWorkerThread.quit();
     mWorkerThread.wait();
 }
 
-QList<NemoCalendarData::Notebook> NemoCalendarManager::notebooks()
+QList<CalendarData::Notebook> CalendarManager::notebooks()
 {
     return mNotebooks.values();
 }
 
-QString NemoCalendarManager::defaultNotebook() const
+QString CalendarManager::defaultNotebook() const
 {
-    foreach (const NemoCalendarData::Notebook &notebook, mNotebooks) {
+    foreach (const CalendarData::Notebook &notebook, mNotebooks) {
         if (notebook.isDefault)
             return notebook.uid;
     }
     return QString();
 }
 
-void NemoCalendarManager::setDefaultNotebook(const QString &notebookUid)
+void CalendarManager::setDefaultNotebook(const QString &notebookUid)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "setDefaultNotebook", Qt::QueuedConnection,
                               Q_ARG(QString, notebookUid));
 }
 
-NemoCalendarEvent* NemoCalendarManager::eventObject(const QString &eventUid, const KDateTime &recurrenceId)
+CalendarEvent* CalendarManager::eventObject(const QString &eventUid, const KDateTime &recurrenceId)
 {
-    NemoCalendarData::Event event = getEvent(eventUid, recurrenceId);
+    CalendarData::Event event = getEvent(eventUid, recurrenceId);
     if (event.isValid()) {
-        QMultiHash<QString, NemoCalendarEvent *>::iterator it = mEventObjects.find(eventUid);
+        QMultiHash<QString, CalendarEvent *>::iterator it = mEventObjects.find(eventUid);
         while (it != mEventObjects.end() && it.key() == eventUid) {
             if ((*it)->recurrenceId() == recurrenceId) {
                 return *it;
@@ -145,7 +145,7 @@ NemoCalendarEvent* NemoCalendarManager::eventObject(const QString &eventUid, con
             ++it;
         }
 
-        NemoCalendarEvent *calendarEvent = new NemoCalendarEvent(this, eventUid, recurrenceId);
+        CalendarEvent *calendarEvent = new CalendarEvent(this, eventUid, recurrenceId);
         mEventObjects.insert(eventUid, calendarEvent);
         return calendarEvent;
     }
@@ -153,26 +153,26 @@ NemoCalendarEvent* NemoCalendarManager::eventObject(const QString &eventUid, con
     // TODO: maybe attempt to read event from DB? This situation should not happen.
     qWarning() << Q_FUNC_INFO << "No event with uid" << eventUid << recurrenceId.toString() << ", returning empty event";
 
-    return new NemoCalendarEvent(this, QString(), KDateTime());
+    return new CalendarEvent(this, QString(), KDateTime());
 }
 
-void NemoCalendarManager::saveModification(NemoCalendarData::Event eventData, bool updateAttendees,
-                                           const QList<NemoCalendarData::EmailContact> &required,
-                                           const QList<NemoCalendarData::EmailContact> &optional)
+void CalendarManager::saveModification(CalendarData::Event eventData, bool updateAttendees,
+                                       const QList<CalendarData::EmailContact> &required,
+                                       const QList<CalendarData::EmailContact> &optional)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "saveEvent", Qt::QueuedConnection,
-                              Q_ARG(NemoCalendarData::Event, eventData),
+                              Q_ARG(CalendarData::Event, eventData),
                               Q_ARG(bool, updateAttendees),
-                              Q_ARG(QList<NemoCalendarData::EmailContact>, required),
-                              Q_ARG(QList<NemoCalendarData::EmailContact>, optional));
+                              Q_ARG(QList<CalendarData::EmailContact>, required),
+                              Q_ARG(QList<CalendarData::EmailContact>, optional));
 }
 
 // caller owns returned object
-NemoCalendarChangeInformation *
-NemoCalendarManager::replaceOccurrence(NemoCalendarData::Event eventData, NemoCalendarEventOccurrence *occurrence,
-                                       bool updateAttendees,
-                                       const QList<NemoCalendarData::EmailContact> &required,
-                                       const QList<NemoCalendarData::EmailContact> &optional)
+CalendarChangeInformation *
+CalendarManager::replaceOccurrence(CalendarData::Event eventData, CalendarEventOccurrence *occurrence,
+                                   bool updateAttendees,
+                                   const QList<CalendarData::EmailContact> &required,
+                                   const QList<CalendarData::EmailContact> &optional)
 {
     if (!occurrence) {
         qWarning() << Q_FUNC_INFO << "no occurrence given";
@@ -185,25 +185,25 @@ NemoCalendarManager::replaceOccurrence(NemoCalendarData::Event eventData, NemoCa
     }
 
     // save request information for signal handling
-    NemoCalendarChangeInformation *changes = new NemoCalendarChangeInformation;
+    CalendarChangeInformation *changes = new CalendarChangeInformation;
     OccurrenceData changeData = { eventData, occurrence->startTime(), changes };
     mPendingOccurrenceExceptions.append(changeData);
 
     QMetaObject::invokeMethod(mCalendarWorker, "replaceOccurrence", Qt::QueuedConnection,
-                              Q_ARG(NemoCalendarData::Event, eventData),
+                              Q_ARG(CalendarData::Event, eventData),
                               Q_ARG(QDateTime, occurrence->startTime()),
                               Q_ARG(bool, updateAttendees),
-                              Q_ARG(QList<NemoCalendarData::EmailContact>, required),
-                              Q_ARG(QList<NemoCalendarData::EmailContact>, optional));
+                              Q_ARG(QList<CalendarData::EmailContact>, required),
+                              Q_ARG(QList<CalendarData::EmailContact>, optional));
     return changes;
 }
 
-QStringList NemoCalendarManager::excludedNotebooks()
+QStringList CalendarManager::excludedNotebooks()
 {
     return mExcludedNotebooks;
 }
 
-void NemoCalendarManager::setExcludedNotebooks(const QStringList &list)
+void CalendarManager::setExcludedNotebooks(const QStringList &list)
 {
     QStringList sorted;
     sorted.append(list);
@@ -215,34 +215,34 @@ void NemoCalendarManager::setExcludedNotebooks(const QStringList &list)
                               Q_ARG(QStringList, sorted));
 }
 
-void NemoCalendarManager::excludeNotebook(const QString &notebookUid, bool exclude)
+void CalendarManager::excludeNotebook(const QString &notebookUid, bool exclude)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "excludeNotebook", Qt::QueuedConnection,
                               Q_ARG(QString, notebookUid),
                               Q_ARG(bool, exclude));
 }
 
-void NemoCalendarManager::setNotebookColor(const QString &notebookUid, const QString &color)
+void CalendarManager::setNotebookColor(const QString &notebookUid, const QString &color)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "setNotebookColor", Qt::QueuedConnection,
                               Q_ARG(QString, notebookUid),
                               Q_ARG(QString, color));
 }
 
-QString NemoCalendarManager::getNotebookColor(const QString &notebookUid) const
+QString CalendarManager::getNotebookColor(const QString &notebookUid) const
 {
     if (mNotebooks.contains(notebookUid))
-        return mNotebooks.value(notebookUid, NemoCalendarData::Notebook()).color;
+        return mNotebooks.value(notebookUid, CalendarData::Notebook()).color;
     else
         return QString();
 }
 
-void NemoCalendarManager::cancelAgendaRefresh(NemoCalendarAgendaModel *model)
+void CalendarManager::cancelAgendaRefresh(CalendarAgendaModel *model)
 {
     mAgendaRefreshList.removeOne(model);
 }
 
-void NemoCalendarManager::scheduleAgendaRefresh(NemoCalendarAgendaModel *model)
+void CalendarManager::scheduleAgendaRefresh(CalendarAgendaModel *model)
 {
     if (mAgendaRefreshList.contains(model))
         return;
@@ -253,17 +253,17 @@ void NemoCalendarManager::scheduleAgendaRefresh(NemoCalendarAgendaModel *model)
         mTimer->start();
 }
 
-void NemoCalendarManager::registerEventQuery(NemoCalendarEventQuery *query)
+void CalendarManager::registerEventQuery(CalendarEventQuery *query)
 {
     mQueryList.append(query);
 }
 
-void NemoCalendarManager::unRegisterEventQuery(NemoCalendarEventQuery *query)
+void CalendarManager::unRegisterEventQuery(CalendarEventQuery *query)
 {
     mQueryList.removeOne(query);
 }
 
-void NemoCalendarManager::scheduleEventQueryRefresh(NemoCalendarEventQuery *query)
+void CalendarManager::scheduleEventQueryRefresh(CalendarEventQuery *query)
 {
     if (mQueryRefreshList.contains(query))
         return;
@@ -274,25 +274,25 @@ void NemoCalendarManager::scheduleEventQueryRefresh(NemoCalendarEventQuery *quer
         mTimer->start();
 }
 
-static QDate agenda_endDate(const NemoCalendarAgendaModel *model)
+static QDate agenda_endDate(const CalendarAgendaModel *model)
 {
     QDate endDate = model->endDate();
     return endDate.isValid() ? endDate: model->startDate();
 }
 
-bool NemoCalendarManager::isRangeLoaded(const NemoCalendarData::Range &r, QList<NemoCalendarData::Range> *missingRanges)
+bool CalendarManager::isRangeLoaded(const CalendarData::Range &r, QList<CalendarData::Range> *missingRanges)
 {
     missingRanges->clear();
     // Range not loaded, no stored data
     if (mLoadedRanges.isEmpty()) {
-        missingRanges->append(NemoCalendarData::Range());
+        missingRanges->append(CalendarData::Range());
         missingRanges->last().first = r.first;
         missingRanges->last().second = r.second;
         return false;
     }
 
     QDate start(r.first);
-    foreach (const NemoCalendarData::Range range, mLoadedRanges) {
+    foreach (const CalendarData::Range range, mLoadedRanges) {
         // Range already loaded
         if (start >= range.first && r.second <= range.second)
             return missingRanges->isEmpty();
@@ -313,7 +313,7 @@ bool NemoCalendarManager::isRangeLoaded(const NemoCalendarData::Range &r, QList<
         // |------xxxxxxx---xxxxx----|
         //               lll
         if (start < range.first && r.second <= range.second) {
-            missingRanges->append(NemoCalendarData::Range());
+            missingRanges->append(CalendarData::Range());
             missingRanges->last().first = start;
             if (r.second < range.first)
                 missingRanges->last().second = r.second;
@@ -335,43 +335,43 @@ bool NemoCalendarManager::isRangeLoaded(const NemoCalendarData::Range &r, QList<
         // |------xxxxxxx---xxxxx----|
         //               lll     ll
         if (start < range.first && range.second < r.second) {
-            missingRanges->append(NemoCalendarData::Range());
+            missingRanges->append(CalendarData::Range());
             missingRanges->last().first = start;
             missingRanges->last().second = range.first.addDays(-1);
             start = range.second.addDays(1);
         }
     }
 
-    missingRanges->append(NemoCalendarData::Range());
+    missingRanges->append(CalendarData::Range());
     missingRanges->last().first = start;
     missingRanges->last().second = r.second;
 
     return false;
 }
 
-static bool range_lessThan(NemoCalendarData::Range lhs, NemoCalendarData::Range rhs)
+static bool range_lessThan(CalendarData::Range lhs, CalendarData::Range rhs)
 {
     return lhs.first < rhs.first;
 }
 
-QList<NemoCalendarData::Range> NemoCalendarManager::addRanges(const QList<NemoCalendarData::Range> &oldRanges,
-                                                              const QList<NemoCalendarData::Range> &newRanges)
+QList<CalendarData::Range> CalendarManager::addRanges(const QList<CalendarData::Range> &oldRanges,
+                                                      const QList<CalendarData::Range> &newRanges)
 {
     if (newRanges.isEmpty() && oldRanges.isEmpty())
         return oldRanges;
 
     // sort
-    QList<NemoCalendarData::Range> sortedRanges;
+    QList<CalendarData::Range> sortedRanges;
     sortedRanges.append(oldRanges);
     sortedRanges.append(newRanges);
     qSort(sortedRanges.begin(), sortedRanges.end(), range_lessThan);
 
     // combine
-    QList<NemoCalendarData::Range> combinedRanges;
+    QList<CalendarData::Range> combinedRanges;
     combinedRanges.append(sortedRanges.first());
 
     for (int i = 1; i < sortedRanges.count(); ++i) {
-        NemoCalendarData::Range r = sortedRanges.at(i);
+        CalendarData::Range r = sortedRanges.at(i);
         if (combinedRanges.last().second.addDays(1) >= r.first)
             combinedRanges.last().second = qMax(combinedRanges.last().second, r.second);
         else
@@ -381,22 +381,22 @@ QList<NemoCalendarData::Range> NemoCalendarManager::addRanges(const QList<NemoCa
     return combinedRanges;
 }
 
-void NemoCalendarManager::updateAgendaModel(NemoCalendarAgendaModel *model)
+void CalendarManager::updateAgendaModel(CalendarAgendaModel *model)
 {
-    QList<NemoCalendarEventOccurrence*> filtered;
+    QList<CalendarEventOccurrence*> filtered;
     if (model->startDate() == model->endDate() || !model->endDate().isValid()) {
         foreach (const QString &id, mEventOccurrenceForDates.value(model->startDate())) {
             if (mEventOccurrences.contains(id)) {
-                NemoCalendarData::EventOccurrence eo = mEventOccurrences.value(id);
-                filtered.append(new NemoCalendarEventOccurrence(eo.eventUid, eo.recurrenceId,
-                                                                eo.startTime, eo.endTime));
+                CalendarData::EventOccurrence eo = mEventOccurrences.value(id);
+                filtered.append(new CalendarEventOccurrence(eo.eventUid, eo.recurrenceId,
+                                                            eo.startTime, eo.endTime));
             } else {
                 qWarning() << "no occurrence with id" << id;
             }
         }
     } else {
-        foreach (const NemoCalendarData::EventOccurrence &eo, mEventOccurrences.values()) {
-            NemoCalendarEvent *event = eventObject(eo.eventUid, eo.recurrenceId);
+        foreach (const CalendarData::EventOccurrence &eo, mEventOccurrences.values()) {
+            CalendarEvent *event = eventObject(eo.eventUid, eo.recurrenceId);
             if (!event) {
                 qWarning() << "no event for occurrence";
                 continue;
@@ -410,8 +410,8 @@ void NemoCalendarManager::updateAgendaModel(NemoCalendarAgendaModel *model)
                      || (eo.endTime.date() == start && (event->allDay()
                                                         || eo.endTime.time() > QTime(0, 0)))))
                     || (eo.startTime.date() >= start && eo.startTime.date() <= end)) {
-                filtered.append(new NemoCalendarEventOccurrence(eo.eventUid, eo.recurrenceId,
-                                                                eo.startTime, eo.endTime));
+                filtered.append(new CalendarEventOccurrence(eo.eventUid, eo.recurrenceId,
+                                                            eo.startTime, eo.endTime));
             }
         }
     }
@@ -419,23 +419,23 @@ void NemoCalendarManager::updateAgendaModel(NemoCalendarAgendaModel *model)
     model->doRefresh(filtered);
 }
 
-void NemoCalendarManager::doAgendaAndQueryRefresh()
+void CalendarManager::doAgendaAndQueryRefresh()
 {
-    QList<NemoCalendarAgendaModel *> agendaModels = mAgendaRefreshList;
+    QList<CalendarAgendaModel *> agendaModels = mAgendaRefreshList;
     mAgendaRefreshList.clear();
-    QList<NemoCalendarData::Range> missingRanges;
-    foreach (NemoCalendarAgendaModel *model, agendaModels) {
-        NemoCalendarData::Range range;
+    QList<CalendarData::Range> missingRanges;
+    foreach (CalendarAgendaModel *model, agendaModels) {
+        CalendarData::Range range;
         range.first = model->startDate();
         range.second = agenda_endDate(model);
 
         if (!range.first.isValid()) {
             // need start date for fetching events, clear this model
-            model->doRefresh(QList<NemoCalendarEventOccurrence*>());
+            model->doRefresh(QList<CalendarEventOccurrence*>());
             continue;
         }
 
-        QList<NemoCalendarData::Range> newRanges;
+        QList<CalendarData::Range> newRanges;
         if (isRangeLoaded(range, &newRanges))
             updateAgendaModel(model);
         else
@@ -448,16 +448,16 @@ void NemoCalendarManager::doAgendaAndQueryRefresh()
         mLoadedQueries.clear();
     }
 
-    QList<NemoCalendarEventQuery *> queryList = mQueryRefreshList;
+    QList<CalendarEventQuery *> queryList = mQueryRefreshList;
     mQueryRefreshList.clear();
     QStringList missingUidList;
-    foreach (NemoCalendarEventQuery *query, queryList) {
+    foreach (CalendarEventQuery *query, queryList) {
         QString eventUid = query->uniqueId();
         if (eventUid.isEmpty())
             continue;
 
         KDateTime recurrenceId = query->recurrenceId();
-        NemoCalendarData::Event event = getEvent(eventUid, recurrenceId);
+        CalendarData::Event event = getEvent(eventUid, recurrenceId);
         if (event.uniqueId.isEmpty()
                 && !mLoadedQueries.contains(eventUid)
                 && !missingUidList.contains(eventUid)) {
@@ -472,14 +472,15 @@ void NemoCalendarManager::doAgendaAndQueryRefresh()
     if (!missingRanges.isEmpty() || !missingUidList.isEmpty()) {
         mLoadPending = true;
         QMetaObject::invokeMethod(mCalendarWorker, "loadData", Qt::QueuedConnection,
-                                  Q_ARG(QList<NemoCalendarData::Range>, missingRanges),
+                                  Q_ARG(QList<CalendarData::Range>, missingRanges),
                                   Q_ARG(QStringList, missingUidList),
                                   Q_ARG(bool, mResetPending));
         mResetPending = false;
     }
 }
 
-void NemoCalendarManager::timeout() {
+void CalendarManager::timeout()
+{
     if (mLoadPending)
         return;
 
@@ -487,7 +488,7 @@ void NemoCalendarManager::timeout() {
         doAgendaAndQueryRefresh();
 }
 
-void NemoCalendarManager::occurrenceExceptionFailedSlot(const NemoCalendarData::Event &data, const QDateTime &occurrence)
+void CalendarManager::occurrenceExceptionFailedSlot(const CalendarData::Event &data, const QDateTime &occurrence)
 {
     for (int i = 0; i < mPendingOccurrenceExceptions.length(); ++i) {
         const OccurrenceData &item = mPendingOccurrenceExceptions.at(i);
@@ -501,8 +502,8 @@ void NemoCalendarManager::occurrenceExceptionFailedSlot(const NemoCalendarData::
     }
 }
 
-void NemoCalendarManager::occurrenceExceptionCreatedSlot(const NemoCalendarData::Event &data, const QDateTime &occurrence,
-                                                         const KDateTime &newRecurrenceId)
+void CalendarManager::occurrenceExceptionCreatedSlot(const CalendarData::Event &data, const QDateTime &occurrence,
+                                                     const KDateTime &newRecurrenceId)
 {
     for (int i = 0; i < mPendingOccurrenceExceptions.length(); ++i) {
         const OccurrenceData &item = mPendingOccurrenceExceptions.at(i);
@@ -518,7 +519,7 @@ void NemoCalendarManager::occurrenceExceptionCreatedSlot(const NemoCalendarData:
 
 }
 
-void NemoCalendarManager::deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &time)
+void CalendarManager::deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &time)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "deleteEvent", Qt::QueuedConnection,
                               Q_ARG(QString, uid),
@@ -526,18 +527,18 @@ void NemoCalendarManager::deleteEvent(const QString &uid, const KDateTime &recur
                               Q_ARG(QDateTime, time));
 }
 
-void NemoCalendarManager::deleteAll(const QString &uid)
+void CalendarManager::deleteAll(const QString &uid)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "deleteAll", Qt::QueuedConnection,
                               Q_ARG(QString, uid));
 }
 
-void NemoCalendarManager::save()
+void CalendarManager::save()
 {
     QMetaObject::invokeMethod(mCalendarWorker, "save", Qt::QueuedConnection);
 }
 
-QString NemoCalendarManager::convertEventToVCalendarSync(const QString &uid, const QString &prodId)
+QString CalendarManager::convertEventToVCalendarSync(const QString &uid, const QString &prodId)
 {
     QString vEvent;
     QMetaObject::invokeMethod(mCalendarWorker, "convertEventToVCalendar", Qt::BlockingQueuedConnection,
@@ -547,9 +548,9 @@ QString NemoCalendarManager::convertEventToVCalendarSync(const QString &uid, con
     return vEvent;
 }
 
-NemoCalendarData::Event NemoCalendarManager::getEvent(const QString &uid, const KDateTime &recurrenceId)
+CalendarData::Event CalendarManager::getEvent(const QString &uid, const KDateTime &recurrenceId)
 {
-    QMultiHash<QString, NemoCalendarData::Event>::iterator it = mEvents.find(uid);
+    QMultiHash<QString, CalendarData::Event>::iterator it = mEvents.find(uid);
     while (it != mEvents.end() && it.key() == uid) {
         if (it.value().recurrenceId == recurrenceId) {
             return it.value();
@@ -557,36 +558,36 @@ NemoCalendarData::Event NemoCalendarManager::getEvent(const QString &uid, const 
         ++it;
     }
 
-    return NemoCalendarData::Event();
+    return CalendarData::Event();
 }
 
-bool NemoCalendarManager::sendResponse(const NemoCalendarData::Event &eventData, NemoCalendarEvent::Response response)
+bool CalendarManager::sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response)
 {
     bool result;
     QMetaObject::invokeMethod(mCalendarWorker, "sendResponse", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(bool, result),
-                              Q_ARG(NemoCalendarData::Event, eventData),
-                              Q_ARG(NemoCalendarEvent::Response, response));
+                              Q_ARG(CalendarData::Event, eventData),
+                              Q_ARG(CalendarEvent::Response, response));
     return result;
 }
 
-void NemoCalendarManager::scheduleInvitationQuery(NemoCalendarInvitationQuery *query, const QString &invitationFile)
+void CalendarManager::scheduleInvitationQuery(CalendarInvitationQuery *query, const QString &invitationFile)
 {
     mInvitationQueryHash.insert(query, invitationFile);
     QMetaObject::invokeMethod(mCalendarWorker, "findMatchingEvent", Qt::QueuedConnection,
                               Q_ARG(QString, invitationFile));
 }
 
-void NemoCalendarManager::unRegisterInvitationQuery(NemoCalendarInvitationQuery *query)
+void CalendarManager::unRegisterInvitationQuery(CalendarInvitationQuery *query)
 {
     mInvitationQueryHash.remove(query);
 }
 
-void NemoCalendarManager::findMatchingEventFinished(
+void CalendarManager::findMatchingEventFinished(
         const QString &invitationFile,
-        const NemoCalendarData::Event &event)
+        const CalendarData::Event &event)
 {
-    QHash<NemoCalendarInvitationQuery*, QString>::iterator it = mInvitationQueryHash.begin();
+    QHash<CalendarInvitationQuery*, QString>::iterator it = mInvitationQueryHash.begin();
     while (it != mInvitationQueryHash.end()) {
         if (it.value() == invitationFile) {
             it.key()->queryResult(event);
@@ -597,15 +598,15 @@ void NemoCalendarManager::findMatchingEventFinished(
     }
 }
 
-void NemoCalendarManager::storageModifiedSlot(const QString &info)
+void CalendarManager::storageModifiedSlot(const QString &info)
 {
     Q_UNUSED(info)
     mResetPending = true;
     emit storageModified();
 }
 
-void NemoCalendarManager::eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid,
-                                               const QString &notebookUid)
+void CalendarManager::eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid,
+                                           const QString &notebookUid)
 {
     // FIXME: adapt to multihash + recurrenceId.
 #if 0
@@ -627,9 +628,9 @@ void NemoCalendarManager::eventNotebookChanged(const QString &oldEventUid, const
 
     // Event uid is changed when events are moved between notebooks, the notebook color
     // associated with this event has changed. Emit color changed after emitting eventUidChanged,
-    // so that data models have the correct event uid to use when querying for NemoCalendarEvent
-    // instances, see NemoCalendarEventOccurrence::eventObject(), used by NemoCalendarAgendaModel.
-    NemoCalendarEvent *eventObject = mEventObjects.value(newEventUid);
+    // so that data models have the correct event uid to use when querying for CalendarEvent
+    // instances, see CalendarEventOccurrence::eventObject(), used by CalendarAgendaModel.
+    CalendarEvent *eventObject = mEventObjects.value(newEventUid);
     if (eventObject)
         emit eventObject->colorChanged();
 #else
@@ -639,7 +640,7 @@ void NemoCalendarManager::eventNotebookChanged(const QString &oldEventUid, const
 #endif
 }
 
-void NemoCalendarManager::excludedNotebooksChangedSlot(const QStringList &excludedNotebooks)
+void CalendarManager::excludedNotebooksChangedSlot(const QStringList &excludedNotebooks)
 {
     QStringList sortedExcluded = excludedNotebooks;
     sortedExcluded.sort();
@@ -651,13 +652,13 @@ void NemoCalendarManager::excludedNotebooksChangedSlot(const QStringList &exclud
     }
 }
 
-void NemoCalendarManager::notebooksChangedSlot(const QList<NemoCalendarData::Notebook> &notebooks)
+void CalendarManager::notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks)
 {
-    QHash<QString, NemoCalendarData::Notebook> newNotebooks;
+    QHash<QString, CalendarData::Notebook> newNotebooks;
     QStringList colorChangers;
     QString newDefaultNotebookUid;
     bool changed = false;
-    foreach (const NemoCalendarData::Notebook &notebook, notebooks) {
+    foreach (const CalendarData::Notebook &notebook, notebooks) {
         if (mNotebooks.contains(notebook.uid)) {
             if (mNotebooks.value(notebook.uid) != notebook) {
                 changed = true;
@@ -685,42 +686,42 @@ void NemoCalendarManager::notebooksChangedSlot(const QList<NemoCalendarData::Not
     }
 }
 
-NemoCalendarEventOccurrence* NemoCalendarManager::getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
-                                                                    const QDateTime &start)
+CalendarEventOccurrence* CalendarManager::getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
+                                                            const QDateTime &start)
 {
-    NemoCalendarData::EventOccurrence eo;
+    CalendarData::EventOccurrence eo;
     QMetaObject::invokeMethod(mCalendarWorker, "getNextOccurrence", Qt::BlockingQueuedConnection,
-                              Q_RETURN_ARG(NemoCalendarData::EventOccurrence, eo),
+                              Q_RETURN_ARG(CalendarData::EventOccurrence, eo),
                               Q_ARG(QString, uid),
                               Q_ARG(KDateTime, recurrenceId),
                               Q_ARG(QDateTime, start));
 
     if (!eo.startTime.isValid()) {
         qWarning() << Q_FUNC_INFO << "Unable to find occurrence for event" << uid << recurrenceId.toString();
-        return new NemoCalendarEventOccurrence(QString(), KDateTime(), QDateTime(), QDateTime());
+        return new CalendarEventOccurrence(QString(), KDateTime(), QDateTime(), QDateTime());
     }
 
-    return new NemoCalendarEventOccurrence(eo.eventUid, eo.recurrenceId, eo.startTime, eo.endTime);
+    return new CalendarEventOccurrence(eo.eventUid, eo.recurrenceId, eo.startTime, eo.endTime);
 }
 
-QList<NemoCalendarData::Attendee> NemoCalendarManager::getEventAttendees(const QString &uid, const KDateTime &recurrenceId)
+QList<CalendarData::Attendee> CalendarManager::getEventAttendees(const QString &uid, const KDateTime &recurrenceId)
 {
-    QList<NemoCalendarData::Attendee> attendees;
+    QList<CalendarData::Attendee> attendees;
     QMetaObject::invokeMethod(mCalendarWorker, "getEventAttendees", Qt::BlockingQueuedConnection,
-                              Q_RETURN_ARG(QList<NemoCalendarData::Attendee>, attendees),
+                              Q_RETURN_ARG(QList<CalendarData::Attendee>, attendees),
                               Q_ARG(QString, uid),
                               Q_ARG(KDateTime, recurrenceId));
     return attendees;
 }
 
-void NemoCalendarManager::dataLoadedSlot(const QList<NemoCalendarData::Range> &ranges,
-                                         const QStringList &uidList,
-                                         const QMultiHash<QString, NemoCalendarData::Event> &events,
-                                         const QHash<QString, NemoCalendarData::EventOccurrence> &occurrences,
-                                         const QHash<QDate, QStringList> &dailyOccurrences,
-                                         bool reset)
+void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
+                                     const QStringList &uidList,
+                                     const QMultiHash<QString, CalendarData::Event> &events,
+                                     const QHash<QString, CalendarData::EventOccurrence> &occurrences,
+                                     const QHash<QDate, QStringList> &dailyOccurrences,
+                                     bool reset)
 {
-    QList<NemoCalendarData::Event> oldEvents;
+    QList<CalendarData::Event> oldEvents;
     foreach (const QString &uid, mEventObjects.keys()) {
         // just add all matching uid, change signal emission will match recurrence ids
         if (events.contains(uid))
@@ -740,8 +741,8 @@ void NemoCalendarManager::dataLoadedSlot(const QList<NemoCalendarData::Range> &r
     mEventOccurrenceForDates = mEventOccurrenceForDates.unite(dailyOccurrences);
     mLoadPending = false;
 
-    foreach (const NemoCalendarData::Event &oldEvent, oldEvents) {
-        NemoCalendarData::Event event = getEvent(oldEvent.uniqueId, oldEvent.recurrenceId);
+    foreach (const CalendarData::Event &oldEvent, oldEvents) {
+        CalendarData::Event event = getEvent(oldEvent.uniqueId, oldEvent.recurrenceId);
         if (event.isValid())
             sendEventChangeSignals(event, oldEvent);
     }
@@ -750,11 +751,11 @@ void NemoCalendarManager::dataLoadedSlot(const QList<NemoCalendarData::Range> &r
     mTimer->start();
 }
 
-void NemoCalendarManager::sendEventChangeSignals(const NemoCalendarData::Event &newEvent,
-                                                 const NemoCalendarData::Event &oldEvent)
+void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent,
+                                             const CalendarData::Event &oldEvent)
 {
-    NemoCalendarEvent *eventObject = 0;
-    QMultiHash<QString, NemoCalendarEvent *>::iterator it = mEventObjects.find(newEvent.uniqueId);
+    CalendarEvent *eventObject = 0;
+    QMultiHash<QString, CalendarEvent *>::iterator it = mEventObjects.find(newEvent.uniqueId);
     while (it != mEventObjects.end() && it.key() == newEvent.uniqueId) {
         if (it.value()->recurrenceId() == newEvent.recurrenceId) {
             eventObject = it.value();

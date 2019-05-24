@@ -38,9 +38,9 @@
 
 #include <KDateTime>
 
-class NemoCalendarManager;
+class CalendarManager;
 
-class NemoCalendarEvent : public QObject
+class CalendarEvent : public QObject
 {
     Q_OBJECT
     Q_ENUMS(Recur)
@@ -54,7 +54,7 @@ class NemoCalendarEvent : public QObject
     Q_PROPERTY(QDateTime startTime READ startTime NOTIFY startTimeChanged)
     Q_PROPERTY(QDateTime endTime READ endTime NOTIFY endTimeChanged)
     Q_PROPERTY(bool allDay READ allDay NOTIFY allDayChanged)
-    Q_PROPERTY(NemoCalendarEvent::Recur recur READ recur NOTIFY recurChanged)
+    Q_PROPERTY(CalendarEvent::Recur recur READ recur NOTIFY recurChanged)
     Q_PROPERTY(QDateTime recurEndDate READ recurEndDate NOTIFY recurEndDateChanged)
     Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
     Q_PROPERTY(int reminder READ reminder NOTIFY reminderChanged)
@@ -64,8 +64,8 @@ class NemoCalendarEvent : public QObject
     Q_PROPERTY(bool readonly READ readonly CONSTANT)
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
-    Q_PROPERTY(NemoCalendarEvent::Secrecy secrecy READ secrecy NOTIFY secrecyChanged)
-    Q_PROPERTY(NemoCalendarEvent::Response ownerStatus READ ownerStatus NOTIFY ownerStatusChanged)
+    Q_PROPERTY(CalendarEvent::Secrecy secrecy READ secrecy NOTIFY secrecyChanged)
+    Q_PROPERTY(CalendarEvent::Response ownerStatus READ ownerStatus NOTIFY ownerStatusChanged)
     Q_PROPERTY(bool rsvp READ rsvp NOTIFY rsvpChanged)
 
 public:
@@ -97,8 +97,8 @@ public:
         ResponseDecline
     };
 
-    NemoCalendarEvent(NemoCalendarManager *manager, const QString &uid, const KDateTime &recurrenceId);
-    ~NemoCalendarEvent();
+    CalendarEvent(CalendarManager *manager, const QString &uid, const KDateTime &recurrenceId);
+    ~CalendarEvent();
 
     QString displayLabel() const;
     QString description() const;
@@ -146,7 +146,7 @@ signals:
     void rsvpChanged();
 
 private:
-    NemoCalendarManager *mManager;
+    CalendarManager *mManager;
     QString mUniqueId;
     KDateTime mRecurrenceId;
 };

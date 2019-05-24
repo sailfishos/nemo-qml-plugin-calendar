@@ -38,7 +38,7 @@
 // kCalCore
 #include <calendar.h>
 
-class NemoCalendarImportModel : public QAbstractListModel
+class CalendarImportModel : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(int count READ count NOTIFY countChanged)
@@ -56,8 +56,8 @@ public:
         UidRole,
     };
 
-    explicit NemoCalendarImportModel(QObject *parent = 0);
-    ~NemoCalendarImportModel();
+    explicit CalendarImportModel(QObject *parent = 0);
+    ~CalendarImportModel();
 
     int count() const;
 

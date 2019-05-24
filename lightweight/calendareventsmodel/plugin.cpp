@@ -50,7 +50,7 @@ public:
     void registerTypes(const char *uri)
     {
         Q_ASSERT(uri == QLatin1String("org.nemomobile.calendar.lightweight"));
-        qmlRegisterType<NemoCalendarEventsModel>("org.nemomobile.calendar.lightweight", 1, 0, "CalendarEventsModel");
+        qmlRegisterType<CalendarEventsModel>("org.nemomobile.calendar.lightweight", 1, 0, "CalendarEventsModel");
     }
 };
 

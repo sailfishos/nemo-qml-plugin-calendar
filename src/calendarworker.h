@@ -44,15 +44,15 @@
 // libaccounts-qt
 namespace Accounts { class Manager; }
 
-class NemoCalendarInvitationQuery;
+class CalendarInvitationQuery;
 
-class NemoCalendarWorker : public QObject, public mKCal::ExtendedStorageObserver
+class CalendarWorker : public QObject, public mKCal::ExtendedStorageObserver
 {
     Q_OBJECT
     
 public:
-    NemoCalendarWorker();
-    ~NemoCalendarWorker();
+    CalendarWorker();
+    ~CalendarWorker();
 
     /* mKCal::ExtendedStorageObserver */
     void storageModified(mKCal::ExtendedStorage *storage, const QString &info);
@@ -63,29 +63,29 @@ public slots:
     void init();
     void save();
 
-    void saveEvent(const NemoCalendarData::Event &eventData, bool updateAttendees,
-                   const QList<NemoCalendarData::EmailContact> &required,
-                   const QList<NemoCalendarData::EmailContact> &optional);
-    void replaceOccurrence(const NemoCalendarData::Event &eventData, const QDateTime &startTime, bool updateAttendees,
-                           const QList<NemoCalendarData::EmailContact> &required,
-                           const QList<NemoCalendarData::EmailContact> &optional);
+    void saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
+                   const QList<CalendarData::EmailContact> &required,
+                   const QList<CalendarData::EmailContact> &optional);
+    void replaceOccurrence(const CalendarData::Event &eventData, const QDateTime &startTime, bool updateAttendees,
+                           const QList<CalendarData::EmailContact> &required,
+                           const QList<CalendarData::EmailContact> &optional);
     void deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
-    bool sendResponse(const NemoCalendarData::Event &eventData, const NemoCalendarEvent::Response response);
+    bool sendResponse(const CalendarData::Event &eventData, const CalendarEvent::Response response);
     QString convertEventToVCalendar(const QString &uid, const QString &prodId) const;
 
-    QList<NemoCalendarData::Notebook> notebooks() const;
+    QList<CalendarData::Notebook> notebooks() const;
     void setNotebookColor(const QString &notebookUid, const QString &color);
     void setExcludedNotebooks(const QStringList &list);
     void excludeNotebook(const QString &notebookUid, bool exclude);
     void setDefaultNotebook(const QString &notebookUid);
 
-    void loadData(const QList<NemoCalendarData::Range> &ranges,
+    void loadData(const QList<CalendarData::Range> &ranges,
                   const QStringList &uidList, bool reset);
 
-    NemoCalendarData::EventOccurrence getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
-                                                        const QDateTime &startTime) const;
-    QList<NemoCalendarData::Attendee> getEventAttendees(const QString &uid, const KDateTime &recurrenceId);
+    CalendarData::EventOccurrence getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
+                                                    const QDateTime &startTime) const;
+    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const KDateTime &recurrenceId);
 
     void findMatchingEvent(const QString &invitationFile);
 
@@ -95,43 +95,43 @@ signals:
     void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
 
     void excludedNotebooksChanged(const QStringList &excludedNotebooks);
-    void notebookColorChanged(const NemoCalendarData::Notebook &notebook);
-    void notebooksChanged(const QList<NemoCalendarData::Notebook> &notebooks);
+    void notebookColorChanged(const CalendarData::Notebook &notebook);
+    void notebooksChanged(const QList<CalendarData::Notebook> &notebooks);
 
-    void dataLoaded(const QList<NemoCalendarData::Range> &ranges,
+    void dataLoaded(const QList<CalendarData::Range> &ranges,
                     const QStringList &uidList,
-                    const QMultiHash<QString, NemoCalendarData::Event> &events,
-                    const QHash<QString, NemoCalendarData::EventOccurrence> &occurrences,
+                    const QMultiHash<QString, CalendarData::Event> &events,
+                    const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                     const QHash<QDate, QStringList> &dailyOccurrences,
                     bool reset);
 
-    void occurrenceExceptionFailed(const NemoCalendarData::Event &eventData, const QDateTime &startTime);
-    void occurrenceExceptionCreated(const NemoCalendarData::Event &eventData, const QDateTime &startTime,
+    void occurrenceExceptionFailed(const CalendarData::Event &eventData, const QDateTime &startTime);
+    void occurrenceExceptionCreated(const CalendarData::Event &eventData, const QDateTime &startTime,
                                     const KDateTime &newRecurrenceId);
 
     void findMatchingEventFinished(const QString &invitationFile,
-                                   const NemoCalendarData::Event &eventData);
+                                   const CalendarData::Event &eventData);
 
 private:
-    void setEventData(KCalCore::Event::Ptr &event, const NemoCalendarData::Event &eventData);
+    void setEventData(KCalCore::Event::Ptr &event, const CalendarData::Event &eventData);
     void loadNotebooks();
     QStringList excludedNotebooks() const;
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
-    bool setRecurrence(KCalCore::Event::Ptr &event, NemoCalendarEvent::Recur recur);
+    bool setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::Recur recur);
     bool setReminder(KCalCore::Event::Ptr &event, int reminderSeconds);
     bool needSendCancellation(KCalCore::Event::Ptr &event) const;
     void updateEventAttendees(KCalCore::Event::Ptr event, bool newEvent,
-                              const QList<NemoCalendarData::EmailContact> &required,
-                              const QList<NemoCalendarData::EmailContact> &optional,
+                              const QList<CalendarData::EmailContact> &required,
+                              const QList<CalendarData::EmailContact> &optional,
                               const QString &notebookUid);
     QString getNotebookAddress(const KCalCore::Event::Ptr &event) const;
 
-    NemoCalendarData::Event createEventStruct(const KCalCore::Event::Ptr &event) const;
-    QHash<QString, NemoCalendarData::EventOccurrence> eventOccurrences(const QList<NemoCalendarData::Range> &ranges) const;
-    QHash<QDate, QStringList> dailyEventOccurrences(const QList<NemoCalendarData::Range> &ranges,
+    CalendarData::Event createEventStruct(const KCalCore::Event::Ptr &event) const;
+    QHash<QString, CalendarData::EventOccurrence> eventOccurrences(const QList<CalendarData::Range> &ranges) const;
+    QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
                                                     const QMultiHash<QString, KDateTime> &allDay,
-                                                    const QList<NemoCalendarData::EventOccurrence> &occurrences);
+                                                    const QList<CalendarData::EventOccurrence> &occurrences);
 
     Accounts::Manager *mAccountManager;
 
@@ -144,7 +144,7 @@ private:
     QStringList mDeletedEvents;
     QList<QPair<QString, QDateTime>> mExceptionEvents;
 
-    QHash<QString, NemoCalendarData::Notebook> mNotebooks;
+    QHash<QString, CalendarData::Notebook> mNotebooks;
 
     // Tracks which events have been already passed to manager. Maps Uid -> RecurrenceId
     QMultiHash<QString, KDateTime> mSentEvents;

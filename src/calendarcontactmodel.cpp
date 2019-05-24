@@ -77,7 +77,7 @@ QString CalendarContactModel::email(int index) const
     return m_contacts.at(index).email;
 }
 
-QList<NemoCalendarData::EmailContact> CalendarContactModel::getList()
+QList<CalendarData::EmailContact> CalendarContactModel::getList()
 {
     return m_contacts;
 }
@@ -85,7 +85,7 @@ QList<NemoCalendarData::EmailContact> CalendarContactModel::getList()
 void CalendarContactModel::add(const QString &name, const QString &email)
 {
     beginInsertRows(QModelIndex(), 0, 0);
-    m_contacts.prepend(NemoCalendarData::EmailContact(name, email));
+    m_contacts.prepend(CalendarData::EmailContact(name, email));
     endInsertRows();
 
     emit countChanged();

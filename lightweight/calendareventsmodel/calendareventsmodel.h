@@ -43,7 +43,7 @@ class QDBusPendingCallWatcher;
 class CalendarDataServiceProxy;
 class QFileSystemWatcher;
 
-class NemoCalendarEventsModel : public QAbstractListModel
+class CalendarEventsModel : public QAbstractListModel
 {
     Q_OBJECT
     Q_ENUMS(FilterMode)
@@ -85,7 +85,7 @@ public:
         ColorRole
     };
 
-    explicit NemoCalendarEventsModel(QObject *parent = 0);
+    explicit CalendarEventsModel(QObject *parent = 0);
 
     QDateTime startDate() const;
     void setStartDate(const QDateTime &startDate);

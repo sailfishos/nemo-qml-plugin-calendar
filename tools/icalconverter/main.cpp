@@ -90,7 +90,7 @@ namespace {
     }
 }
 
-namespace NemoCalendarImportExport {
+namespace CalendarImportExport {
     namespace IncidenceHandler {
         void normalizePersonEmail(KCalCore::Person *p)
         {
@@ -851,7 +851,7 @@ int main(int argc, char *argv[])
             QFile importFile(backupFile);
             if (importFile.open(QIODevice::ReadOnly)) {
                 QString fileData = QString::fromUtf8(importFile.readAll());
-                if (NemoCalendarImportExport::importIcsData(fileData, QString(), parser.isSet("destructive"), verbose)) {
+                if (CalendarImportExport::importIcsData(fileData, QString(), parser.isSet("destructive"), verbose)) {
                     qDebug() << "Successfully imported:" << backupFile;
                     return 0;
                 }
@@ -864,7 +864,7 @@ int main(int argc, char *argv[])
         if (parser.positionalArguments().length() != 2)
             parser.showHelp();
         const QString backupFile = parser.positionalArguments().at(1);
-        QString exportIcsData = NemoCalendarImportExport::constructExportIcs(parser.value("notebook"), QString(), KDateTime(), verbose);
+        QString exportIcsData = CalendarImportExport::constructExportIcs(parser.value("notebook"), QString(), KDateTime(), verbose);
         if (exportIcsData.isEmpty()) {
             qWarning() << "No data to export!";
             return 0;
@@ -888,7 +888,7 @@ int main(int argc, char *argv[])
             qWarning() << "Unable to open:" << backupFile << "for export.";
         }
     } else if (command == QStringLiteral("list")) {
-        NemoCalendarImportExport::listNotebooks();
+        CalendarImportExport::listNotebooks();
         return 0;
     }
 

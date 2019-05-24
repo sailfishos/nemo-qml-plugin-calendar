@@ -35,37 +35,37 @@
 #include "calendarevent.h"
 #include "calendarmanager.h"
 
-NemoCalendarEventOccurrence::NemoCalendarEventOccurrence(const QString &eventUid,
-                                                         const KDateTime &recurrenceId,
-                                                         const QDateTime &startTime,
-                                                         const QDateTime &endTime,
-                                                         QObject *parent)
+CalendarEventOccurrence::CalendarEventOccurrence(const QString &eventUid,
+                                                 const KDateTime &recurrenceId,
+                                                 const QDateTime &startTime,
+                                                 const QDateTime &endTime,
+                                                 QObject *parent)
     : QObject(parent), mEventUid(eventUid), mRecurrenceId(recurrenceId), mStartTime(startTime), mEndTime(endTime)
 {
-    connect(NemoCalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
+    connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
             this, SLOT(eventUidChanged(QString,QString)));
 }
 
-NemoCalendarEventOccurrence::~NemoCalendarEventOccurrence()
+CalendarEventOccurrence::~CalendarEventOccurrence()
 {
 }
 
-QDateTime NemoCalendarEventOccurrence::startTime() const
+QDateTime CalendarEventOccurrence::startTime() const
 {
     return mStartTime;
 }
 
-QDateTime NemoCalendarEventOccurrence::endTime() const
+QDateTime CalendarEventOccurrence::endTime() const
 {
     return mEndTime;
 }
 
-NemoCalendarEvent *NemoCalendarEventOccurrence::eventObject() const
+CalendarEvent *CalendarEventOccurrence::eventObject() const
 {
-    return NemoCalendarManager::instance()->eventObject(mEventUid, mRecurrenceId);
+    return CalendarManager::instance()->eventObject(mEventUid, mRecurrenceId);
 }
 
-void NemoCalendarEventOccurrence::eventUidChanged(QString oldUid, QString newUid)
+void CalendarEventOccurrence::eventUidChanged(QString oldUid, QString newUid)
 {
     if (mEventUid == oldUid)
         mEventUid = newUid;
