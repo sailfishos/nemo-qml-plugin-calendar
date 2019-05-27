@@ -23,7 +23,8 @@ public:
 
     int count() const;
 
-    Q_INVOKABLE void add(const QString &name, const QString &email);
+    Q_INVOKABLE void append(const QString &name, const QString &email);
+    Q_INVOKABLE void prepend(const QString &name, const QString &email);
     Q_INVOKABLE void remove(int index);
     Q_INVOKABLE bool hasEmail(const QString &email) const;
     Q_INVOKABLE QString name(int index) const;

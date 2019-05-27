@@ -82,7 +82,16 @@ QList<CalendarData::EmailContact> CalendarContactModel::getList()
     return m_contacts;
 }
 
-void CalendarContactModel::add(const QString &name, const QString &email)
+void CalendarContactModel::append(const QString &name, const QString &email)
+{
+    beginInsertRows(QModelIndex(), m_contacts.length(), m_contacts.length());
+    m_contacts.append(CalendarData::EmailContact(name, email));
+    endInsertRows();
+
+    emit countChanged();
+}
+
+void CalendarContactModel::prepend(const QString &name, const QString &email)
 {
     beginInsertRows(QModelIndex(), 0, 0);
     m_contacts.prepend(CalendarData::EmailContact(name, email));
