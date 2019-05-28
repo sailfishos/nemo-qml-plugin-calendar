@@ -39,21 +39,21 @@
 
 #include <QDebug>
 
-NemoCalendarAgendaModel::NemoCalendarAgendaModel(QObject *parent)
+CalendarAgendaModel::CalendarAgendaModel(QObject *parent)
     : QAbstractListModel(parent), mIsComplete(true), mFilterMode(FilterNone)
 {
-    connect(NemoCalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
-    connect(NemoCalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
+    connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
+    connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
 }
 
-NemoCalendarAgendaModel::~NemoCalendarAgendaModel()
+CalendarAgendaModel::~CalendarAgendaModel()
 {
-    NemoCalendarManager::instance()->cancelAgendaRefresh(this);
+    CalendarManager::instance()->cancelAgendaRefresh(this);
     qDeleteAll(mEvents);
     mEvents.clear();
 }
 
-QHash<int, QByteArray> NemoCalendarAgendaModel::roleNames() const
+QHash<int, QByteArray> CalendarAgendaModel::roleNames() const
 {
     QHash<int,QByteArray> roleNames;
     roleNames[EventObjectRole] = "event";
@@ -62,12 +62,12 @@ QHash<int, QByteArray> NemoCalendarAgendaModel::roleNames() const
     return roleNames;
 }
 
-QDate NemoCalendarAgendaModel::startDate() const
+QDate CalendarAgendaModel::startDate() const
 {
     return mStartDate;
 }
 
-void NemoCalendarAgendaModel::setStartDate(const QDate &startDate)
+void CalendarAgendaModel::setStartDate(const QDate &startDate)
 {
     if (mStartDate == startDate)
         return;
@@ -78,12 +78,12 @@ void NemoCalendarAgendaModel::setStartDate(const QDate &startDate)
     refresh();
 }
 
-QDate NemoCalendarAgendaModel::endDate() const
+QDate CalendarAgendaModel::endDate() const
 {
     return mEndDate;
 }
 
-void NemoCalendarAgendaModel::setEndDate(const QDate &endDate)
+void CalendarAgendaModel::setEndDate(const QDate &endDate)
 {
     if (mEndDate == endDate)
         return;
@@ -94,31 +94,31 @@ void NemoCalendarAgendaModel::setEndDate(const QDate &endDate)
     refresh();
 }
 
-void NemoCalendarAgendaModel::refresh()
+void CalendarAgendaModel::refresh()
 {
     if (!mIsComplete)
         return;
 
-    NemoCalendarManager::instance()->scheduleAgendaRefresh(this);
+    CalendarManager::instance()->scheduleAgendaRefresh(this);
 }
 
-static bool eventsEqual(const NemoCalendarEventOccurrence *e1,
-                        const NemoCalendarEventOccurrence *e2)
+static bool eventsEqual(const CalendarEventOccurrence *e1,
+                        const CalendarEventOccurrence *e2)
 {
     if (e1->startTime() != e2->startTime() || e1->endTime() != e2->endTime()) {
         return false;
     }
 
-    NemoCalendarEvent *eventObject1 = e1->eventObject();
-    NemoCalendarEvent *eventObject2 = e2->eventObject();
+    CalendarEvent *eventObject1 = e1->eventObject();
+    CalendarEvent *eventObject2 = e2->eventObject();
 
     return eventObject1 && eventObject2 &&
            eventObject1->uniqueId() == eventObject2->uniqueId() &&
            eventObject1->recurrenceId() == eventObject2->recurrenceId();
 }
 
-static bool eventsLessThan(const NemoCalendarEventOccurrence *e1,
-                           const NemoCalendarEventOccurrence *e2)
+static bool eventsLessThan(const CalendarEventOccurrence *e1,
+                           const CalendarEventOccurrence *e2)
 {
     if (e1->startTime() == e2->startTime()) {
         int cmp = QString::compare(e1->eventObject()->displayLabel(),
@@ -133,14 +133,14 @@ static bool eventsLessThan(const NemoCalendarEventOccurrence *e1,
     }
 }
 
-void NemoCalendarAgendaModel::doRefresh(QList<NemoCalendarEventOccurrence *> newEvents)
+void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
 {
-    QList<NemoCalendarEventOccurrence *> events = mEvents;
-    QList<NemoCalendarEventOccurrence *> skippedEvents;
+    QList<CalendarEventOccurrence *> events = mEvents;
+    QList<CalendarEventOccurrence *> skippedEvents;
 
     // filter out if necessary
     if (mFilterMode == FilterNonAllDay) {
-        QList<NemoCalendarEventOccurrence *>::iterator it = newEvents.begin();
+        QList<CalendarEventOccurrence *>::iterator it = newEvents.begin();
         while (it != newEvents.end()) {
             if (!(*it)->eventObject()->allDay()) {
                 skippedEvents.append(*it);
@@ -214,17 +214,17 @@ void NemoCalendarAgendaModel::doRefresh(QList<NemoCalendarEventOccurrence *> new
     emit updated();
 }
 
-int NemoCalendarAgendaModel::count() const
+int CalendarAgendaModel::count() const
 {
     return mEvents.size();
 }
 
-int NemoCalendarAgendaModel::filterMode() const
+int CalendarAgendaModel::filterMode() const
 {
     return mFilterMode;
 }
 
-void NemoCalendarAgendaModel::setFilterMode(int mode)
+void CalendarAgendaModel::setFilterMode(int mode)
 {
     if (mode != mFilterMode) {
         mFilterMode = mode;
@@ -233,7 +233,7 @@ void NemoCalendarAgendaModel::setFilterMode(int mode)
     }
 }
 
-int NemoCalendarAgendaModel::rowCount(const QModelIndex &index) const
+int CalendarAgendaModel::rowCount(const QModelIndex &index) const
 {
     if (index != QModelIndex())
         return 0;
@@ -241,7 +241,7 @@ int NemoCalendarAgendaModel::rowCount(const QModelIndex &index) const
     return mEvents.size();
 }
 
-QVariant NemoCalendarAgendaModel::data(const QModelIndex &index, int role) const
+QVariant CalendarAgendaModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
         return QVariant();
@@ -249,7 +249,7 @@ QVariant NemoCalendarAgendaModel::data(const QModelIndex &index, int role) const
     return get(index.row(), role);
 }
 
-QVariant NemoCalendarAgendaModel::get(int index, int role) const
+QVariant CalendarAgendaModel::get(int index, int role) const
 {
     if (index < 0 || index >= mEvents.count()) {
         qWarning() << "CalendarAgendaModel: Invalid index";
@@ -269,12 +269,12 @@ QVariant NemoCalendarAgendaModel::get(int index, int role) const
     }
 }
 
-void NemoCalendarAgendaModel::classBegin()
+void CalendarAgendaModel::classBegin()
 {
     mIsComplete = false;
 }
 
-void NemoCalendarAgendaModel::componentComplete()
+void CalendarAgendaModel::componentComplete()
 {
     mIsComplete = true;
     refresh();

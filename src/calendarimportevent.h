@@ -48,7 +48,7 @@ class CalendarImportEvent : public QObject
     Q_PROPERTY(QDateTime startTime READ startTime CONSTANT)
     Q_PROPERTY(QDateTime endTime READ endTime CONSTANT)
     Q_PROPERTY(bool allDay READ allDay CONSTANT)
-    Q_PROPERTY(NemoCalendarEvent::Recur recur READ recur CONSTANT)
+    Q_PROPERTY(CalendarEvent::Recur recur READ recur CONSTANT)
     Q_PROPERTY(int reminder READ reminder CONSTANT)
     Q_PROPERTY(QString uniqueId READ uniqueId CONSTANT)
     Q_PROPERTY(QString color READ color WRITE setColor NOTIFY colorChanged)
@@ -56,10 +56,9 @@ class CalendarImportEvent : public QObject
     Q_PROPERTY(QList<QObject*> attendees READ attendees CONSTANT)
     Q_PROPERTY(QString organizer READ organizer CONSTANT)
     Q_PROPERTY(QString organizerEmail READ organizerEmail CONSTANT)
-    Q_PROPERTY(NemoCalendarEvent::Secrecy secrecy READ secrecy CONSTANT)
-
-    Q_PROPERTY(NemoCalendarEvent::Response ownerStatus READ ownerStatus NOTIFY ownerStatusChanged)
-    Q_PROPERTY(bool rsvp READ rsvp NOTIFY rsvpChanged)
+    Q_PROPERTY(CalendarEvent::Secrecy secrecy READ secrecy CONSTANT)
+    Q_PROPERTY(CalendarEvent::Response ownerStatus READ ownerStatus CONSTANT)
+    Q_PROPERTY(bool rsvp READ rsvp CONSTANT)
 
 public:
     CalendarImportEvent(KCalCore::Event::Ptr event);
@@ -69,19 +68,19 @@ public:
     QDateTime startTime() const;
     QDateTime endTime() const;
     bool allDay() const;
-    NemoCalendarEvent::Recur recur();
+    CalendarEvent::Recur recur();
     int reminder() const;
     QString uniqueId() const;
     QString color() const;
     QString location() const;
     QList<QObject*> attendees() const;
-    NemoCalendarEvent::Secrecy secrecy() const;
+    CalendarEvent::Secrecy secrecy() const;
     QString organizer() const;
     QString organizerEmail() const;
 
     void setColor(const QString &color);
 
-    NemoCalendarEvent::Response ownerStatus() const;
+    CalendarEvent::Response ownerStatus() const;
     bool rsvp() const;
 
     Q_INVOKABLE bool sendResponse(int response);
@@ -91,9 +90,6 @@ public slots:
 
 signals:
     void colorChanged();
-    void ownerStatusChanged();
-    void attendeeListChanged();
-    void rsvpChanged();
 
 private:
     KCalCore::Event::Ptr mEvent;

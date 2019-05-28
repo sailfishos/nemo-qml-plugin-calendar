@@ -37,11 +37,12 @@
 #include <QSettings>
 
 // mkcal
-#include <event.h>
 #include <notebook.h>
 #include <servicehandler.h>
 
 // kCalCore
+#include <attendee.h>
+#include <event.h>
 #include <calformat.h>
 #include <vcalformat.h>
 #include <recurrence.h>
@@ -56,12 +57,12 @@
 #include <Accounts/Provider>
 #include <Accounts/Account>
 
-NemoCalendarWorker::NemoCalendarWorker() :
-    QObject(0), mAccountManager(0)
+CalendarWorker::CalendarWorker()
+    : QObject(0), mAccountManager(0)
 {
 }
 
-NemoCalendarWorker::~NemoCalendarWorker()
+CalendarWorker::~CalendarWorker()
 {
     if (mStorage.data())
         mStorage->close();
@@ -70,7 +71,7 @@ NemoCalendarWorker::~NemoCalendarWorker()
     mStorage.clear();
 }
 
-void NemoCalendarWorker::storageModified(mKCal::ExtendedStorage *storage, const QString &info)
+void CalendarWorker::storageModified(mKCal::ExtendedStorage *storage, const QString &info)
 {
     Q_UNUSED(storage)
     Q_UNUSED(info)
@@ -87,20 +88,20 @@ void NemoCalendarWorker::storageModified(mKCal::ExtendedStorage *storage, const 
     emit storageModifiedSignal(info);
 }
 
-void NemoCalendarWorker::storageProgress(mKCal::ExtendedStorage *storage, const QString &info)
+void CalendarWorker::storageProgress(mKCal::ExtendedStorage *storage, const QString &info)
 {
     Q_UNUSED(storage)
     Q_UNUSED(info)
 }
 
-void NemoCalendarWorker::storageFinished(mKCal::ExtendedStorage *storage, bool error, const QString &info)
+void CalendarWorker::storageFinished(mKCal::ExtendedStorage *storage, bool error, const QString &info)
 {
     Q_UNUSED(storage)
     Q_UNUSED(error)
     Q_UNUSED(info)
 }
 
-void NemoCalendarWorker::deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime)
+void CalendarWorker::deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime)
 {
     KCalCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
 
@@ -115,7 +116,7 @@ void NemoCalendarWorker::deleteEvent(const QString &uid, const KDateTime &recurr
     mExceptionEvents.append(QPair<QString, QDateTime>(uid, dateTime));
 }
 
-void NemoCalendarWorker::deleteAll(const QString &uid)
+void CalendarWorker::deleteAll(const QString &uid)
 {
     KCalCore::Event::Ptr event = mCalendar->event(uid);
     if (!event) {
@@ -128,7 +129,7 @@ void NemoCalendarWorker::deleteAll(const QString &uid)
     mDeletedEvents.append(uid);
 }
 
-bool NemoCalendarWorker::sendResponse(const NemoCalendarData::Event &eventData, const NemoCalendarEvent::Response response)
+bool CalendarWorker::sendResponse(const CalendarData::Event &eventData, const CalendarEvent::Response response)
 {
     KCalCore::Event::Ptr event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
     if (!event) {
@@ -141,12 +142,12 @@ bool NemoCalendarWorker::sendResponse(const NemoCalendarData::Event &eventData, 
 
     // TODO: should we save this change in DB?
     KCalCore::Attendee::Ptr attender = event->attendeeByMail(ownerEmail);
-    attender->setStatus(NemoCalendarUtils::convertResponse(response));
+    attender->setStatus(CalendarUtils::convertResponse(response));
     return mKCal::ServiceHandler::instance().sendResponse(event, eventData.description, mCalendar, mStorage);
 }
 
 // eventToVEvent() is protected
-class NemoCalendarVCalFormat : public KCalCore::VCalFormat
+class CalendarVCalFormat : public KCalCore::VCalFormat
 {
 public:
     QString convertEventToVCalendar(const KCalCore::Event::Ptr &event, const QString &prodId)
@@ -167,24 +168,26 @@ public:
     }
 };
 
-QString NemoCalendarWorker::convertEventToVCalendar(const QString &uid, const QString &prodId) const
+QString CalendarWorker::convertEventToVCalendar(const QString &uid, const QString &prodId) const
 {
     // NOTE: not fetching eventInstances() with different recurrenceId for VCalendar.
     KCalCore::Event::Ptr event = mCalendar->event(uid);
     if (event.isNull()) {
         qWarning() << "No event with uid " << uid << ", unable to create VCalendar";
-        return "";
+        return QString();
     }
 
-    NemoCalendarVCalFormat fmt;
+    CalendarVCalFormat fmt;
     return fmt.convertEventToVCalendar(event,
                                        prodId.isEmpty() ? QLatin1String("-//NemoMobile.org/Nemo//NONSGML v1.0//EN")
                                                         : prodId);
 }
 
-void NemoCalendarWorker::save()
+void CalendarWorker::save()
 {
     mStorage->save();
+    // FIXME: should send response update if deleting an even we have responded to.
+    // FIXME: should send cancel only if we own the event
     if (!mDeletedEvents.isEmpty()) {
         for (const QString &uid: mDeletedEvents) {
             KCalCore::Event::Ptr event = mCalendar->deletedEvent(uid);
@@ -210,7 +213,9 @@ void NemoCalendarWorker::save()
     }
 }
 
-void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
+void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
+                               const QList<CalendarData::EmailContact> &required,
+                               const QList<CalendarData::EmailContact> &optional)
 {
     QString notebookUid = eventData.calendarUid;
 
@@ -222,6 +227,13 @@ void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
 
     if (createNew) {
         event = KCalCore::Event::Ptr(new KCalCore::Event);
+
+        // For exchange it is better to use upper case UIDs, because for some reason when
+        // UID is generated out of Global object id of the email message we are getting a lowercase
+        // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
+        // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
+        // for new events than trying to implement some complex logic in basesailfish-eas.
+        event->setUid(event->uid().toUpper());
     } else {
         event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
 
@@ -247,13 +259,11 @@ void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
 
     setEventData(event, eventData);
 
+    if (updateAttendees) {
+        updateEventAttendees(event, createNew, required, optional, notebookUid);
+    }
+
     if (createNew) {
-        // For exchange it is better to use upper case UIDs, because for some reason when
-        // UID is generated out of Global object id of the email message we are getting a lowercase
-        // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
-        // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
-        // for new events than trying to implement some complex logic in basesailfish-eas.
-        event->setUid(event->uid().toUpper());
         bool eventAdded;
         if (notebookUid.isEmpty())
             eventAdded = mCalendar->addEvent(event);
@@ -268,7 +278,7 @@ void NemoCalendarWorker::saveEvent(const NemoCalendarData::Event &eventData)
     save();
 }
 
-void NemoCalendarWorker::setEventData(KCalCore::Event::Ptr &event, const NemoCalendarData::Event &eventData)
+void CalendarWorker::setEventData(KCalCore::Event::Ptr &event, const CalendarData::Event &eventData)
 {
     event->setDescription(eventData.description);
     event->setSummary(eventData.displayLabel);
@@ -280,7 +290,7 @@ void NemoCalendarWorker::setEventData(KCalCore::Event::Ptr &event, const NemoCal
     setReminder(event, eventData.reminder);
     setRecurrence(event, eventData.recur);
 
-    if (eventData.recur != NemoCalendarEvent::RecurOnce) {
+    if (eventData.recur != CalendarEvent::RecurOnce) {
         event->recurrence()->setEndDate(eventData.recurEndDate);
         if (!eventData.recurEndDate.isValid()) {
             // Recurrence/RecurrenceRule don't have separate method to clear the end date, and currently
@@ -290,7 +300,10 @@ void NemoCalendarWorker::setEventData(KCalCore::Event::Ptr &event, const NemoCal
     }
 }
 
-void NemoCalendarWorker::replaceOccurrence(const NemoCalendarData::Event &eventData, const QDateTime &startTime)
+void CalendarWorker::replaceOccurrence(const CalendarData::Event &eventData, const QDateTime &startTime,
+                                       bool updateAttendees,
+                                       const QList<CalendarData::EmailContact> &required,
+                                       const QList<CalendarData::EmailContact> &optional)
 {
     QString notebookUid = eventData.calendarUid;
     if (!notebookUid.isEmpty() && !mStorage->isValidNotebook(notebookUid)) {
@@ -321,12 +334,16 @@ void NemoCalendarWorker::replaceOccurrence(const NemoCalendarData::Event &eventD
 
     setEventData(replacement, eventData);
 
+    if (updateAttendees) {
+        updateEventAttendees(replacement, false, required, optional, notebookUid);
+    }
+
     mCalendar->addEvent(replacement, notebookUid);
     emit occurrenceExceptionCreated(eventData, startTime, replacement->recurrenceId());
     save();
 }
 
-void NemoCalendarWorker::init()
+void CalendarWorker::init()
 {
     mCalendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(KDateTime::Spec::LocalZone()));
     mStorage = mCalendar->defaultStorage(mCalendar);
@@ -335,41 +352,41 @@ void NemoCalendarWorker::init()
     loadNotebooks();
 }
 
-bool NemoCalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, NemoCalendarEvent::Recur recur)
+bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::Recur recur)
 {
     if (!event)
         return false;
 
-    NemoCalendarEvent::Recur oldRecur = NemoCalendarUtils::convertRecurrence(event);
+    CalendarEvent::Recur oldRecur = CalendarUtils::convertRecurrence(event);
 
-    if (recur == NemoCalendarEvent::RecurCustom) {
+    if (recur == CalendarEvent::RecurCustom) {
         qWarning() << "Cannot assign RecurCustom, will assing RecurOnce";
-        recur = NemoCalendarEvent::RecurOnce;
+        recur = CalendarEvent::RecurOnce;
     }
 
-    if (recur == NemoCalendarEvent::RecurOnce)
+    if (recur == CalendarEvent::RecurOnce)
         event->recurrence()->clear();
 
     if (oldRecur != recur) {
         switch (recur) {
-        case NemoCalendarEvent::RecurOnce:
+        case CalendarEvent::RecurOnce:
             break;
-        case NemoCalendarEvent::RecurDaily:
+        case CalendarEvent::RecurDaily:
             event->recurrence()->setDaily(1);
             break;
-        case NemoCalendarEvent::RecurWeekly:
+        case CalendarEvent::RecurWeekly:
             event->recurrence()->setWeekly(1);
             break;
-        case NemoCalendarEvent::RecurBiweekly:
+        case CalendarEvent::RecurBiweekly:
             event->recurrence()->setWeekly(2);
             break;
-        case NemoCalendarEvent::RecurMonthly:
+        case CalendarEvent::RecurMonthly:
             event->recurrence()->setMonthly(1);
             break;
-        case NemoCalendarEvent::RecurYearly:
+        case CalendarEvent::RecurYearly:
             event->recurrence()->setYearly(1);
             break;
-        case NemoCalendarEvent::RecurCustom:
+        case CalendarEvent::RecurCustom:
             break;
         }
         return true;
@@ -378,12 +395,12 @@ bool NemoCalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, NemoCalendar
     return false;
 }
 
-bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, int seconds)
+bool CalendarWorker::setReminder(KCalCore::Event::Ptr &event, int seconds)
 {
     if (!event)
         return false;
 
-    if (NemoCalendarUtils::getReminder(event) == seconds)
+    if (CalendarUtils::getReminder(event) == seconds)
         return false;
 
     KCalCore::Alarm::List alarms = event->alarms();
@@ -406,7 +423,7 @@ bool NemoCalendarWorker::setReminder(KCalCore::Event::Ptr &event, int seconds)
     return true;
 }
 
-bool NemoCalendarWorker::needSendCancellation(KCalCore::Event::Ptr &event) const
+bool CalendarWorker::needSendCancellation(KCalCore::Event::Ptr &event) const
 {
     if (!event) {
         qWarning() << Q_FUNC_INFO << "event is NULL";
@@ -421,18 +438,130 @@ bool NemoCalendarWorker::needSendCancellation(KCalCore::Event::Ptr &event) const
         return false;
     }
     // we shouldn't send a response if we are not an organizer
-    if (calOrganizer->email() != mKCal::ServiceHandler::instance().emailAddress(mStorage->notebook(mCalendar->notebook(event)), mStorage)) {
+    if (calOrganizer->email() != getNotebookAddress(event)) {
         return false;
     }
     return true;
 }
 
-QList<NemoCalendarData::Notebook> NemoCalendarWorker::notebooks() const
+// use explicit notebook uid so we don't need to assume the events involved being added there.
+// the related notebook is just needed to associate updates to some plugin/account
+void CalendarWorker::updateEventAttendees(KCalCore::Event::Ptr event, bool newEvent,
+                                          const QList<CalendarData::EmailContact> &required,
+                                          const QList<CalendarData::EmailContact> &optional,
+                                          const QString &notebookUid)
+{
+    if (notebookUid.isEmpty()) {
+        qWarning() << "No notebook passed, refusing to send event updates from random source";
+        return;
+    }
+
+    mKCal::Notebook::Ptr notebook = mStorage->notebook(notebookUid);
+    if (notebook.isNull()) {
+        qWarning() << "No notebook found with UID" << notebookUid;
+        return;
+    }
+
+    if (!newEvent) {
+        // if existing attendees are removed, those should get a cancel update
+        KCalCore::Event::Ptr cancelEvent = KCalCore::Event::Ptr(event->clone());
+
+        // first remove everyone still listed as included
+        for (int i = 0; i < required.length(); ++i) {
+            KCalCore::Attendee::Ptr toRemove = cancelEvent->attendeeByMail(required.at(i).email);
+            if (toRemove) {
+                cancelEvent->deleteAttendee(toRemove);
+            }
+        }
+        for (int i = 0; i < optional.length(); ++i) {
+            KCalCore::Attendee::Ptr toRemove = cancelEvent->attendeeByMail(optional.at(i).email);
+            if (toRemove) {
+                cancelEvent->deleteAttendee(toRemove);
+            }
+        }
+
+        QString organizer = cancelEvent->organizer()->email();
+        if (!organizer.isEmpty()) {
+            KCalCore::Attendee::Ptr toRemove = cancelEvent->attendeeByMail(organizer);
+            if (toRemove) {
+                cancelEvent->deleteAttendee(toRemove);
+            }
+        }
+
+        KCalCore::Attendee::List remainingAttendees = cancelEvent->attendees();
+
+        for (int i = remainingAttendees.length() - 1; i >= 0; --i) {
+            KCalCore::Attendee::Ptr attendee = remainingAttendees.at(i);
+
+            // if there are non-participants getting update as FYI, or chair for any reason,
+            // avoid sending them the cancel
+            if (attendee->role() != KCalCore::Attendee::ReqParticipant
+                    && attendee->role() != KCalCore::Attendee::OptParticipant) {
+                cancelEvent->deleteAttendee(attendee);
+                continue;
+            }
+
+            // this one really gets cancel so remove from update event side
+            KCalCore::Attendee::Ptr toRemove = event->attendeeByMail(attendee->email());
+            if (toRemove) {
+                event->deleteAttendee(toRemove);
+            }
+        }
+        if (cancelEvent->attendees().length() > 0) {
+            cancelEvent->setStatus(KCalCore::Incidence::StatusCanceled);
+            mKCal::ServiceHandler::instance().sendUpdate(cancelEvent, QString(), mCalendar, mStorage, notebook);
+        }
+    }
+
+    if (required.length() > 0 || optional.length() > 0) {
+        for (int i = 0; i < required.length(); ++i) {
+            KCalCore::Attendee::Ptr existing = event->attendeeByMail(required.at(i).email);
+            if (existing) {
+                existing->setRole(KCalCore::Attendee::ReqParticipant);
+            } else {
+                auto attendee = new KCalCore::Attendee(required.at(i).name, required.at(i).email, true /* rsvp */,
+                                                       KCalCore::Attendee::NeedsAction,
+                                                       KCalCore::Attendee::ReqParticipant);
+                event->addAttendee(KCalCore::Attendee::Ptr(attendee));
+            }
+        }
+        for (int i = 0; i < optional.length(); ++i) {
+            KCalCore::Attendee::Ptr existing = event->attendeeByMail(optional.at(i).email);
+            if (existing) {
+                existing->setRole(KCalCore::Attendee::OptParticipant);
+            } else {
+                auto attendee = new KCalCore::Attendee(optional.at(i).name, optional.at(i).email, true,
+                                                       KCalCore::Attendee::NeedsAction,
+                                                       KCalCore::Attendee::OptParticipant);
+                event->addAttendee(KCalCore::Attendee::Ptr(attendee));
+            }
+        }
+
+        // The separation between sendInvitation and sendUpdate it not really good,
+        // when modifying an existing event and adding attendees, should it be which?
+        // Probably those should be combined into a single function on the API, but
+        // until that is done, let's just handle new events as invitations and rest as updates.
+        if (newEvent) {
+            mKCal::ServiceHandler::instance().sendInvitation(event, QString(), mCalendar, mStorage, notebook);
+        } else {
+            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage, notebook);
+        }
+    }
+}
+
+QString CalendarWorker::getNotebookAddress(const KCalCore::Event::Ptr &event) const
+{
+    const QString &notebookUid = mCalendar->notebook(event);
+    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
+                                            : QString();
+}
+
+QList<CalendarData::Notebook> CalendarWorker::notebooks() const
 {
     return mNotebooks.values();
 }
 
-void NemoCalendarWorker::excludeNotebook(const QString &notebookUid, bool exclude)
+void CalendarWorker::excludeNotebook(const QString &notebookUid, bool exclude)
 {
     if (saveExcludeNotebook(notebookUid, exclude)) {
         emit excludedNotebooksChanged(excludedNotebooks());
@@ -440,7 +569,7 @@ void NemoCalendarWorker::excludeNotebook(const QString &notebookUid, bool exclud
     }
 }
 
-void NemoCalendarWorker::setDefaultNotebook(const QString &notebookUid)
+void CalendarWorker::setDefaultNotebook(const QString &notebookUid)
 {
     if (mStorage->defaultNotebook() && mStorage->defaultNotebook()->uid() == notebookUid)
         return;
@@ -449,17 +578,17 @@ void NemoCalendarWorker::setDefaultNotebook(const QString &notebookUid)
     mStorage->save();
 }
 
-QStringList NemoCalendarWorker::excludedNotebooks() const
+QStringList CalendarWorker::excludedNotebooks() const
 {
     QStringList excluded;
-    foreach (const NemoCalendarData::Notebook &notebook, mNotebooks.values()) {
+    foreach (const CalendarData::Notebook &notebook, mNotebooks.values()) {
         if (notebook.excluded)
             excluded << notebook.uid;
     }
     return excluded;
 }
 
-bool NemoCalendarWorker::saveExcludeNotebook(const QString &notebookUid, bool exclude)
+bool CalendarWorker::saveExcludeNotebook(const QString &notebookUid, bool exclude)
 {
     if (!mNotebooks.contains(notebookUid))
         return false;
@@ -467,7 +596,7 @@ bool NemoCalendarWorker::saveExcludeNotebook(const QString &notebookUid, bool ex
     if (mNotebooks.value(notebookUid).excluded == exclude)
         return false;
 
-    NemoCalendarData::Notebook notebook = mNotebooks.value(notebookUid);
+    CalendarData::Notebook notebook = mNotebooks.value(notebookUid);
     QSettings settings("nemo", "nemo-qml-plugin-calendar");
     notebook.excluded = exclude;
     if (exclude)
@@ -479,7 +608,7 @@ bool NemoCalendarWorker::saveExcludeNotebook(const QString &notebookUid, bool ex
     return true;
 }
 
-void NemoCalendarWorker::setExcludedNotebooks(const QStringList &list)
+void CalendarWorker::setExcludedNotebooks(const QStringList &list)
 {
     bool changed = false;
 
@@ -505,13 +634,13 @@ void NemoCalendarWorker::setExcludedNotebooks(const QStringList &list)
     }
 }
 
-void NemoCalendarWorker::setNotebookColor(const QString &notebookUid, const QString &color)
+void CalendarWorker::setNotebookColor(const QString &notebookUid, const QString &color)
 {
     if (!mNotebooks.contains(notebookUid))
         return;
 
     if (mNotebooks.value(notebookUid).color != color) {
-        NemoCalendarData::Notebook notebook = mNotebooks.value(notebookUid);
+        CalendarData::Notebook notebook = mNotebooks.value(notebookUid);
         notebook.color = color;
         mNotebooks.insert(notebook.uid, notebook);
 
@@ -522,11 +651,11 @@ void NemoCalendarWorker::setNotebookColor(const QString &notebookUid, const QStr
     }
 }
 
-QHash<QString, NemoCalendarData::EventOccurrence>
-NemoCalendarWorker::eventOccurrences(const QList<NemoCalendarData::Range> &ranges) const
+QHash<QString, CalendarData::EventOccurrence>
+CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
 {
     mKCal::ExtendedCalendar::ExpandedIncidenceList events;
-    foreach (NemoCalendarData::Range range, ranges) {
+    foreach (CalendarData::Range range, ranges) {
         // mkcal fails to consider all day event end time inclusivity on this, add -1 days to start date
         mKCal::ExtendedCalendar::ExpandedIncidenceList newEvents =
                 mCalendar->rawExpandedEvents(range.first.addDays(-1), range.second,
@@ -535,7 +664,7 @@ NemoCalendarWorker::eventOccurrences(const QList<NemoCalendarData::Range> &range
     }
 
     QStringList excluded = excludedNotebooks();
-    QHash<QString, NemoCalendarData::EventOccurrence> filtered;
+    QHash<QString, CalendarData::EventOccurrence> filtered;
 
     for (int kk = 0; kk < events.count(); ++kk) {
         // Filter out excluded notebooks
@@ -543,7 +672,7 @@ NemoCalendarWorker::eventOccurrences(const QList<NemoCalendarData::Range> &range
             continue;
 
         mKCal::ExtendedCalendar::ExpandedIncidence exp = events.at(kk);
-        NemoCalendarData::EventOccurrence occurrence;
+        CalendarData::EventOccurrence occurrence;
         occurrence.eventUid = exp.second->uid();
         occurrence.recurrenceId = exp.second->recurrenceId();
         occurrence.startTime = exp.first.dtStart;
@@ -555,15 +684,15 @@ NemoCalendarWorker::eventOccurrences(const QList<NemoCalendarData::Range> &range
 }
 
 QHash<QDate, QStringList>
-NemoCalendarWorker::dailyEventOccurrences(const QList<NemoCalendarData::Range> &ranges,
-                                          const QMultiHash<QString, KDateTime> &allDay,
-                                          const QList<NemoCalendarData::EventOccurrence> &occurrences)
+CalendarWorker::dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
+                                      const QMultiHash<QString, KDateTime> &allDay,
+                                      const QList<CalendarData::EventOccurrence> &occurrences)
 {
     QHash<QDate, QStringList> occurrenceHash;
-    foreach (const NemoCalendarData::Range &range, ranges) {
+    foreach (const CalendarData::Range &range, ranges) {
         QDate start = range.first;
         while (start <= range.second) {
-            foreach (const NemoCalendarData::EventOccurrence &eo, occurrences) {
+            foreach (const CalendarData::EventOccurrence &eo, occurrences) {
                 // On all day events the end time is inclusive, otherwise not
                 if ((eo.startTime.date() < start
                      && (eo.endTime.date() > start
@@ -579,11 +708,11 @@ NemoCalendarWorker::dailyEventOccurrences(const QList<NemoCalendarData::Range> &
     return occurrenceHash;
 }
 
-void NemoCalendarWorker::loadData(const QList<NemoCalendarData::Range> &ranges,
-                                  const QStringList &uidList,
-                                  bool reset)
+void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
+                              const QStringList &uidList,
+                              bool reset)
 {
-    foreach (const NemoCalendarData::Range &range, ranges)
+    foreach (const CalendarData::Range &range, ranges)
         mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
 
     // Note: omitting recurrence ids since loadRecurringIncidences() loads them anyway
@@ -598,7 +727,7 @@ void NemoCalendarWorker::loadData(const QList<NemoCalendarData::Range> &ranges,
     if (reset)
         mSentEvents.clear();
 
-    QMultiHash<QString, NemoCalendarData::Event> events;
+    QMultiHash<QString, CalendarData::Event> events;
     QMultiHash<QString, KDateTime> allDay;
     bool orphansDeleted = false;
 
@@ -627,7 +756,7 @@ void NemoCalendarWorker::loadData(const QList<NemoCalendarData::Range> &ranges,
             continue;
         }
 
-        NemoCalendarData::Event event = createEventStruct(e);
+        CalendarData::Event event = createEventStruct(e);
 
         if (!mSentEvents.contains(event.uniqueId, event.recurrenceId)) {
             mSentEvents.insert(event.uniqueId, event.recurrenceId);
@@ -641,15 +770,15 @@ void NemoCalendarWorker::loadData(const QList<NemoCalendarData::Range> &ranges,
         save(); // save the orphan deletions to storage.
     }
 
-    QHash<QString, NemoCalendarData::EventOccurrence> occurrences = eventOccurrences(ranges);
+    QHash<QString, CalendarData::EventOccurrence> occurrences = eventOccurrences(ranges);
     QHash<QDate, QStringList> dailyOccurrences = dailyEventOccurrences(ranges, allDay, occurrences.values());
 
     emit dataLoaded(ranges, uidList, events, occurrences, dailyOccurrences, reset);
 }
 
-NemoCalendarData::Event NemoCalendarWorker::createEventStruct(const KCalCore::Event::Ptr &e) const
+CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr &e) const
 {
-    NemoCalendarData::Event event;
+    CalendarData::Event event;
     event.uniqueId = e->uid();
     event.recurrenceId = e->recurrenceId();
     event.allDay = e->allDay();
@@ -658,16 +787,16 @@ NemoCalendarData::Event NemoCalendarWorker::createEventStruct(const KCalCore::Ev
     event.displayLabel = e->summary();
     event.endTime = e->dtEnd();
     event.location = e->location();
-    event.secrecy = NemoCalendarUtils::convertSecrecy(e);
+    event.secrecy = CalendarUtils::convertSecrecy(e);
     event.readonly = mStorage->notebook(event.calendarUid)->isReadOnly();
-    event.recur = NemoCalendarUtils::convertRecurrence(e);
+    event.recur = CalendarUtils::convertRecurrence(e);
 
     KCalCore::Attendee::List attendees = e->attendees();
-    const QString &calendarOwnerEmail = mNotebooks.contains(event.calendarUid) ? mNotebooks.value(event.calendarUid).emailAddress
-                                                                               : QString();
+    const QString &calendarOwnerEmail = getNotebookAddress(e);
+
     foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
         if (calAttendee->email() == calendarOwnerEmail) {
-            event.ownerStatus = NemoCalendarUtils::convertPartStat(calAttendee->status());
+            event.ownerStatus = CalendarUtils::convertPartStat(calAttendee->status());
             //TODO: KCalCore::Attendee::RSVP() returns false even if response was requested for some accounts like Google.
             // We can use attendee role until the problem is not fixed (probably in Google plugin).
             // To be updated later when google account support for responses is added.
@@ -679,12 +808,12 @@ NemoCalendarData::Event NemoCalendarWorker::createEventStruct(const KCalCore::Ev
     if (defaultRule) {
         event.recurEndDate = defaultRule->endDt().date();
     }
-    event.reminder = NemoCalendarUtils::getReminder(e);
+    event.reminder = CalendarUtils::getReminder(e);
     event.startTime = e->dtStart();
     return event;
 }
 
-void NemoCalendarWorker::loadNotebooks()
+void CalendarWorker::loadNotebooks()
 {
     QStringList defaultNotebookColors = QStringList() << "#00aeef" << "red" << "blue" << "green" << "pink" << "yellow";
     int nextDefaultNotebookColor = 0;
@@ -692,11 +821,11 @@ void NemoCalendarWorker::loadNotebooks()
     mKCal::Notebook::List notebooks = mStorage->notebooks();
     QSettings settings("nemo", "nemo-qml-plugin-calendar");
 
-    QHash<QString, NemoCalendarData::Notebook> newNotebooks;
+    QHash<QString, CalendarData::Notebook> newNotebooks;
 
     bool changed = mNotebooks.isEmpty();
     for (int ii = 0; ii < notebooks.count(); ++ii) {
-        NemoCalendarData::Notebook notebook = mNotebooks.value(notebooks.at(ii)->uid(), NemoCalendarData::Notebook());
+        CalendarData::Notebook notebook = mNotebooks.value(notebooks.at(ii)->uid(), CalendarData::Notebook());
         notebook.name = notebooks.at(ii)->name();
         notebook.uid = notebooks.at(ii)->uid();
         notebook.description = notebooks.at(ii)->description();
@@ -752,17 +881,17 @@ void NemoCalendarWorker::loadNotebooks()
 }
 
 
-NemoCalendarData::EventOccurrence NemoCalendarWorker::getNextOccurrence(const QString &uid,
-                                                                        const KDateTime &recurrenceId,
-                                                                        const QDateTime &start) const
+CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &uid,
+                                                                const KDateTime &recurrenceId,
+                                                                const QDateTime &start) const
 {
     KCalCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-    return NemoCalendarUtils::getNextOccurrence(event, start);
+    return CalendarUtils::getNextOccurrence(event, start);
 }
 
-QList<NemoCalendarData::Attendee> NemoCalendarWorker::getEventAttendees(const QString &uid, const KDateTime &recurrenceId)
+QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &uid, const KDateTime &recurrenceId)
 {
-    QList<NemoCalendarData::Attendee> result;
+    QList<CalendarData::Attendee> result;
 
     KCalCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
 
@@ -770,19 +899,20 @@ QList<NemoCalendarData::Attendee> NemoCalendarWorker::getEventAttendees(const QS
         return result;
     }
 
-    return NemoCalendarUtils::getEventAttendees(event, mKCal::ServiceHandler::instance().emailAddress(mStorage->notebook(mCalendar->notebook(event)), mStorage));
+    const QString &ownerEmail = getNotebookAddress(event);
+    return CalendarUtils::getEventAttendees(event, ownerEmail);
 }
 
-void NemoCalendarWorker::findMatchingEvent(const QString &invitationFile)
+void CalendarWorker::findMatchingEvent(const QString &invitationFile)
 {
     KCalCore::MemoryCalendar::Ptr cal(new KCalCore::MemoryCalendar(KDateTime::Spec::LocalZone()));
-    NemoCalendarUtils::importFromFile(invitationFile, cal);
+    CalendarUtils::importFromFile(invitationFile, cal);
     KCalCore::Incidence::List incidenceList = cal->incidences();
     for (int i = 0; i < incidenceList.size(); i++) {
         KCalCore::Incidence::Ptr incidence = incidenceList.at(i);
         if (incidence->type() == KCalCore::IncidenceBase::TypeEvent) {
             // Search for this event in the database.
-            loadData(QList<NemoCalendarData::Range>() << qMakePair(incidence->dtStart().date().addDays(-1), incidence->dtStart().date().addDays(1)), QStringList(), false);
+            loadData(QList<CalendarData::Range>() << qMakePair(incidence->dtStart().date().addDays(-1), incidence->dtStart().date().addDays(1)), QStringList(), false);
             KCalCore::Incidence::List dbIncidences = mCalendar->incidences();
             Q_FOREACH (KCalCore::Incidence::Ptr dbIncidence, dbIncidences) {
                 const QString remoteUidValue(dbIncidence->nonKDECustomProperty("X-SAILFISHOS-REMOTE-UID"));
@@ -801,5 +931,5 @@ void NemoCalendarWorker::findMatchingEvent(const QString &invitationFile)
     }
 
     // not found.
-    emit findMatchingEventFinished(invitationFile, NemoCalendarData::Event());
+    emit findMatchingEventFinished(invitationFile, CalendarData::Event());
 }

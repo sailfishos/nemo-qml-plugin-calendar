@@ -46,27 +46,32 @@
 #include "calendarevent.h"
 #include "calendarchangeinformation.h"
 
-class NemoCalendarWorker;
-class NemoCalendarAgendaModel;
-class NemoCalendarEventOccurrence;
-class NemoCalendarEventQuery;
-class NemoCalendarInvitationQuery;
+class CalendarWorker;
+class CalendarAgendaModel;
+class CalendarEventOccurrence;
+class CalendarEventQuery;
+class CalendarInvitationQuery;
 
-class NemoCalendarManager : public QObject
+class CalendarManager : public QObject
 {
     Q_OBJECT
 private:
-    NemoCalendarManager();
+    CalendarManager();
 
 public:
-    static NemoCalendarManager *instance(bool createIfNeeded = true);
-    ~NemoCalendarManager();
+    static CalendarManager *instance(bool createIfNeeded = true);
+    ~CalendarManager();
 
-    NemoCalendarEvent* eventObject(const QString &eventUid, const KDateTime &recurrenceId);
+    CalendarEvent* eventObject(const QString &eventUid, const KDateTime &recurrenceId);
 
-    void saveModification(NemoCalendarData::Event eventData);
-    NemoCalendarChangeInformation * replaceOccurrence(NemoCalendarData::Event eventData,
-                                                      NemoCalendarEventOccurrence *occurrence);
+    void saveModification(CalendarData::Event eventData, bool updateAttendees,
+                          const QList<CalendarData::EmailContact> &required,
+                          const QList<CalendarData::EmailContact> &optional);
+    CalendarChangeInformation * replaceOccurrence(CalendarData::Event eventData,
+                                                  CalendarEventOccurrence *occurrence,
+                                                  bool updateAttendees,
+                                                  const QList<CalendarData::EmailContact> &required,
+                                                  const QList<CalendarData::EmailContact> &optional);
     void deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     void save();
@@ -75,11 +80,11 @@ public:
     QString convertEventToVCalendarSync(const QString &uid, const QString &prodId);
 
     // Event
-    NemoCalendarData::Event getEvent(const QString& uid, const KDateTime &recurrenceId);
-    bool sendResponse(const NemoCalendarData::Event &eventData, NemoCalendarEvent::Response response);
+    CalendarData::Event getEvent(const QString& uid, const KDateTime &recurrenceId);
+    bool sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response);
 
     // Notebooks
-    QList<NemoCalendarData::Notebook> notebooks();
+    QList<CalendarData::Notebook> notebooks();
     QString defaultNotebook() const;
     void setDefaultNotebook(const QString &notebookUid);
     QStringList excludedNotebooks();
@@ -89,50 +94,47 @@ public:
     QString getNotebookColor(const QString &notebookUid) const;
 
     // AgendaModel
-    void cancelAgendaRefresh(NemoCalendarAgendaModel *model);
-    void scheduleAgendaRefresh(NemoCalendarAgendaModel *model);
+    void cancelAgendaRefresh(CalendarAgendaModel *model);
+    void scheduleAgendaRefresh(CalendarAgendaModel *model);
 
     // EventQuery
-    void registerEventQuery(NemoCalendarEventQuery *query);
-    void unRegisterEventQuery(NemoCalendarEventQuery *query);
-    void scheduleEventQueryRefresh(NemoCalendarEventQuery *query);
+    void registerEventQuery(CalendarEventQuery *query);
+    void unRegisterEventQuery(CalendarEventQuery *query);
+    void scheduleEventQueryRefresh(CalendarEventQuery *query);
 
     // Invitation event search
-    void scheduleInvitationQuery(NemoCalendarInvitationQuery *query, const QString &invitationFile);
-    void unRegisterInvitationQuery(NemoCalendarInvitationQuery *query);
+    void scheduleInvitationQuery(CalendarInvitationQuery *query, const QString &invitationFile);
+    void unRegisterInvitationQuery(CalendarInvitationQuery *query);
 
-    // Caller gets ownership of returned NemoCalendarEventOccurrence object
+    // Caller gets ownership of returned CalendarEventOccurrence object
     // Does synchronous DB thread access - no DB operations, though, fast when no ongoing DB ops
-    NemoCalendarEventOccurrence* getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
-                                                   const QDateTime &start);
+    CalendarEventOccurrence* getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
+                                               const QDateTime &start);
     // return attendees for given event, synchronous call
-    QList<NemoCalendarData::Attendee> getEventAttendees(const QString &uid, const KDateTime &recurrenceId);
+    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const KDateTime &recurrenceId);
 
 private slots:
-    void storageModifiedSlot(QString info);
-
-    void eventNotebookChanged(QString oldEventUid, QString newEventUid, QString notebookUid);
-
-    void excludedNotebooksChangedSlot(QStringList excludedNotebooks);
-    void notebooksChangedSlot(QList<NemoCalendarData::Notebook> notebooks);
-
-    void dataLoadedSlot(QList<NemoCalendarData::Range> ranges,
-                          QStringList uidList,
-                          QMultiHash<QString, NemoCalendarData::Event> events,
-                          QHash<QString, NemoCalendarData::EventOccurrence> occurrences,
-                          QHash<QDate, QStringList> dailyOccurrences,
-                          bool reset);
+    void storageModifiedSlot(const QString &info);
+    void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
+    void excludedNotebooksChangedSlot(const QStringList &excludedNotebooks);
+    void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);
+    void dataLoadedSlot(const QList<CalendarData::Range> &ranges,
+                        const QStringList &uidList,
+                        const QMultiHash<QString, CalendarData::Event> &events,
+                        const QHash<QString, CalendarData::EventOccurrence> &occurrences,
+                        const QHash<QDate, QStringList> &dailyOccurrences,
+                        bool reset);
     void timeout();
-    void occurrenceExceptionFailedSlot(NemoCalendarData::Event data, QDateTime occurrence);
-    void occurrenceExceptionCreatedSlot(NemoCalendarData::Event data, QDateTime occurrence, KDateTime newRecurrenceId);
-
+    void occurrenceExceptionFailedSlot(const CalendarData::Event &data, const QDateTime &occurrence);
+    void occurrenceExceptionCreatedSlot(const CalendarData::Event &data, const QDateTime &occurrence,
+                                        const KDateTime &newRecurrenceId);
     void findMatchingEventFinished(const QString &invitationFile,
-                                   const NemoCalendarData::Event &event);
+                                   const CalendarData::Event &event);
 
 signals:
     void excludedNotebooksChanged(QStringList excludedNotebooks);
     void notebooksAboutToChange();
-    void notebooksChanged(QList<NemoCalendarData::Notebook> notebooks);
+    void notebooksChanged(QList<CalendarData::Notebook> notebooks);
     void notebookColorChanged(QString notebookUid);
     void defaultNotebookChanged(QString notebookUid);
     void storageModified();
@@ -140,49 +142,49 @@ signals:
     void eventUidChanged(QString oldUid, QString newUid);
 
 private:
-    friend class tst_NemoCalendarManager;
+    friend class tst_CalendarManager;
 
     void doAgendaAndQueryRefresh();
-    bool isRangeLoaded(const QPair<QDate, QDate> &r, QList<NemoCalendarData::Range> *newRanges);
-    QList<NemoCalendarData::Range> addRanges(const QList<NemoCalendarData::Range> &oldRanges,
-                                             const QList<NemoCalendarData::Range> &newRanges);
-    void updateAgendaModel(NemoCalendarAgendaModel *model);
-    void sendEventChangeSignals(const NemoCalendarData::Event &newEvent,
-                                const NemoCalendarData::Event &oldEvent);
+    bool isRangeLoaded(const QPair<QDate, QDate> &r, QList<CalendarData::Range> *newRanges);
+    QList<CalendarData::Range> addRanges(const QList<CalendarData::Range> &oldRanges,
+                                         const QList<CalendarData::Range> &newRanges);
+    void updateAgendaModel(CalendarAgendaModel *model);
+    void sendEventChangeSignals(const CalendarData::Event &newEvent,
+                                const CalendarData::Event &oldEvent);
 
     QThread mWorkerThread;
-    NemoCalendarWorker *mCalendarWorker;
-    QMultiHash<QString, NemoCalendarData::Event> mEvents;
-    QMultiHash<QString, NemoCalendarEvent *> mEventObjects;
-    QHash<QString, NemoCalendarData::EventOccurrence> mEventOccurrences;
+    CalendarWorker *mCalendarWorker;
+    QMultiHash<QString, CalendarData::Event> mEvents;
+    QMultiHash<QString, CalendarEvent *> mEventObjects;
+    QHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
     QHash<QDate, QStringList> mEventOccurrenceForDates;
-    QList<NemoCalendarAgendaModel *> mAgendaRefreshList;
-    QList<NemoCalendarEventQuery *> mQueryRefreshList;
-    QList<NemoCalendarEventQuery *> mQueryList; // List of all NemoCalendarEventQuery instances
-    QHash<NemoCalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
+    QList<CalendarAgendaModel *> mAgendaRefreshList;
+    QList<CalendarEventQuery *> mQueryRefreshList;
+    QList<CalendarEventQuery *> mQueryList; // List of all CalendarEventQuery instances
+    QHash<CalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
     QStringList mExcludedNotebooks;
-    QHash<QString, NemoCalendarData::Notebook> mNotebooks;
+    QHash<QString, CalendarData::Notebook> mNotebooks;
 
     struct OccurrenceData {
-        NemoCalendarData::Event event;
+        CalendarData::Event event;
         QDateTime occurrenceTime;
-        QPointer<NemoCalendarChangeInformation> changeObject;
+        QPointer<CalendarChangeInformation> changeObject;
     };
     QList<OccurrenceData> mPendingOccurrenceExceptions;
 
     QTimer *mTimer;
 
-    // If true indicates that NemoCalendarWorker::loadRanges(...) has been called, and the response
-    // has not been received in slot NemoCalendarManager::rangesLoaded(...)
+    // If true indicates that CalendarWorker::loadRanges(...) has been called, and the response
+    // has not been received in slot CalendarManager::rangesLoaded(...)
     bool mLoadPending;
 
     // If true the next call to doAgendaRefresh() will cause a complete reload of calendar data
     bool mResetPending;
 
     // A list of non-overlapping loaded ranges sorted by range start date
-    QList<NemoCalendarData::Range > mLoadedRanges;
+    QList<CalendarData::Range > mLoadedRanges;
 
-    // A list of event UIDs that have been processed by NemoCalendarWorker, any events that
+    // A list of event UIDs that have been processed by CalendarWorker, any events that
     // match the UIDs have been loaded
     QStringList mLoadedQueries;
 };

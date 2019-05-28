@@ -37,10 +37,10 @@
 #include <QAbstractListModel>
 #include <QQmlParserStatus>
 
-class NemoCalendarEvent;
-class NemoCalendarEventOccurrence;
+class CalendarEvent;
+class CalendarEventOccurrence;
 
-class NemoCalendarAgendaModel : public QAbstractListModel, public QQmlParserStatus
+class CalendarAgendaModel : public QAbstractListModel, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
@@ -63,8 +63,8 @@ public:
         FilterNonAllDay
     };
 
-    explicit NemoCalendarAgendaModel(QObject *parent = 0);
-    virtual ~NemoCalendarAgendaModel();
+    explicit CalendarAgendaModel(QObject *parent = 0);
+    virtual ~CalendarAgendaModel();
 
     QDate startDate() const;
     void setStartDate(const QDate &startDate);
@@ -77,8 +77,8 @@ public:
     int filterMode() const;
     void setFilterMode(int mode);
 
-    // NemoCalendarAgendaModel takes ownership of the NemoCalendarEventOccurrence objects
-    void doRefresh(QList<NemoCalendarEventOccurrence *>);
+    // CalendarAgendaModel takes ownership of the CalendarEventOccurrence objects
+    void doRefresh(QList<CalendarEventOccurrence *>);
 
     int rowCount(const QModelIndex &index) const;
     QVariant data(const QModelIndex &index, int role) const;
@@ -103,7 +103,7 @@ private slots:
 private:
     QDate mStartDate;
     QDate mEndDate;
-    QList<NemoCalendarEventOccurrence *> mEvents;
+    QList<CalendarEventOccurrence *> mEvents;
 
     bool mIsComplete;
     int mFilterMode;

@@ -39,20 +39,20 @@
 
 class QJSEngine;
 class QQmlEngine;
-class NemoCalendarEvent;
-class NemoCalendarEventModification;
+class CalendarEvent;
+class CalendarEventModification;
 
-class NemoCalendarApi : public QObject
+class CalendarApi : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QStringList excludedNotebooks READ excludedNotebooks WRITE setExcludedNotebooks NOTIFY excludedNotebooksChanged)
     Q_PROPERTY(QString defaultNotebook READ defaultNotebook WRITE setDefaultNotebook NOTIFY defaultNotebookChanged)
 
 public:
-    NemoCalendarApi(QObject *parent = 0);
+    CalendarApi(QObject *parent = 0);
 
-    Q_INVOKABLE NemoCalendarEventModification *createNewEvent();
-    Q_INVOKABLE NemoCalendarEventModification *createModification(NemoCalendarEvent *sourceEvent);
+    Q_INVOKABLE CalendarEventModification *createNewEvent();
+    Q_INVOKABLE CalendarEventModification *createModification(CalendarEvent *sourceEvent);
 
     Q_INVOKABLE void remove(const QString &uid, const QString &recurrenceId = QString(),
                             const QDateTime &time = QDateTime());

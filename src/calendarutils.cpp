@@ -48,47 +48,47 @@
 #include <QByteArray>
 #include <QtDebug>
 
-NemoCalendarEvent::Recur NemoCalendarUtils::convertRecurrence(const KCalCore::Event::Ptr &event)
+CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr &event)
 {
     if (!event->recurs())
-        return NemoCalendarEvent::RecurOnce;
+        return CalendarEvent::RecurOnce;
 
     if (event->recurrence()->rRules().count() != 1)
-        return NemoCalendarEvent::RecurCustom;
+        return CalendarEvent::RecurCustom;
 
     ushort rt = event->recurrence()->recurrenceType();
     int freq = event->recurrence()->frequency();
 
     if (rt == KCalCore::Recurrence::rDaily && freq == 1) {
-        return NemoCalendarEvent::RecurDaily;
+        return CalendarEvent::RecurDaily;
     } else if (rt == KCalCore::Recurrence::rWeekly && freq == 1) {
-        return NemoCalendarEvent::RecurWeekly;
+        return CalendarEvent::RecurWeekly;
     } else if (rt == KCalCore::Recurrence::rWeekly && freq == 2) {
-        return NemoCalendarEvent::RecurBiweekly;
+        return CalendarEvent::RecurBiweekly;
     } else if (rt == KCalCore::Recurrence::rMonthlyDay && freq == 1) {
-        return NemoCalendarEvent::RecurMonthly;
+        return CalendarEvent::RecurMonthly;
     } else if (rt == KCalCore::Recurrence::rYearlyMonth && freq == 1) {
-        return NemoCalendarEvent::RecurYearly;
+        return CalendarEvent::RecurYearly;
     }
 
-    return NemoCalendarEvent::RecurCustom;
+    return CalendarEvent::RecurCustom;
 }
 
-NemoCalendarEvent::Secrecy NemoCalendarUtils::convertSecrecy(const KCalCore::Event::Ptr &event)
+CalendarEvent::Secrecy CalendarUtils::convertSecrecy(const KCalCore::Event::Ptr &event)
 {
     KCalCore::Incidence::Secrecy s = event->secrecy();
     switch (s) {
     case KCalCore::Incidence::SecrecyPrivate:
-        return NemoCalendarEvent::SecrecyPrivate;
+        return CalendarEvent::SecrecyPrivate;
     case KCalCore::Incidence::SecrecyConfidential:
-        return NemoCalendarEvent::SecrecyConfidential;
+        return CalendarEvent::SecrecyConfidential;
     case KCalCore::Incidence::SecrecyPublic:
     default:
-        return NemoCalendarEvent::SecrecyPublic;
+        return CalendarEvent::SecrecyPublic;
     }
 }
 
-int NemoCalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
+int CalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
 {
     KCalCore::Alarm::List alarms = event->alarms();
 
@@ -112,26 +112,24 @@ int NemoCalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
     return seconds;
 }
 
-QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCalCore::Event::Ptr &event, const QString &ownerEmail)
+QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalCore::Event::Ptr &event, const QString &ownerEmail)
 {
-    QList<NemoCalendarData::Attendee> result;
+    QList<CalendarData::Attendee> result;
     KCalCore::Person::Ptr calOrganizer = event->organizer();
 
-    NemoCalendarData::Attendee organizer;
+    CalendarData::Attendee organizer;
 
     if (!calOrganizer.isNull() && !calOrganizer->isEmpty()) {
         organizer.isOrganizer = true;
         organizer.name = calOrganizer->name();
         organizer.email = calOrganizer->email();
-        organizer.isOwner = organizer.email == ownerEmail;
         organizer.participationRole = KCalCore::Attendee::Chair;
         result.append(organizer);
     }
 
     KCalCore::Attendee::List attendees = event->attendees();
-    NemoCalendarData::Attendee attendee;
+    CalendarData::Attendee attendee;
     attendee.isOrganizer = false;
-    attendee.isOwner = false;
 
     foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
         attendee.name = calAttendee->name();
@@ -140,8 +138,7 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
             // avoid duplicate info
             continue;
         }
-        attendee.isOwner = attendee.email == ownerEmail;
-        if (attendee.isOwner) {
+        if (attendee.email == ownerEmail) {
             attendee.status = calAttendee->status();
         }
         attendee.participationRole = calAttendee->role();
@@ -151,22 +148,36 @@ QList<NemoCalendarData::Attendee> NemoCalendarUtils::getEventAttendees(const KCa
     return result;
 }
 
-QList<QObject *> NemoCalendarUtils::convertAttendeeList(const QList<NemoCalendarData::Attendee> &list)
+QList<QObject *> CalendarUtils::convertAttendeeList(const QList<CalendarData::Attendee> &list)
 {
     QList<QObject*> result;
-    foreach (const NemoCalendarData::Attendee &attendee, list) {
-        QObject *person = new Person(attendee.name, attendee.email, attendee.isOrganizer,
-                                     attendee.participationRole);
+    foreach (const CalendarData::Attendee &attendee, list) {
+        Person::AttendeeRole role;
+        switch (attendee.participationRole) {
+        case KCalCore::Attendee::ReqParticipant:
+            role = Person::RequiredParticipant;
+            break;
+        case KCalCore::Attendee::OptParticipant:
+            role = Person::OptionalParticipant;
+            break;
+        case KCalCore::Attendee::Chair:
+            role = Person::ChairParticipant;
+            break;
+        default:
+            role = Person::NonParticipant;
+            break;
+        }
+        QObject *person = new Person(attendee.name, attendee.email, attendee.isOrganizer, role);
         result.append(person);
     }
 
     return result;
 }
 
-NemoCalendarData::EventOccurrence NemoCalendarUtils::getNextOccurrence(const KCalCore::Event::Ptr &event,
-                                                                       const QDateTime &start)
+CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalCore::Event::Ptr &event,
+                                                               const QDateTime &start)
 {
-    NemoCalendarData::EventOccurrence occurrence;
+    CalendarData::EventOccurrence occurrence;
     if (event) {
         QDateTime dtStart = event->dtStart().toLocalZone().dateTime();
         QDateTime dtEnd = event->dtEnd().toLocalZone().dateTime();
@@ -198,8 +209,8 @@ NemoCalendarData::EventOccurrence NemoCalendarUtils::getNextOccurrence(const KCa
     return occurrence;
 }
 
-bool NemoCalendarUtils::importFromFile(const QString &fileName,
-                                       KCalCore::Calendar::Ptr calendar)
+bool CalendarUtils::importFromFile(const QString &fileName,
+                                   KCalCore::Calendar::Ptr calendar)
 {
     QString filePath;
     QUrl url(fileName);
@@ -234,8 +245,8 @@ bool NemoCalendarUtils::importFromFile(const QString &fileName,
     return ok;
 }
 
-bool NemoCalendarUtils::importFromIcsRawData(const QByteArray &icsData,
-                                             KCalCore::Calendar::Ptr calendar)
+bool CalendarUtils::importFromIcsRawData(const QByteArray &icsData,
+                                         KCalCore::Calendar::Ptr calendar)
 {
     bool ok = false;
     KCalCore::ICalFormat icalFormat;
@@ -246,30 +257,30 @@ bool NemoCalendarUtils::importFromIcsRawData(const QByteArray &icsData,
     return ok;
 }
 
-NemoCalendarEvent::Response NemoCalendarUtils::convertPartStat(KCalCore::Attendee::PartStat status)
+CalendarEvent::Response CalendarUtils::convertPartStat(KCalCore::Attendee::PartStat status)
 {
     switch (status) {
     case KCalCore::Attendee::Accepted:
-        return NemoCalendarEvent::ResponseAccept;
+        return CalendarEvent::ResponseAccept;
     case KCalCore::Attendee::Declined:
-        return NemoCalendarEvent::ResponseDecline;
+        return CalendarEvent::ResponseDecline;
     case KCalCore::Attendee::Tentative:
-        return NemoCalendarEvent::ResponseTentative;
+        return CalendarEvent::ResponseTentative;
     case KCalCore::Attendee::NeedsAction:
     case KCalCore::Attendee::None:
     default:
-        return NemoCalendarEvent::ResponseUnspecified;
+        return CalendarEvent::ResponseUnspecified;
     }
 }
 
-KCalCore::Attendee::PartStat NemoCalendarUtils::convertResponse(NemoCalendarEvent::Response response)
+KCalCore::Attendee::PartStat CalendarUtils::convertResponse(CalendarEvent::Response response)
 {
     switch (response) {
-    case NemoCalendarEvent::ResponseAccept:
+    case CalendarEvent::ResponseAccept:
         return KCalCore::Attendee::Accepted;
-    case NemoCalendarEvent::ResponseTentative:
+    case CalendarEvent::ResponseTentative:
         return KCalCore::Attendee::Tentative;
-    case NemoCalendarEvent::ResponseDecline:
+    case CalendarEvent::ResponseDecline:
         return KCalCore::Attendee::Declined;
     default:
         return KCalCore::Attendee::NeedsAction;

@@ -1,24 +1,24 @@
 #include "calendarnotebookquery.h"
 #include "calendarmanager.h"
 
-NemoCalendarNotebookQuery::NemoCalendarNotebookQuery(QObject *parent) :
+CalendarNotebookQuery::CalendarNotebookQuery(QObject *parent) :
     QObject(parent),
     m_isValid(false)
 {
-    connect(NemoCalendarManager::instance(), SIGNAL(notebooksChanged(QList<NemoCalendarData::Notebook>)),
+    connect(CalendarManager::instance(), SIGNAL(notebooksChanged(QList<CalendarData::Notebook>)),
             this, SLOT(updateData()));
 }
 
-NemoCalendarNotebookQuery::~NemoCalendarNotebookQuery()
+CalendarNotebookQuery::~CalendarNotebookQuery()
 {
 }
 
-QString NemoCalendarNotebookQuery::targetUid() const
+QString CalendarNotebookQuery::targetUid() const
 {
     return m_targetUid;
 }
 
-void NemoCalendarNotebookQuery::setTargetUid(const QString &target)
+void CalendarNotebookQuery::setTargetUid(const QString &target)
 {
     if (target != m_targetUid) {
         m_targetUid = target;
@@ -27,61 +27,61 @@ void NemoCalendarNotebookQuery::setTargetUid(const QString &target)
     }
 }
 
-bool NemoCalendarNotebookQuery::isValid() const
+bool CalendarNotebookQuery::isValid() const
 {
     return m_isValid;
 }
 
-QString NemoCalendarNotebookQuery::name() const
+QString CalendarNotebookQuery::name() const
 {
     return m_notebook.name;
 }
 
-QString NemoCalendarNotebookQuery::description() const
+QString CalendarNotebookQuery::description() const
 {
     return m_notebook.description;
 }
 
-QString NemoCalendarNotebookQuery::color() const
+QString CalendarNotebookQuery::color() const
 {
     return m_notebook.color;
 }
 
-int NemoCalendarNotebookQuery::accountId() const
+int CalendarNotebookQuery::accountId() const
 {
     return m_notebook.accountId;
 }
 
-QUrl NemoCalendarNotebookQuery::accountIcon() const
+QUrl CalendarNotebookQuery::accountIcon() const
 {
     return m_notebook.accountIcon;
 }
 
-bool NemoCalendarNotebookQuery::isDefault() const
+bool CalendarNotebookQuery::isDefault() const
 {
     return m_notebook.isDefault;
 }
 
-bool NemoCalendarNotebookQuery::localCalendar() const
+bool CalendarNotebookQuery::localCalendar() const
 {
     return m_notebook.localCalendar;
 }
 
-bool NemoCalendarNotebookQuery::isReadOnly() const
+bool CalendarNotebookQuery::isReadOnly() const
 {
     return m_notebook.readOnly;
 }
 
-void NemoCalendarNotebookQuery::updateData()
+void CalendarNotebookQuery::updateData()
 {
     // fetch new info and signal changes
-    QList<NemoCalendarData::Notebook> notebooks = NemoCalendarManager::instance()->notebooks();
+    QList<CalendarData::Notebook> notebooks = CalendarManager::instance()->notebooks();
 
-    NemoCalendarData::Notebook notebook;
+    CalendarData::Notebook notebook;
     bool found = false;
 
     for (int i = 0; i < notebooks.length(); ++i) {
-        NemoCalendarData::Notebook current = notebooks.at(i);
+        CalendarData::Notebook current = notebooks.at(i);
         if (current.uid == m_targetUid) {
             notebook = current;
             found = true;

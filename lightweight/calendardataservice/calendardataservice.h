@@ -39,7 +39,7 @@
 
 #include "../common/eventdata.h"
 
-class NemoCalendarAgendaModel;
+class CalendarAgendaModel;
 
 class CalendarDataService : public QObject
 {
@@ -70,7 +70,7 @@ private:
 
     void initialize();
 
-    NemoCalendarAgendaModel *mAgendaModel;
+    CalendarAgendaModel *mAgendaModel;
     QTimer mKillTimer;
     int mTransactionIdCounter;
     QList<DataRequest> mDataRequestQueue;

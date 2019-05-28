@@ -45,7 +45,7 @@
 
 #include "calendardataserviceproxy.h"
 
-NemoCalendarEventsModel::NemoCalendarEventsModel(QObject *parent) :
+CalendarEventsModel::CalendarEventsModel(QObject *parent) :
     QAbstractListModel(parent),
     mProxy(0),
     mWatcher(new QFileSystemWatcher(this)),
@@ -87,32 +87,32 @@ NemoCalendarEventsModel::NemoCalendarEventsModel(QObject *parent) :
     connect(mWatcher, SIGNAL(fileChanged(QString)), &mUpdateDelayTimer, SLOT(start())); // for mkcal tracking
 }
 
-int NemoCalendarEventsModel::count() const
+int CalendarEventsModel::count() const
 {
     return qMin(mEventDataList.count(), mEventLimit);
 }
 
-int NemoCalendarEventsModel::totalCount() const
+int CalendarEventsModel::totalCount() const
 {
     return mTotalCount;
 }
 
-QDateTime NemoCalendarEventsModel::creationDate() const
+QDateTime CalendarEventsModel::creationDate() const
 {
     return mCreationDate;
 }
 
-QDateTime NemoCalendarEventsModel::expiryDate() const
+QDateTime CalendarEventsModel::expiryDate() const
 {
     return mExpiryDate;
 }
 
-int NemoCalendarEventsModel::eventLimit() const
+int CalendarEventsModel::eventLimit() const
 {
     return mEventLimit;
 }
 
-void NemoCalendarEventsModel::setEventLimit(int limit)
+void CalendarEventsModel::setEventLimit(int limit)
 {
     if (mEventLimit == limit || limit <= 0)
         return;
@@ -122,12 +122,12 @@ void NemoCalendarEventsModel::setEventLimit(int limit)
     restartUpdateTimer(); // TODO: Could change list content without fetching data
 }
 
-int NemoCalendarEventsModel::eventDisplayTime() const
+int CalendarEventsModel::eventDisplayTime() const
 {
     return mEventDisplayTime;
 }
 
-void NemoCalendarEventsModel::setEventDisplayTime(int seconds)
+void CalendarEventsModel::setEventDisplayTime(int seconds)
 {
     if (mEventDisplayTime == seconds)
         return;
@@ -138,12 +138,12 @@ void NemoCalendarEventsModel::setEventDisplayTime(int seconds)
     restartUpdateTimer();
 }
 
-QDateTime NemoCalendarEventsModel::startDate() const
+QDateTime CalendarEventsModel::startDate() const
 {
     return mStartDate;
 }
 
-void NemoCalendarEventsModel::setStartDate(const QDateTime &startDate)
+void CalendarEventsModel::setStartDate(const QDateTime &startDate)
 {
     if (mStartDate == startDate)
         return;
@@ -154,12 +154,12 @@ void NemoCalendarEventsModel::setStartDate(const QDateTime &startDate)
     restartUpdateTimer();
 }
 
-QDateTime NemoCalendarEventsModel::endDate() const
+QDateTime CalendarEventsModel::endDate() const
 {
     return mEndDate;
 }
 
-void NemoCalendarEventsModel::setEndDate(const QDateTime &endDate)
+void CalendarEventsModel::setEndDate(const QDateTime &endDate)
 {
     if (mEndDate == endDate)
         return;
@@ -170,12 +170,12 @@ void NemoCalendarEventsModel::setEndDate(const QDateTime &endDate)
     restartUpdateTimer();
 }
 
-int NemoCalendarEventsModel::filterMode() const
+int CalendarEventsModel::filterMode() const
 {
     return mFilterMode;
 }
 
-void NemoCalendarEventsModel::setFilterMode(int mode)
+void CalendarEventsModel::setFilterMode(int mode)
 {
     if (mFilterMode == mode)
         return;
@@ -186,12 +186,12 @@ void NemoCalendarEventsModel::setFilterMode(int mode)
 }
 
 
-int NemoCalendarEventsModel::contentType() const
+int CalendarEventsModel::contentType() const
 {
     return mContentType;
 }
 
-void NemoCalendarEventsModel::setContentType(int contentType)
+void CalendarEventsModel::setContentType(int contentType)
 {
     if (mContentType == contentType)
         return;
@@ -201,7 +201,7 @@ void NemoCalendarEventsModel::setContentType(int contentType)
     restartUpdateTimer();
 }
 
-int NemoCalendarEventsModel::rowCount(const QModelIndex &index) const
+int CalendarEventsModel::rowCount(const QModelIndex &index) const
 {
     if (index != QModelIndex())
         return 0;
@@ -209,7 +209,7 @@ int NemoCalendarEventsModel::rowCount(const QModelIndex &index) const
     return mEventDataList.count();
 }
 
-QVariant NemoCalendarEventsModel::data(const QModelIndex &index, int role) const
+QVariant CalendarEventsModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || index.row() >= mEventDataList.count())
         return QVariant();
@@ -250,7 +250,7 @@ QVariant NemoCalendarEventsModel::data(const QModelIndex &index, int role) const
     }
 }
 
-void NemoCalendarEventsModel::update()
+void CalendarEventsModel::update()
 {
     mTransactionId.clear();
     QDateTime endDate = (mEndDate.isValid()) ? mEndDate : mStartDate;
@@ -261,7 +261,7 @@ void NemoCalendarEventsModel::update()
                      this, SLOT(updateFinished(QDBusPendingCallWatcher*)));
 }
 
-void NemoCalendarEventsModel::updateFinished(QDBusPendingCallWatcher *call)
+void CalendarEventsModel::updateFinished(QDBusPendingCallWatcher *call)
 {
     QDBusPendingReply<QString> reply = *call;
     if (reply.isError())
@@ -272,7 +272,7 @@ void NemoCalendarEventsModel::updateFinished(QDBusPendingCallWatcher *call)
     call->deleteLater();
 }
 
-void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, const EventDataList &eventDataList)
+void CalendarEventsModel::getEventsResult(const QString &transactionId, const EventDataList &eventDataList)
 {
     // mkcal database didn't necessarily exist on startup but after calendar service has checked
     // events it should be there.
@@ -353,7 +353,7 @@ void NemoCalendarEventsModel::getEventsResult(const QString &transactionId, cons
     }
 }
 
-QHash<int, QByteArray> NemoCalendarEventsModel::roleNames() const
+QHash<int, QByteArray> CalendarEventsModel::roleNames() const
 {
     QHash<int, QByteArray> roleNames;
     roleNames[DisplayLabelRole] = "displayLabel";
@@ -370,7 +370,7 @@ QHash<int, QByteArray> NemoCalendarEventsModel::roleNames() const
     return roleNames;
 }
 
-void NemoCalendarEventsModel::restartUpdateTimer()
+void CalendarEventsModel::restartUpdateTimer()
 {
     if (mStartDate.isValid())
         mUpdateDelayTimer.start();
@@ -378,7 +378,7 @@ void NemoCalendarEventsModel::restartUpdateTimer()
         mUpdateDelayTimer.stop();
 }
 
-void NemoCalendarEventsModel::trackMkcal()
+void CalendarEventsModel::trackMkcal()
 {
     if (m_mkcalTracked) {
         return;

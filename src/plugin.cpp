@@ -46,6 +46,7 @@
 #include "calendarmanager.h"
 #include "calendarnotebookquery.h"
 #include "calendarimportmodel.h"
+#include "calendarcontactmodel.h"
 
 class QtDate : public QObject
 {
@@ -92,11 +93,11 @@ public:
 
     ~CalendarManagerReleaser()
     {
-        // Call NemoCalendarManager dtor to ensure that the QThread managed by it
+        // Call CalendarManager dtor to ensure that the QThread managed by it
         // will be destroyed via deleteLater when control returns to the event loop.
-        // Deleting NemoCalendarManager in NemoCalendarPlugin dtor is not an option
+        // Deleting CalendarManager in NemoCalendarPlugin dtor is not an option
         // as it is called after the event loop is stopped.
-        delete NemoCalendarManager::instance();
+        delete CalendarManager::instance();
     }
 };
 
@@ -115,20 +116,21 @@ public:
     void registerTypes(const char *uri)
     {
         Q_ASSERT(uri == QLatin1String("org.nemomobile.calendar"));
-        qmlRegisterUncreatableType<NemoCalendarEvent>(uri, 1, 0, "CalendarEvent", "Create CalendarEvent instances through a model");
-        qmlRegisterUncreatableType<NemoCalendarEventModification>(uri, 1, 0, "CalendarEventModification",
+        qmlRegisterUncreatableType<CalendarEvent>(uri, 1, 0, "CalendarEvent", "Create CalendarEvent instances through a model");
+        qmlRegisterUncreatableType<CalendarEventModification>(uri, 1, 0, "CalendarEventModification",
                                                                   "Create CalendarEventModification instances through Calendar API");
-        qmlRegisterUncreatableType<NemoCalendarChangeInformation>(uri, 1, 0, "CalendarChangeInformation",
+        qmlRegisterUncreatableType<CalendarChangeInformation>(uri, 1, 0, "CalendarChangeInformation",
                                                                   "Change information instances are returned from CalendarEventModification");
-        qmlRegisterType<NemoCalendarAgendaModel>(uri, 1, 0, "AgendaModel");
-        qmlRegisterType<NemoCalendarEventQuery>(uri, 1, 0, "EventQuery");
-        qmlRegisterType<NemoCalendarInvitationQuery>(uri, 1, 0, "InvitationQuery");
+        qmlRegisterType<CalendarAgendaModel>(uri, 1, 0, "AgendaModel");
+        qmlRegisterType<CalendarEventQuery>(uri, 1, 0, "EventQuery");
+        qmlRegisterType<CalendarInvitationQuery>(uri, 1, 0, "InvitationQuery");
         qmlRegisterUncreatableType<Person>(uri, 1, 0, "Person", "Persons reachable only through EventQuery");
-        qmlRegisterType<NemoCalendarNotebookModel>(uri, 1, 0, "NotebookModel");
-        qmlRegisterType<NemoCalendarNotebookQuery>(uri, 1, 0, "NotebookQuery");
+        qmlRegisterType<CalendarNotebookModel>(uri, 1, 0, "NotebookModel");
+        qmlRegisterType<CalendarNotebookQuery>(uri, 1, 0, "NotebookQuery");
         qmlRegisterSingletonType<QtDate>(uri, 1, 0, "QtDate", QtDate::New);
-        qmlRegisterSingletonType<NemoCalendarApi>(uri, 1, 0, "Calendar", NemoCalendarApi::New);
-        qmlRegisterType<NemoCalendarImportModel>(uri, 1, 0, "ImportModel");
+        qmlRegisterSingletonType<CalendarApi>(uri, 1, 0, "Calendar", CalendarApi::New);
+        qmlRegisterType<CalendarImportModel>(uri, 1, 0, "ImportModel");
+        qmlRegisterType<CalendarContactModel>(uri, 1, 0, "ContactModel");
     }
 };
 

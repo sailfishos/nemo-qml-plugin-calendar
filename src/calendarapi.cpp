@@ -37,68 +37,68 @@
 #include "calendareventmodification.h"
 #include "calendarmanager.h"
 
-NemoCalendarApi::NemoCalendarApi(QObject *parent)
+CalendarApi::CalendarApi(QObject *parent)
 : QObject(parent)
 {
-    connect(NemoCalendarManager::instance(), SIGNAL(excludedNotebooksChanged(QStringList)),
+    connect(CalendarManager::instance(), SIGNAL(excludedNotebooksChanged(QStringList)),
             this, SIGNAL(excludedNotebooksChanged()));
-    connect(NemoCalendarManager::instance(), SIGNAL(defaultNotebookChanged(QString)),
+    connect(CalendarManager::instance(), SIGNAL(defaultNotebookChanged(QString)),
             this, SIGNAL(defaultNotebookChanged()));
 }
 
-NemoCalendarEventModification *NemoCalendarApi::createNewEvent()
+CalendarEventModification *CalendarApi::createNewEvent()
 {
-    return new NemoCalendarEventModification();
+    return new CalendarEventModification();
 }
 
-NemoCalendarEventModification * NemoCalendarApi::createModification(NemoCalendarEvent *sourceEvent)
+CalendarEventModification * CalendarApi::createModification(CalendarEvent *sourceEvent)
 {
     if (sourceEvent) {
-        NemoCalendarData::Event data = NemoCalendarManager::instance()->getEvent(sourceEvent->uniqueId(),
-                                                                                 sourceEvent->recurrenceId());
-        return new NemoCalendarEventModification(data);
+        CalendarData::Event data = CalendarManager::instance()->getEvent(sourceEvent->uniqueId(),
+                                                                         sourceEvent->recurrenceId());
+        return new CalendarEventModification(data);
     } else {
         qWarning("Null event passed to Calendar.getModification(). Returning new event.");
         return createNewEvent();
     }
 }
 
-void NemoCalendarApi::remove(const QString &uid, const QString &recurrenceId, const QDateTime &time)
+void CalendarApi::remove(const QString &uid, const QString &recurrenceId, const QDateTime &time)
 {
     KDateTime recurrenceTime = KDateTime::fromString(recurrenceId);
-    NemoCalendarManager::instance()->deleteEvent(uid, recurrenceTime, time);
+    CalendarManager::instance()->deleteEvent(uid, recurrenceTime, time);
 
     // TODO: this sucks
-    NemoCalendarManager::instance()->save();
+    CalendarManager::instance()->save();
 }
 
-void NemoCalendarApi::removeAll(const QString &uid)
+void CalendarApi::removeAll(const QString &uid)
 {
-    NemoCalendarManager::instance()->deleteAll(uid);
-    NemoCalendarManager::instance()->save();
+    CalendarManager::instance()->deleteAll(uid);
+    CalendarManager::instance()->save();
 }
 
-QStringList NemoCalendarApi::excludedNotebooks() const
+QStringList CalendarApi::excludedNotebooks() const
 {
-    return NemoCalendarManager::instance()->excludedNotebooks();
+    return CalendarManager::instance()->excludedNotebooks();
 }
 
-void NemoCalendarApi::setExcludedNotebooks(const QStringList &list)
+void CalendarApi::setExcludedNotebooks(const QStringList &list)
 {
-    NemoCalendarManager::instance()->setExcludedNotebooks(list);
+    CalendarManager::instance()->setExcludedNotebooks(list);
 }
 
-QString NemoCalendarApi::defaultNotebook() const
+QString CalendarApi::defaultNotebook() const
 {
-    return NemoCalendarManager::instance()->defaultNotebook();
+    return CalendarManager::instance()->defaultNotebook();
 }
 
-void NemoCalendarApi::setDefaultNotebook(const QString &notebook)
+void CalendarApi::setDefaultNotebook(const QString &notebook)
 {
-    NemoCalendarManager::instance()->setDefaultNotebook(notebook);
+    CalendarManager::instance()->setDefaultNotebook(notebook);
 }
 
-QObject *NemoCalendarApi::New(QQmlEngine *e, QJSEngine *)
+QObject *CalendarApi::New(QQmlEngine *e, QJSEngine *)
 {
-    return new NemoCalendarApi(e);
+    return new CalendarApi(e);
 }

@@ -38,26 +38,26 @@
 
 #include <KDateTime>
 
-class NemoCalendarEvent;
+class CalendarEvent;
 
-class NemoCalendarEventOccurrence : public QObject
+class CalendarEventOccurrence : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QDateTime startTime READ startTime CONSTANT)
     Q_PROPERTY(QDateTime endTime READ endTime CONSTANT)
-    Q_PROPERTY(NemoCalendarEvent *event READ eventObject CONSTANT)
+    Q_PROPERTY(CalendarEvent *event READ eventObject CONSTANT)
 
 public:
-    NemoCalendarEventOccurrence(const QString &eventUid,
-                                const KDateTime &recurrenceId,
-                                const QDateTime &startTime,
-                                const QDateTime &endTime,
-                                QObject *parent = 0);
-    ~NemoCalendarEventOccurrence();
+    CalendarEventOccurrence(const QString &eventUid,
+                            const KDateTime &recurrenceId,
+                            const QDateTime &startTime,
+                            const QDateTime &endTime,
+                            QObject *parent = 0);
+    ~CalendarEventOccurrence();
 
     QDateTime startTime() const;
     QDateTime endTime() const;
-    NemoCalendarEvent *eventObject() const;
+    CalendarEvent *eventObject() const;
 
 private slots:
     void eventUidChanged(QString oldUid, QString newUid);

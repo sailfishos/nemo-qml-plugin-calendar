@@ -7,8 +7,9 @@
 #include "calendarevent.h"
 #include "calendareventoccurrence.h"
 #include "calendarchangeinformation.h"
+#include "calendarcontactmodel.h"
 
-class NemoCalendarEventModification : public QObject
+class CalendarEventModification : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString displayLabel READ displayLabel WRITE setDisplayLabel NOTIFY displayLabelChanged)
@@ -16,7 +17,7 @@ class NemoCalendarEventModification : public QObject
     Q_PROPERTY(QDateTime startTime READ startTime NOTIFY startTimeChanged)
     Q_PROPERTY(QDateTime endTime READ endTime NOTIFY endTimeChanged)
     Q_PROPERTY(bool allDay READ allDay WRITE setAllDay NOTIFY allDayChanged)
-    Q_PROPERTY(NemoCalendarEvent::Recur recur READ recur WRITE setRecur NOTIFY recurChanged)
+    Q_PROPERTY(CalendarEvent::Recur recur READ recur WRITE setRecur NOTIFY recurChanged)
     Q_PROPERTY(QDateTime recurEndDate READ recurEndDate NOTIFY recurEndDateChanged)
     Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
@@ -25,9 +26,9 @@ class NemoCalendarEventModification : public QObject
     Q_PROPERTY(QString calendarUid READ calendarUid WRITE setCalendarUid NOTIFY calendarUidChanged)
 
 public:
-    NemoCalendarEventModification(NemoCalendarData::Event data, QObject *parent = 0);
-    explicit NemoCalendarEventModification(QObject *parent = 0);
-    ~NemoCalendarEventModification();
+    CalendarEventModification(CalendarData::Event data, QObject *parent = 0);
+    explicit CalendarEventModification(QObject *parent = 0);
+    ~CalendarEventModification();
 
     QString displayLabel() const;
     void setDisplayLabel(const QString &displayLabel);
@@ -44,8 +45,8 @@ public:
     bool allDay() const;
     void setAllDay(bool);
 
-    NemoCalendarEvent::Recur recur() const;
-    void setRecur(NemoCalendarEvent::Recur);
+    CalendarEvent::Recur recur() const;
+    void setRecur(CalendarEvent::Recur);
 
     QDateTime recurEndDate() const;
     bool hasRecurEndDate() const;
@@ -63,8 +64,10 @@ public:
     QString calendarUid() const;
     void setCalendarUid(const QString &uid);
 
+    Q_INVOKABLE void setAttendees(CalendarContactModel *required, CalendarContactModel *optional);
+
     Q_INVOKABLE void save();
-    Q_INVOKABLE NemoCalendarChangeInformation * replaceOccurrence(NemoCalendarEventOccurrence *occurrence);
+    Q_INVOKABLE CalendarChangeInformation * replaceOccurrence(CalendarEventOccurrence *occurrence);
 
 signals:
     void displayLabelChanged();
@@ -80,7 +83,10 @@ signals:
     void calendarUidChanged();
 
 private:
-    NemoCalendarData::Event m_event;
+    CalendarData::Event m_event;
+    bool m_attendeesSet;
+    QList<CalendarData::EmailContact> m_requiredAttendees;
+    QList<CalendarData::EmailContact> m_optionalAttendees;
 };
 
 #endif

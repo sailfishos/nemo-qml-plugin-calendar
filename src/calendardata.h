@@ -10,7 +10,7 @@
 
 #include "calendarevent.h"
 
-namespace NemoCalendarData {
+namespace CalendarData {
 
 struct EventOccurrence {
     QString eventUid;
@@ -30,16 +30,16 @@ struct Event {
     KDateTime startTime;
     KDateTime endTime;
     bool allDay;
-    NemoCalendarEvent::Recur recur;
+    CalendarEvent::Recur recur;
     QDate recurEndDate;
     int reminder; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
     QString uniqueId;
     KDateTime recurrenceId;
     bool readonly;
     QString location;
-    NemoCalendarEvent::Secrecy secrecy;
+    CalendarEvent::Secrecy secrecy;
     QString calendarUid;
-    NemoCalendarEvent::Response ownerStatus = NemoCalendarEvent::ResponseUnspecified;
+    CalendarEvent::Response ownerStatus = CalendarEvent::ResponseUnspecified;
     bool rsvp = false;
 
     bool operator==(const Event& other) const
@@ -85,12 +85,18 @@ struct Notebook {
 typedef QPair<QDate,QDate> Range;
 
 struct Attendee {
-    bool isOwner;
     bool isOrganizer;
     QString name;
     QString email;
     KCalCore::Attendee::Role participationRole;
     KCalCore::Attendee::PartStat status;
+};
+
+struct EmailContact {
+    EmailContact(const QString &aName, const QString &aEmail)
+        : name(aName), email(aEmail) {}
+    QString name;
+    QString email;
 };
 
 }

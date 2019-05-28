@@ -41,27 +41,26 @@
 
 #include "calendardata.h"
 
-class NemoCalendarEventOccurrence;
+class CalendarEventOccurrence;
 
 class Person : public QObject
 {
     Q_OBJECT
     Q_ENUMS(AttendeeRole)
-    Q_PROPERTY(QString name READ name FINAL)
-    Q_PROPERTY(QString email READ email FINAL)
-    Q_PROPERTY(bool isOrganizer READ isOrganizer FINAL)
-    Q_PROPERTY(int participationRole READ participationRole FINAL)
+    Q_PROPERTY(QString name READ name CONSTANT FINAL)
+    Q_PROPERTY(QString email READ email CONSTANT FINAL)
+    Q_PROPERTY(bool isOrganizer READ isOrganizer CONSTANT FINAL)
+    Q_PROPERTY(int participationRole READ participationRole CONSTANT FINAL)
 
 public:
-    // mapping to KCalcore::Attendee::Role
     enum AttendeeRole {
-      RequiredParticipant,
-      OptionalParticipant,
-      NonParticipant,
-      ChairParticipant
+        RequiredParticipant,
+        OptionalParticipant,
+        NonParticipant,
+        ChairParticipant
     };
 
-    Person(const QString &aName, const QString &aEmail, bool aIsOrganizer, bool aParticipationRole)
+    Person(const QString &aName, const QString &aEmail, bool aIsOrganizer, AttendeeRole aParticipationRole)
         : m_name(aName), m_email(aEmail), m_isOrganizer(aIsOrganizer), m_participationRole(aParticipationRole)
     {
     }
@@ -78,7 +77,7 @@ private:
     int m_participationRole;
 };
 
-class NemoCalendarEventQuery : public QObject, public QQmlParserStatus
+class CalendarEventQuery : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
@@ -90,8 +89,8 @@ class NemoCalendarEventQuery : public QObject, public QQmlParserStatus
     Q_PROPERTY(QList<QObject*> attendees READ attendees NOTIFY attendeesChanged)
 
 public:
-    NemoCalendarEventQuery();
-    ~NemoCalendarEventQuery();
+    CalendarEventQuery();
+    ~CalendarEventQuery();
 
     QString uniqueId() const;
     void setUniqueId(const QString &);
@@ -112,7 +111,7 @@ public:
     virtual void classBegin();
     virtual void componentComplete();
 
-    void doRefresh(NemoCalendarData::Event event);
+    void doRefresh(CalendarData::Event event);
 
 signals:
     void uniqueIdChanged();
@@ -136,10 +135,10 @@ private:
     QString mUid;
     KDateTime mRecurrenceId;
     QDateTime mStartTime;
-    NemoCalendarData::Event mEvent;
-    NemoCalendarEventOccurrence *mOccurrence;
+    CalendarData::Event mEvent;
+    CalendarEventOccurrence *mOccurrence;
     bool mAttendeesCached;
-    QList<NemoCalendarData::Attendee> mAttendees;
+    QList<CalendarData::Attendee> mAttendees;
 };
 
 #endif

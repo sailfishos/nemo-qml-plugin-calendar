@@ -1,16 +1,16 @@
 #include "calendarchangeinformation.h"
 #include <QDebug>
 
-NemoCalendarChangeInformation::NemoCalendarChangeInformation(QObject *parent) :
+CalendarChangeInformation::CalendarChangeInformation(QObject *parent) :
     QObject(parent), m_pending(true)
 {
 }
 
-NemoCalendarChangeInformation::~NemoCalendarChangeInformation()
+CalendarChangeInformation::~CalendarChangeInformation()
 {
 }
 
-void NemoCalendarChangeInformation::setInformation(const QString &uniqueId, const KDateTime &recurrenceId)
+void CalendarChangeInformation::setInformation(const QString &uniqueId, const KDateTime &recurrenceId)
 {
     m_uniqueId = uniqueId;
     m_recurrenceId = recurrenceId;
@@ -21,17 +21,17 @@ void NemoCalendarChangeInformation::setInformation(const QString &uniqueId, cons
     emit pendingChanged();
 }
 
-bool NemoCalendarChangeInformation::pending()
+bool CalendarChangeInformation::pending()
 {
     return m_pending;
 }
 
-QString NemoCalendarChangeInformation::uniqueId()
+QString CalendarChangeInformation::uniqueId()
 {
     return m_uniqueId;
 }
 
-QString NemoCalendarChangeInformation::recurrenceId()
+QString CalendarChangeInformation::recurrenceId()
 {
     return m_recurrenceId.toString();
 }
