@@ -112,7 +112,7 @@ int CalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
     return seconds;
 }
 
-QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalCore::Event::Ptr &event, const QString &ownerEmail)
+QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalCore::Event::Ptr &event)
 {
     QList<CalendarData::Attendee> result;
     KCalCore::Person::Ptr calOrganizer = event->organizer();
@@ -138,9 +138,8 @@ QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalCore::E
             // avoid duplicate info
             continue;
         }
-        if (attendee.email == ownerEmail) {
-            attendee.status = calAttendee->status();
-        }
+
+        attendee.status = calAttendee->status();
         attendee.participationRole = calAttendee->role();
         result.append(attendee);
     }
@@ -167,7 +166,23 @@ QList<QObject *> CalendarUtils::convertAttendeeList(const QList<CalendarData::At
             role = Person::NonParticipant;
             break;
         }
-        QObject *person = new Person(attendee.name, attendee.email, attendee.isOrganizer, role);
+
+        Person::ParticipationStatus status;
+        switch (attendee.status) {
+        case KCalCore::Attendee::Accepted:
+            status = Person::AcceptedParticipation;
+            break;
+        case KCalCore::Attendee::Declined:
+            status = Person::DeclinedParticipation;
+            break;
+        case KCalCore::Attendee::Tentative:
+            status = Person::TentativeParticipation;
+            break;
+        default:
+            status = Person::UnknownParticipation;
+        }
+
+        QObject *person = new Person(attendee.name, attendee.email, attendee.isOrganizer, role, status);
         result.append(person);
     }
 

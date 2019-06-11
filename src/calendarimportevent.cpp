@@ -127,8 +127,7 @@ QList<QObject *> CalendarImportEvent::attendees() const
     if (!mEvent)
         return QList<QObject *>();
 
-    // TODO: ownerEmail to be fixed later when invitation creation is done in calendar
-    return CalendarUtils::convertAttendeeList(CalendarUtils::getEventAttendees(mEvent, QString()));
+    return CalendarUtils::convertAttendeeList(CalendarUtils::getEventAttendees(mEvent));
 }
 
 CalendarEvent::Secrecy CalendarImportEvent::secrecy() const
