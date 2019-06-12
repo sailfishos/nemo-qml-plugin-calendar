@@ -61,12 +61,13 @@ class CalendarEvent : public QObject
     Q_PROPERTY(QString uniqueId READ uniqueId NOTIFY uniqueIdChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
     Q_PROPERTY(QString color READ color NOTIFY colorChanged)
-    Q_PROPERTY(bool readonly READ readonly CONSTANT)
+    Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
     Q_PROPERTY(CalendarEvent::Secrecy secrecy READ secrecy NOTIFY secrecyChanged)
     Q_PROPERTY(CalendarEvent::Response ownerStatus READ ownerStatus NOTIFY ownerStatusChanged)
     Q_PROPERTY(bool rsvp READ rsvp NOTIFY rsvpChanged)
+    Q_PROPERTY(bool externalInvitation READ externalInvitation NOTIFY externalInvitationChanged)
 
 public:
     enum Recur {
@@ -111,7 +112,7 @@ public:
     int reminder() const;
     QString uniqueId() const;
     QString color() const;
-    bool readonly() const;
+    bool readOnly() const;
     QString calendarUid() const;
     QString location() const;
     KDateTime recurrenceId() const;
@@ -119,6 +120,7 @@ public:
     Secrecy secrecy() const;
     Response ownerStatus() const;
     bool rsvp() const;
+    bool externalInvitation() const;
 
     Q_INVOKABLE bool sendResponse(int response);
     Q_INVOKABLE QString vCalendar(const QString &prodId = QString()) const;
@@ -144,6 +146,7 @@ signals:
     void secrecyChanged();
     void ownerStatusChanged();
     void rsvpChanged();
+    void externalInvitationChanged();
 
 private:
     CalendarManager *mManager;
