@@ -45,7 +45,7 @@ namespace CalendarUtils {
 CalendarEvent::Recur convertRecurrence(const KCalCore::Event::Ptr &event);
 CalendarEvent::Secrecy convertSecrecy(const KCalCore::Event::Ptr &event);
 int getReminder(const KCalCore::Event::Ptr &event);
-QList<CalendarData::Attendee> getEventAttendees(const KCalCore::Event::Ptr &event, const QString &ownerEmail);
+QList<CalendarData::Attendee> getEventAttendees(const KCalCore::Event::Ptr &event);
 QList<QObject*> convertAttendeeList(const QList<CalendarData::Attendee> &list);
 CalendarData::EventOccurrence getNextOccurrence(const KCalCore::Event::Ptr &event,
                                                 const QDateTime &start = QDateTime::currentDateTime());

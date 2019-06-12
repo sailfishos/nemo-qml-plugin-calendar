@@ -47,10 +47,12 @@ class Person : public QObject
 {
     Q_OBJECT
     Q_ENUMS(AttendeeRole)
+    Q_ENUMS(ParticipationStatus)
     Q_PROPERTY(QString name READ name CONSTANT FINAL)
     Q_PROPERTY(QString email READ email CONSTANT FINAL)
     Q_PROPERTY(bool isOrganizer READ isOrganizer CONSTANT FINAL)
     Q_PROPERTY(int participationRole READ participationRole CONSTANT FINAL)
+    Q_PROPERTY(int participationStatus READ participationStatus CONSTANT FINAL)
 
 public:
     enum AttendeeRole {
@@ -60,8 +62,17 @@ public:
         ChairParticipant
     };
 
-    Person(const QString &aName, const QString &aEmail, bool aIsOrganizer, AttendeeRole aParticipationRole)
-        : m_name(aName), m_email(aEmail), m_isOrganizer(aIsOrganizer), m_participationRole(aParticipationRole)
+    enum ParticipationStatus {
+        UnknownParticipation,
+        AcceptedParticipation,
+        DeclinedParticipation,
+        TentativeParticipation
+    };
+
+    Person(const QString &aName, const QString &aEmail, bool aIsOrganizer, AttendeeRole aParticipationRole,
+           ParticipationStatus aStatus)
+        : m_name(aName), m_email(aEmail), m_isOrganizer(aIsOrganizer), m_participationRole(aParticipationRole),
+          m_participationStatus(aStatus)
     {
     }
 
@@ -69,12 +80,14 @@ public:
     QString email() const { return m_email; }
     bool isOrganizer() const { return m_isOrganizer; }
     int participationRole() const { return m_participationRole; }
+    int participationStatus() const { return m_participationStatus; }
 
 private:
     QString m_name;
     QString m_email;
     bool m_isOrganizer;
     int m_participationRole;
+    int m_participationStatus;
 };
 
 class CalendarEventQuery : public QObject, public QQmlParserStatus

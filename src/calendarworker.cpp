@@ -899,8 +899,7 @@ QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &u
         return result;
     }
 
-    const QString &ownerEmail = getNotebookAddress(event);
-    return CalendarUtils::getEventAttendees(event, ownerEmail);
+    return CalendarUtils::getEventAttendees(event);
 }
 
 void CalendarWorker::findMatchingEvent(const QString &invitationFile)
