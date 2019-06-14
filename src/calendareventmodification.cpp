@@ -8,13 +8,13 @@ CalendarEventModification::CalendarEventModification(CalendarData::Event data, Q
 {
 }
 
-CalendarEventModification::CalendarEventModification(QObject *parent) :
-    QObject(parent), m_attendeesSet(false)
+CalendarEventModification::CalendarEventModification(QObject *parent)
+    : QObject(parent), m_attendeesSet(false)
 {
     m_event.recur = CalendarEvent::RecurOnce;
     m_event.reminder = -1; // ReminderNone
     m_event.allDay = false;
-    m_event.readonly = false;
+    m_event.readOnly = false;
     m_event.startTime = KDateTime(QDateTime(), KDateTime::LocalZone);
     m_event.endTime = KDateTime(QDateTime(), KDateTime::LocalZone);
 }

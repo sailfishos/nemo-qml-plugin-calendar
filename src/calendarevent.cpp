@@ -107,9 +107,9 @@ QString CalendarEvent::color() const
     return mManager->getNotebookColor(mManager->getEvent(mUniqueId, mRecurrenceId).calendarUid);
 }
 
-bool CalendarEvent::readonly() const
+bool CalendarEvent::readOnly() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).readonly;
+    return mManager->getEvent(mUniqueId, mRecurrenceId).readOnly;
 }
 
 QString CalendarEvent::calendarUid() const
@@ -135,6 +135,11 @@ CalendarEvent::Response CalendarEvent::ownerStatus() const
 bool CalendarEvent::rsvp() const
 {
     return mManager->getEvent(mUniqueId, mRecurrenceId).rsvp;
+}
+
+bool CalendarEvent::externalInvitation() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).externalInvitation;
 }
 
 bool CalendarEvent::sendResponse(int response)

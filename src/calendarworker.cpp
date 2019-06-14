@@ -734,7 +734,8 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     foreach (const KCalCore::Event::Ptr e, list) {
         // The database may have changed after loading the events, make sure that the notebook
         // of the event still exists.
-        if (mStorage->notebook(mCalendar->notebook(e)).isNull()) {
+        mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(e));
+        if (notebook.isNull()) {
             // This may be a symptom of a deeper bug: if a sync adapter (or mkcal)
             // doesn't delete events which belong to a deleted notebook, then the
             // events will be "orphan" and need to be deleted.
@@ -756,7 +757,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
             continue;
         }
 
-        CalendarData::Event event = createEventStruct(e);
+        CalendarData::Event event = createEventStruct(e, notebook);
 
         if (!mSentEvents.contains(event.uniqueId, event.recurrenceId)) {
             mSentEvents.insert(event.uniqueId, event.recurrenceId);
@@ -776,7 +777,8 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     emit dataLoaded(ranges, uidList, events, occurrences, dailyOccurrences, reset);
 }
 
-CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr &e) const
+CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr &e,
+                                                      mKCal::Notebook::Ptr notebook) const
 {
     CalendarData::Event event;
     event.uniqueId = e->uid();
@@ -788,11 +790,23 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr
     event.endTime = e->dtEnd();
     event.location = e->location();
     event.secrecy = CalendarUtils::convertSecrecy(e);
-    event.readonly = mStorage->notebook(event.calendarUid)->isReadOnly();
+    event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
     event.recur = CalendarUtils::convertRecurrence(e);
+    bool externalInvitation = false;
+    const QString &calendarOwnerEmail = getNotebookAddress(e);
+
+    KCalCore::Person::Ptr organizer = e->organizer();
+    if (!organizer.isNull()) {
+        QString organizerEmail = organizer->email();
+
+        if (!organizerEmail.isEmpty() && organizerEmail != calendarOwnerEmail
+                && (notebook.isNull() || !notebook->sharedWith().contains(organizer->email()))) {
+            externalInvitation = true;
+        }
+    }
+    event.externalInvitation = externalInvitation;
 
     KCalCore::Attendee::List attendees = e->attendees();
-    const QString &calendarOwnerEmail = getNotebookAddress(e);
 
     foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
         if (calAttendee->email() == calendarOwnerEmail) {
@@ -825,26 +839,28 @@ void CalendarWorker::loadNotebooks()
 
     bool changed = mNotebooks.isEmpty();
     for (int ii = 0; ii < notebooks.count(); ++ii) {
-        CalendarData::Notebook notebook = mNotebooks.value(notebooks.at(ii)->uid(), CalendarData::Notebook());
-        notebook.name = notebooks.at(ii)->name();
-        notebook.uid = notebooks.at(ii)->uid();
-        notebook.description = notebooks.at(ii)->description();
-        notebook.emailAddress = mKCal::ServiceHandler::instance().emailAddress(notebooks.at(ii), mStorage);
-        notebook.isDefault = notebooks.at(ii)->isDefault();
-        notebook.readOnly = notebooks.at(ii)->isReadOnly();
-        notebook.localCalendar = notebooks.at(ii)->isMaster()
-                && !notebooks.at(ii)->isShared()
-                && notebooks.at(ii)->pluginName().isEmpty();
+        mKCal::Notebook::Ptr mkNotebook = notebooks.at(ii);
+        CalendarData::Notebook notebook = mNotebooks.value(mkNotebook->uid(), CalendarData::Notebook());
+
+        notebook.name = mkNotebook->name();
+        notebook.uid = mkNotebook->uid();
+        notebook.description = mkNotebook->description();
+        notebook.emailAddress = mKCal::ServiceHandler::instance().emailAddress(mkNotebook, mStorage);
+        notebook.isDefault = mkNotebook->isDefault();
+        notebook.readOnly = mkNotebook->isReadOnly();
+        notebook.localCalendar = mkNotebook->isMaster()
+                && !mkNotebook->isShared()
+                && mkNotebook->pluginName().isEmpty();
 
         notebook.excluded = settings.value("exclude/" + notebook.uid, false).toBool();
 
         notebook.color = settings.value("colors/" + notebook.uid, QString()).toString();
         if (notebook.color.isEmpty())
-            notebook.color = notebooks.at(ii)->color();
+            notebook.color = mkNotebook->color();
         if (notebook.color.isEmpty())
             notebook.color = defaultNotebookColors.at((nextDefaultNotebookColor++) % defaultNotebookColors.count());
 
-        QString accountStr = notebooks.at(ii)->account();
+        QString accountStr = mkNotebook->account();
         if (!accountStr.isEmpty()) {
             if (!mAccountManager) {
                 mAccountManager = new Accounts::Manager(this);
@@ -868,7 +884,7 @@ void CalendarWorker::loadNotebooks()
         if (mNotebooks.contains(notebook.uid) && mNotebooks.value(notebook.uid) != notebook)
             changed = true;
 
-        if (notebooks.at(ii)->isVisible()) {
+        if (mkNotebook->isVisible()) {
             newNotebooks.insert(notebook.uid, notebook);
         }
     }

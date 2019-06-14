@@ -29,18 +29,19 @@ struct Event {
     QString description;
     KDateTime startTime;
     KDateTime endTime;
-    bool allDay;
+    bool allDay = false;
+    bool readOnly = false;
+    bool rsvp = false;
+    bool externalInvitation = false;
     CalendarEvent::Recur recur;
     QDate recurEndDate;
     int reminder; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
     QString uniqueId;
     KDateTime recurrenceId;
-    bool readonly;
     QString location;
     CalendarEvent::Secrecy secrecy;
     QString calendarUid;
     CalendarEvent::Response ownerStatus = CalendarEvent::ResponseUnspecified;
-    bool rsvp = false;
 
     bool operator==(const Event& other) const
     {
@@ -70,10 +71,11 @@ struct Notebook {
 
     bool operator==(const Notebook other) const
     {
-        return uid == other.uid && name == other.name && description == other.description &&
-               color == other.color && accountId == other.accountId && accountIcon == other.accountIcon &&
-               isDefault == other.isDefault && readOnly == other.readOnly && localCalendar == other.localCalendar &&
-               excluded == other.excluded;
+        return uid == other.uid && name == other.name && description == other.description
+                && color == other.color && emailAddress == other.emailAddress
+                && accountId == other.accountId && accountIcon == other.accountIcon
+                && isDefault == other.isDefault && readOnly == other.readOnly && localCalendar == other.localCalendar
+                && excluded == other.excluded;
     }
 
     bool operator!=(const Notebook other) const

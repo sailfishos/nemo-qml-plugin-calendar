@@ -583,9 +583,7 @@ void CalendarManager::unRegisterInvitationQuery(CalendarInvitationQuery *query)
     mInvitationQueryHash.remove(query);
 }
 
-void CalendarManager::findMatchingEventFinished(
-        const QString &invitationFile,
-        const CalendarData::Event &event)
+void CalendarManager::findMatchingEventFinished(const QString &invitationFile, const CalendarData::Event &event)
 {
     QHash<CalendarInvitationQuery*, QString>::iterator it = mInvitationQueryHash.begin();
     while (it != mInvitationQueryHash.end()) {
@@ -796,6 +794,9 @@ void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent
 
     if (newEvent.rsvp != oldEvent.rsvp)
         emit eventObject->rsvpChanged();
+
+    if (newEvent.externalInvitation != oldEvent.externalInvitation)
+        emit eventObject->externalInvitationChanged();
 
     if (newEvent.ownerStatus != oldEvent.ownerStatus)
         emit eventObject->ownerStatusChanged();
