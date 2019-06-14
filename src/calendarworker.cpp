@@ -811,10 +811,7 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr
     foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
         if (calAttendee->email() == calendarOwnerEmail) {
             event.ownerStatus = CalendarUtils::convertPartStat(calAttendee->status());
-            //TODO: KCalCore::Attendee::RSVP() returns false even if response was requested for some accounts like Google.
-            // We can use attendee role until the problem is not fixed (probably in Google plugin).
-            // To be updated later when google account support for responses is added.
-            event.rsvp = calAttendee->RSVP();// || calAttendee->role() != KCalCore::Attendee::Chair;
+            event.rsvp = calAttendee->RSVP();
         }
     }
 
@@ -846,6 +843,9 @@ void CalendarWorker::loadNotebooks()
         notebook.uid = mkNotebook->uid();
         notebook.description = mkNotebook->description();
         notebook.emailAddress = mKCal::ServiceHandler::instance().emailAddress(mkNotebook, mStorage);
+        if (notebook.emailAddress.isEmpty()) {
+            notebook.emailAddress = mkNotebook->sharedWith().size() ? mkNotebook->sharedWith().first() : QString();
+        }
         notebook.isDefault = mkNotebook->isDefault();
         notebook.readOnly = mkNotebook->isReadOnly();
         notebook.localCalendar = mkNotebook->isMaster()
