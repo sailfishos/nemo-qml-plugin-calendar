@@ -9,7 +9,7 @@ import QtQuick.tooling 1.2
 Module {
     dependencies: []
     Component {
-        name: "NemoCalendarEventsModel"
+        name: "CalendarEventsModel"
         prototype: "QAbstractListModel"
         exports: [
             "org.nemomobile.calendar.lightweight/CalendarEventsModel 1.0"
