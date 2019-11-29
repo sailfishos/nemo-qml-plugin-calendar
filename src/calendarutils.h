@@ -1,5 +1,7 @@
 /*
- * Copyright (C) 2015 Jolla Ltd.
+ * Copyright (c) 2015-2019 Jolla Ltd.
+ * Copyright (c) 2019 Open Mobile Platform LLC.
+ *
  * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
  *
  * You may use this file under the terms of the BSD license as follows:
@@ -53,6 +55,7 @@ bool importFromFile(const QString &fileName, KCalCore::Calendar::Ptr calendar);
 bool importFromIcsRawData(const QByteArray &icsData, KCalCore::Calendar::Ptr calendar);
 CalendarEvent::Response convertPartStat(KCalCore::Attendee::PartStat status);
 KCalCore::Attendee::PartStat convertResponse(CalendarEvent::Response response);
+CalendarEvent::Response convertResponseType(const QString &responseType);
 
 } // namespace CalendarUtils
 

@@ -6,6 +6,7 @@ CONFIG += qt plugin hide_symbols
 
 QT += qml concurrent
 QT -= gui
+QMAKE_CXXFLAGS += -Werror
 
 target.path = $$[QT_INSTALL_QML]/$$PLUGIN_IMPORT_PATH
 PKGCONFIG += libkcalcoren-qt5 libmkcal-qt5 libical accounts-qt5
