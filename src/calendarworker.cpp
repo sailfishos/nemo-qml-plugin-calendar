@@ -299,8 +299,11 @@ void CalendarWorker::replaceOccurrence(const CalendarData::Event &eventData, con
         return;
     }
 
-    // Note: occurrence given in local time. Thus if timezone changes between fetching and changing, this won't work
-    KDateTime occurrenceTime = KDateTime(startTime, KDateTime::LocalZone);
+    // Note: for all day events, to guarantee that exception set in a given time
+    // zone is also an exception when travelling to another time, we use the
+    // ClockTime spec.
+    KDateTime::SpecType spec(event->allDay() ? KDateTime::ClockTime : KDateTime::LocalZone);
+    KDateTime occurrenceTime(startTime, spec);
 
     KCalCore::Incidence::Ptr replacementIncidence = mCalendar->dissociateSingleOccurrence(event,
                                                                                           occurrenceTime,
