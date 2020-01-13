@@ -1,5 +1,7 @@
 /*
- * Copyright (C) 2014 Jolla Ltd.
+ * Copyright (c) 2014-2019 Jolla Ltd.
+ * Copyright (c) 2019 Open Mobile Platform LLC.
+ *
  * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
  *
  * You may use this file under the terms of the BSD license as follows:
@@ -806,11 +808,21 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr
     }
     event.externalInvitation = externalInvitation;
 
+    // It would be good to set the attendance status directly in the event within the plugin,
+    // however in some cases the account email and owner attendee email won't necessarily match
+    // (e.g. in the case where server-side aliases are defined but unknown to the plugin).
+    // So we handle this here to avoid "missing" some status changes due to owner email mismatch.
+    // This defaults to QString() -> ResponseUnspecified in case the property is undefined
+    event.ownerStatus = CalendarUtils::convertResponseType(e->nonKDECustomProperty("X-EAS-RESPONSE-TYPE"));
+
     KCalCore::Attendee::List attendees = e->attendees();
 
     foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
         if (calAttendee->email() == calendarOwnerEmail) {
-            event.ownerStatus = CalendarUtils::convertPartStat(calAttendee->status());
+            if (CalendarUtils::convertPartStat(calAttendee->status()) != CalendarEvent::ResponseUnspecified) {
+                // Override the ResponseType
+                event.ownerStatus = CalendarUtils::convertPartStat(calAttendee->status());
+            }
             //TODO: KCalCore::Attendee::RSVP() returns false even if response was requested for some accounts like Google.
             // We can use attendee role until the problem is not fixed (probably in Google plugin).
             // To be updated later when google account support for responses is added.

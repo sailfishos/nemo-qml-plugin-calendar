@@ -1,5 +1,7 @@
 /*
- * Copyright (C) 2015 Jolla Ltd.
+ * Copyright (c) 2015-2019 Jolla Ltd.
+ * Copyright (c) 2019 Open Mobile Platform LLC.
+ *
  * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
  *
  * You may use this file under the terms of the BSD license as follows:
@@ -299,5 +301,24 @@ KCalCore::Attendee::PartStat CalendarUtils::convertResponse(CalendarEvent::Respo
         return KCalCore::Attendee::Declined;
     default:
         return KCalCore::Attendee::NeedsAction;
+    }
+}
+
+CalendarEvent::Response CalendarUtils::convertResponseType(const QString &responseType)
+{
+    // QString::toInt() conversion defaults to 0 on failure
+    switch (responseType.toInt()) {
+    case 1: // OrganizerResponseType (Organizer's acceptance is implicit)
+    case 3: // AcceptedResponseType
+        return CalendarEvent::ResponseAccept;
+    case 2: // TentativeResponseType
+        return CalendarEvent::ResponseTentative;
+    case 4: // DeclinedResponseType
+        return CalendarEvent::ResponseDecline;
+    case -1: // ResponseTypeUnset
+    case 0: // NoneResponseType
+    case 5: // NotRespondedResponseType
+    default:
+        return CalendarEvent::ResponseUnspecified;
     }
 }
