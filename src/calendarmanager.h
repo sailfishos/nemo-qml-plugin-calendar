@@ -77,7 +77,7 @@ public:
     void save();
 
     // Synchronous DB thread access
-    QString convertEventToVCalendarSync(const QString &uid, const QString &prodId);
+    QString convertEventToICalendarSync(const QString &uid, const QString &prodId);
 
     // Event
     CalendarData::Event getEvent(const QString& uid, const KDateTime &recurrenceId);

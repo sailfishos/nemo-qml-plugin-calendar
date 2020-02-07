@@ -72,7 +72,7 @@ public slots:
     void deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     bool sendResponse(const CalendarData::Event &eventData, const CalendarEvent::Response response);
-    QString convertEventToVCalendar(const QString &uid, const QString &prodId) const;
+    QString convertEventToICalendar(const QString &uid, const QString &prodId) const;
 
     QList<CalendarData::Notebook> notebooks() const;
     void setNotebookColor(const QString &notebookUid, const QString &color);

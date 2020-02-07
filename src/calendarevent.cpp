@@ -161,16 +161,16 @@ QString CalendarEvent::recurrenceIdString() const
     }
 }
 
-// Returns the event as a VCalendar string
-QString CalendarEvent::vCalendar(const QString &prodId) const
+// Returns the event as a iCalendar string
+QString CalendarEvent::iCalendar(const QString &prodId) const
 {
     if (mUniqueId.isEmpty()) {
-        qWarning() << "Event has no uid, returning empty VCalendar string."
+        qWarning() << "Event has no uid, returning empty iCalendar string."
                    << "Save event before calling this function";
-        return "";
+        return QString();
     }
 
-    return mManager->convertEventToVCalendarSync(mUniqueId, prodId);
+    return mManager->convertEventToICalendarSync(mUniqueId, prodId);
 }
 
 void CalendarEvent::notebookColorChanged(QString notebookUid)

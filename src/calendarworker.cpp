@@ -46,7 +46,7 @@
 #include <attendee.h>
 #include <event.h>
 #include <calformat.h>
-#include <vcalformat.h>
+#include <icalformat.h>
 #include <recurrence.h>
 #include <recurrencerule.h>
 #include <memorycalendar.h>
@@ -148,41 +148,19 @@ bool CalendarWorker::sendResponse(const CalendarData::Event &eventData, const Ca
     return mKCal::ServiceHandler::instance().sendResponse(event, eventData.description, mCalendar, mStorage);
 }
 
-// eventToVEvent() is protected
-class CalendarVCalFormat : public KCalCore::VCalFormat
+QString CalendarWorker::convertEventToICalendar(const QString &uid, const QString &prodId) const
 {
-public:
-    QString convertEventToVCalendar(const KCalCore::Event::Ptr &event, const QString &prodId)
-    {
-        VObject *vCalObj = vcsCreateVCal(
-                    QDateTime::currentDateTime().toString(Qt::ISODate).toLatin1().data(),
-                    NULL,
-                    prodId.toLatin1().data(),
-                    NULL,
-                    (char *) "1.0");
-        VObject *vEventObj = eventToVEvent(event);
-        addVObjectProp(vCalObj, vEventObj);
-        char *memVObject = writeMemVObject(0, 0, vCalObj);
-        QString retn = QLatin1String(memVObject);
-        free(memVObject);
-        cleanVObject(vCalObj);
-        return retn;
-    }
-};
-
-QString CalendarWorker::convertEventToVCalendar(const QString &uid, const QString &prodId) const
-{
-    // NOTE: not fetching eventInstances() with different recurrenceId for VCalendar.
+    // NOTE: not fetching eventInstances() with different recurrenceId
     KCalCore::Event::Ptr event = mCalendar->event(uid);
     if (event.isNull()) {
-        qWarning() << "No event with uid " << uid << ", unable to create VCalendar";
+        qWarning() << "No event with uid " << uid << ", unable to create iCalendar";
         return QString();
     }
 
-    CalendarVCalFormat fmt;
-    return fmt.convertEventToVCalendar(event,
-                                       prodId.isEmpty() ? QLatin1String("-//NemoMobile.org/Nemo//NONSGML v1.0//EN")
-                                                        : prodId);
+    KCalCore::ICalFormat fmt;
+    fmt.setApplication(fmt.application(),
+                       prodId.isEmpty() ? QLatin1String("-//sailfishos.org/Sailfish//NONSGML v1.0//EN") : prodId);
+    return fmt.toICalString(event);
 }
 
 void CalendarWorker::save()
