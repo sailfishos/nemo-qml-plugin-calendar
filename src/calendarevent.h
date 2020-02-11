@@ -123,7 +123,7 @@ public:
     bool externalInvitation() const;
 
     Q_INVOKABLE bool sendResponse(int response);
-    Q_INVOKABLE QString vCalendar(const QString &prodId = QString()) const;
+    Q_INVOKABLE QString iCalendar(const QString &prodId = QString()) const;
 
 private slots:
     void notebookColorChanged(QString notebookUid);

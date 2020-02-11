@@ -538,10 +538,10 @@ void CalendarManager::save()
     QMetaObject::invokeMethod(mCalendarWorker, "save", Qt::QueuedConnection);
 }
 
-QString CalendarManager::convertEventToVCalendarSync(const QString &uid, const QString &prodId)
+QString CalendarManager::convertEventToICalendarSync(const QString &uid, const QString &prodId)
 {
     QString vEvent;
-    QMetaObject::invokeMethod(mCalendarWorker, "convertEventToVCalendar", Qt::BlockingQueuedConnection,
+    QMetaObject::invokeMethod(mCalendarWorker, "convertEventToICalendar", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QString, vEvent),
                               Q_ARG(QString, uid),
                               Q_ARG(QString, prodId));
