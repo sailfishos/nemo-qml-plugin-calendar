@@ -1,5 +1,6 @@
 #include "calendareventmodification.h"
 #include "calendarmanager.h"
+#include <ksystemtimezone.h>
 
 #include <QDebug>
 
@@ -54,14 +55,27 @@ QDateTime CalendarEventModification::startTime() const
     return m_event.startTime.dateTime();
 }
 
-void CalendarEventModification::setStartTime(const QDateTime &startTime, int spec)
+static KDateTime toKDateTime(const QDateTime &dt, int spec, const QString &timezone)
 {
-    KDateTime::SpecType kSpec = KDateTime::LocalZone;
-    if (spec == CalendarEvent::SpecClockTime) {
-        kSpec = KDateTime::ClockTime;
+    if (spec == CalendarEvent::SpecTimeZone) {
+        KTimeZone tz = KSystemTimeZones::zone(timezone);
+        if (tz.isValid()) {
+            return KDateTime(dt, tz);
+        } else {
+            qWarning() << "Invalid zone name, falling back to local zone:" << timezone;
+            return KDateTime(dt, KDateTime::LocalZone);
+        }
+    } else if (spec == CalendarEvent::SpecClockTime) {
+        return KDateTime(dt, KDateTime::ClockTime);
+    } else if (spec == CalendarEvent::SpecUtc) {
+        return KDateTime(QDateTime(dt.date(), dt.time(), Qt::UTC));
     }
+    return KDateTime(dt, KDateTime::LocalZone);
+}
 
-    KDateTime time(startTime, kSpec);
+void CalendarEventModification::setStartTime(const QDateTime &startTime, int spec, const QString &timezone)
+{
+    const KDateTime time = toKDateTime(startTime, spec, timezone);
     if (m_event.startTime != time) {
         m_event.startTime = time;
         emit startTimeChanged();
@@ -73,14 +87,9 @@ QDateTime CalendarEventModification::endTime() const
     return m_event.endTime.dateTime();
 }
 
-void CalendarEventModification::setEndTime(const QDateTime &endTime, int spec)
+void CalendarEventModification::setEndTime(const QDateTime &endTime, int spec, const QString &timezone)
 {
-    KDateTime::SpecType kSpec = KDateTime::LocalZone;
-    if (spec == CalendarEvent::SpecClockTime) {
-        kSpec = KDateTime::ClockTime;
-    }
-    KDateTime time(endTime, kSpec);
-
+    const KDateTime time = toKDateTime(endTime, spec, timezone);
     if (m_event.endTime != time) {
         m_event.endTime = time;
         emit endTimeChanged();

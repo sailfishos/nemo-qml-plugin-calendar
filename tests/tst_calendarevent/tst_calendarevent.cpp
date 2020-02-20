@@ -24,6 +24,8 @@ private slots:
 
     void modSetters();
     void testSave();
+    void testTimeZone_data();
+    void testTimeZone();
     void testRecurrenceException();
     void testDate_data();
     void testDate();
@@ -182,6 +184,13 @@ void tst_CalendarEvent::testSave()
     QCOMPARE(eventB->endTime().toTime_t(), endTime.toTime_t());
     QCOMPARE(eventB->startTime().toTime_t(), startTime.toTime_t());
 
+    QCOMPARE(eventB->endTime().timeSpec(), Qt::LocalTime);
+    QCOMPARE(eventB->startTime().timeSpec(), Qt::LocalTime);
+    QCOMPARE(eventB->endTimeSpec(), CalendarEvent::SpecTimeZone);
+    QCOMPARE(eventB->startTimeSpec(), CalendarEvent::SpecTimeZone);
+    QCOMPARE(eventB->endTimeZone().toUtf8(), endTime.timeZone().id());
+    QCOMPARE(eventB->startTimeZone().toUtf8(), startTime.timeZone().id());
+
     QCOMPARE(eventB->allDay(), allDay);
     QCOMPARE(eventB->description(), description);
     QCOMPARE(eventB->displayLabel(), displayLabel);
@@ -189,6 +198,80 @@ void tst_CalendarEvent::testSave()
     QCOMPARE(eventB->recur(), recur);
     QCOMPARE(eventB->recurEndDate(), QDateTime(recurEnd.date()));
     QCOMPARE(eventB->reminder(), reminder);
+
+    calendarApi->remove(uid);
+    mSavedEvents.remove(uid);
+
+    delete eventMod;
+}
+
+void tst_CalendarEvent::testTimeZone_data()
+{
+    QTest::addColumn<CalendarEvent::TimeSpec>("spec");
+
+    QTest::newRow("clock time") << CalendarEvent::SpecClockTime;
+    QTest::newRow("local zone") << CalendarEvent::SpecLocalZone;
+    QTest::newRow("UTC") << CalendarEvent::SpecUtc;
+    QTest::newRow("time zone") << CalendarEvent::SpecTimeZone;
+}
+
+void tst_CalendarEvent::testTimeZone()
+{
+    QFETCH(CalendarEvent::TimeSpec, spec);
+
+    CalendarEventModification *eventMod = calendarApi->createNewEvent();
+    QVERIFY(eventMod != 0);
+
+    QDateTime startTime = QDateTime(QDate(2020, 4, 8), QTime(16, 50));
+    if (spec == CalendarEvent::SpecTimeZone) {
+        // Using the system time zone, because agendamodels are looking for
+        // events in the same day in the system time zone.
+        eventMod->setStartTime(startTime, spec, QDateTime::currentDateTime().timeZone().id());
+    } else {
+        eventMod->setStartTime(startTime, spec);
+    }
+    QDateTime endTime = startTime.addSecs(3600);
+    if (spec == CalendarEvent::SpecTimeZone) {
+        eventMod->setEndTime(endTime, spec, QDateTime::currentDateTime().timeZone().id());
+    } else {
+        eventMod->setEndTime(endTime, spec);
+    }
+
+    QString uid;
+    bool ok = saveEvent(eventMod, &uid);
+    if (!ok) {
+        QFAIL("Failed to fetch new event uid");
+    }
+    QVERIFY(!uid.isEmpty());
+    mSavedEvents.insert(uid);
+
+    CalendarEventQuery query;
+    query.setUniqueId(uid);
+
+    for (int i = 0; i < 30; i++) {
+        if (query.event())
+            break;
+
+        QTest::qWait(100);
+    }
+    CalendarEvent *eventB = (CalendarEvent*) query.event();
+    QVERIFY(eventB != 0);
+
+    QCOMPARE(eventB->endTime(), endTime);
+    QCOMPARE(eventB->startTime(), startTime);
+
+    QCOMPARE(eventB->endTime().timeSpec(), Qt::LocalTime);
+    QCOMPARE(eventB->startTime().timeSpec(), Qt::LocalTime);
+    if (spec == CalendarEvent::SpecClockTime
+        || spec == CalendarEvent::SpecUtc) {
+        QCOMPARE(eventB->endTimeSpec(), spec);
+        QCOMPARE(eventB->startTimeSpec(), spec);
+    } else {
+        QCOMPARE(eventB->endTimeSpec(), CalendarEvent::SpecTimeZone);
+        QCOMPARE(eventB->startTimeSpec(), CalendarEvent::SpecTimeZone);
+        QCOMPARE(eventB->endTimeZone().toUtf8(), endTime.timeZone().id());
+        QCOMPARE(eventB->startTimeZone().toUtf8(), startTime.timeZone().id());
+    }
 
     calendarApi->remove(uid);
     mSavedEvents.remove(uid);

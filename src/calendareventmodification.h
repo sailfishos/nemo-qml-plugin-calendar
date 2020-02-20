@@ -38,10 +38,10 @@ public:
     void setDescription(const QString &description);
 
     QDateTime startTime() const;
-    Q_INVOKABLE void setStartTime(const QDateTime &startTime, int spec);
+    Q_INVOKABLE void setStartTime(const QDateTime &startTime, int spec, const QString &timezone = QString());
 
     QDateTime endTime() const;
-    Q_INVOKABLE void setEndTime(const QDateTime &endTime, int spec);
+    Q_INVOKABLE void setEndTime(const QDateTime &endTime, int spec, const QString &timezone = QString());
 
     bool allDay() const;
     void setAllDay(bool);
