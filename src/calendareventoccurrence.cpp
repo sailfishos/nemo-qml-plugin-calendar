@@ -32,6 +32,8 @@
 
 #include "calendareventoccurrence.h"
 
+#include <QTimeZone>
+
 #include "calendarevent.h"
 #include "calendarmanager.h"
 
@@ -69,4 +71,34 @@ void CalendarEventOccurrence::eventUidChanged(QString oldUid, QString newUid)
 {
     if (mEventUid == oldUid)
         mEventUid = newUid;
+}
+
+static QDateTime toEventDateTime(const QDateTime &dateTime,
+                                 CalendarEvent::TimeSpec eventSpec,
+                                 const QString &eventTimezone)
+{
+    switch (eventSpec) {
+    case (CalendarEvent::SpecTimeZone): {
+        const QDateTime dt = dateTime.toTimeZone(QTimeZone(eventTimezone.toUtf8()));
+        return QDateTime(dt.date(), dt.time());
+    }
+    case (CalendarEvent::SpecUtc): {
+        const QDateTime dt = dateTime.toUTC();
+        return QDateTime(dt.date(), dt.time());
+    }
+    default:
+        return dateTime;
+    }
+}
+
+QDateTime CalendarEventOccurrence::startTimeInTz() const
+{
+    const CalendarEvent *event = eventObject();
+    return event ? toEventDateTime(mStartTime, event->startTimeSpec(), event->startTimeZone()) : mStartTime;
+}
+
+QDateTime CalendarEventOccurrence::endTimeInTz() const
+{
+    const CalendarEvent *event = eventObject();
+    return event ? toEventDateTime(mEndTime, event->endTimeSpec(), event->endTimeZone()) : mEndTime;
 }
