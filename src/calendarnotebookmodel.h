@@ -46,6 +46,7 @@ public:
         ColorRole,
         DefaultRole,
         ReadOnlyRole,
+        ExcludedRole,
         LocalCalendarRole,
         AccountIdRole,
         AccountIconRole

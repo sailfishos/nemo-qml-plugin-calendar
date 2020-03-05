@@ -71,6 +71,8 @@ QVariant CalendarNotebookModel::data(const QModelIndex &index, int role) const
         return notebook.isDefault;
     case ReadOnlyRole:
         return notebook.readOnly;
+    case ExcludedRole:
+        return notebook.excluded;
     case LocalCalendarRole:
         return notebook.localCalendar;
     case AccountIdRole:
@@ -123,6 +125,7 @@ QHash<int, QByteArray> CalendarNotebookModel::roleNames() const
     roleNames[ColorRole] = "color";
     roleNames[DefaultRole] = "isDefault";
     roleNames[ReadOnlyRole] = "readOnly";
+    roleNames[ExcludedRole] = "excluded";
     roleNames[LocalCalendarRole] = "localCalendar";
     roleNames[AccountIdRole] = "accountId";
     roleNames[AccountIconRole] = "accountIcon";
