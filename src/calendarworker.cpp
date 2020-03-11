@@ -442,6 +442,13 @@ void CalendarWorker::updateEventAttendees(KCalCore::Event::Ptr event, bool newEv
         return;
     }
 
+    // set the notebook email address as the organizer email address
+    // if no explicit organizer is set (i.e. assume we are the organizer).
+    const QString notebookOwnerEmail = getNotebookAddress(notebookUid);
+    if (event->organizer()->email().isEmpty() && !notebookOwnerEmail.isEmpty()) {
+        event->organizer()->setEmail(notebookOwnerEmail);
+    }
+
     if (!newEvent) {
         // if existing attendees are removed, those should get a cancel update
         KCalCore::Event::Ptr cancelEvent = KCalCore::Event::Ptr(event->clone());
@@ -460,7 +467,7 @@ void CalendarWorker::updateEventAttendees(KCalCore::Event::Ptr event, bool newEv
             }
         }
 
-        QString organizer = cancelEvent->organizer()->email();
+        const QString organizer = cancelEvent->organizer()->email();
         if (!organizer.isEmpty()) {
             KCalCore::Attendee::Ptr toRemove = cancelEvent->attendeeByMail(organizer);
             if (toRemove) {
@@ -527,6 +534,12 @@ void CalendarWorker::updateEventAttendees(KCalCore::Event::Ptr event, bool newEv
             mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage, notebook);
         }
     }
+}
+
+QString CalendarWorker::getNotebookAddress(const QString &notebookUid) const
+{
+    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
+                                            : QString();
 }
 
 QString CalendarWorker::getNotebookAddress(const KCalCore::Event::Ptr &event) const

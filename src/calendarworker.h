@@ -125,6 +125,7 @@ private:
                               const QList<CalendarData::EmailContact> &required,
                               const QList<CalendarData::EmailContact> &optional,
                               const QString &notebookUid);
+    QString getNotebookAddress(const QString &notebookUid) const;
     QString getNotebookAddress(const KCalCore::Event::Ptr &event) const;
 
     CalendarData::Event createEventStruct(const KCalCore::Event::Ptr &event,
