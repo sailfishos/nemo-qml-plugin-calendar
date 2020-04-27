@@ -27,6 +27,8 @@ private slots:
     void testRecurrenceException();
     void testDate_data();
     void testDate();
+    void testRecurrence_data();
+    void testRecurrence();
 
 private:
     bool saveEvent(CalendarEventModification *eventMod, QString *uid);
@@ -421,6 +423,57 @@ void tst_CalendarEvent::testDate()
 
     QVERIFY(!uid.isEmpty());
     mSavedEvents.insert(uid);
+}
+
+void tst_CalendarEvent::testRecurrence_data()
+{
+    QTest::addColumn<CalendarEvent::Recur>("recurType");
+    QTest::newRow("No recurrence") << CalendarEvent::RecurOnce;
+    QTest::newRow("Every day") << CalendarEvent::RecurDaily;
+    QTest::newRow("Every week") << CalendarEvent::RecurWeekly;
+    QTest::newRow("Every two weeks") << CalendarEvent::RecurBiweekly;
+    QTest::newRow("Every month") << CalendarEvent::RecurMonthly;
+    QTest::newRow("Every month on same day of week") << CalendarEvent::RecurMonthlyByDayOfWeek;
+    QTest::newRow("Every year") << CalendarEvent::RecurYearly;
+}
+
+void tst_CalendarEvent::testRecurrence()
+{
+    QFETCH(CalendarEvent::Recur, recurType);
+
+    CalendarEventModification *eventMod = calendarApi->createNewEvent();
+    QVERIFY(eventMod != 0);
+
+    const QDateTime dt(QDate(2020, 4, 27), QTime(8, 0));
+    eventMod->setStartTime(dt, CalendarEvent::SpecLocalZone);
+    eventMod->setEndTime(dt.addSecs(10*60), CalendarEvent::SpecLocalZone);
+    eventMod->setRecur(recurType);
+    eventMod->setDescription(QMetaEnum::fromType<CalendarEvent::Recur>().valueToKey(recurType));
+
+    QString uid;
+    bool ok = saveEvent(eventMod, &uid);
+    if (!ok) {
+        QFAIL("Failed to fetch new event uid");
+    }
+    QVERIFY(!uid.isEmpty());
+    mSavedEvents.insert(uid);
+
+    CalendarEventQuery query;
+    query.setUniqueId(uid);
+
+    for (int i = 0; i < 30; i++) {
+        if (query.event())
+            break;
+
+        QTest::qWait(100);
+    }
+    CalendarEvent *event = (CalendarEvent*)query.event();
+    QVERIFY(event);
+
+    QCOMPARE(event->recur(), recurType);
+
+    calendarApi->removeAll(uid);
+    mSavedEvents.remove(uid);
 }
 
 void tst_CalendarEvent::cleanupTestCase()

@@ -43,7 +43,6 @@ class CalendarManager;
 class CalendarEvent : public QObject
 {
     Q_OBJECT
-    Q_ENUMS(Recur)
     Q_ENUMS(Reminder)
     Q_ENUMS(TimeSpec)
     Q_ENUMS(Secrecy)
@@ -76,9 +75,11 @@ public:
         RecurWeekly,
         RecurBiweekly,
         RecurMonthly,
+        RecurMonthlyByDayOfWeek,
         RecurYearly,
         RecurCustom
     };
+    Q_ENUM(Recur)
 
     enum TimeSpec {
         SpecLocalZone,

@@ -70,6 +70,14 @@ CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr
         return CalendarEvent::RecurBiweekly;
     } else if (rt == KCalCore::Recurrence::rMonthlyDay && freq == 1) {
         return CalendarEvent::RecurMonthly;
+    } else if (rt == KCalCore::Recurrence::rMonthlyPos && freq == 1) {
+        const QList<KCalCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
+        if (monthPositions.length() == 1
+            && monthPositions.first().day() == event->dtStart().date().dayOfWeek()) {
+            return CalendarEvent::RecurMonthlyByDayOfWeek;
+        } else {
+            return CalendarEvent::RecurCustom;
+        }
     } else if (rt == KCalCore::Recurrence::rYearlyMonth && freq == 1) {
         return CalendarEvent::RecurYearly;
     }

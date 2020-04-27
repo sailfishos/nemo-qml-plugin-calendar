@@ -345,7 +345,7 @@ bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::R
     if (recur == CalendarEvent::RecurOnce)
         event->recurrence()->clear();
 
-    if (oldRecur != recur) {
+    if (oldRecur != recur || recur == CalendarEvent::RecurMonthlyByDayOfWeek) {
         switch (recur) {
         case CalendarEvent::RecurOnce:
             break;
@@ -361,6 +361,16 @@ bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::R
         case CalendarEvent::RecurMonthly:
             event->recurrence()->setMonthly(1);
             break;
+        case CalendarEvent::RecurMonthlyByDayOfWeek: {
+            event->recurrence()->setMonthly(1);
+            const QDate at(event->dtStart().date());
+            if (at.addDays(7).month() == at.month()) {
+                event->recurrence()->addMonthlyPos((at.day() - 1) / 7 + 1, at.dayOfWeek());
+            } else {
+                event->recurrence()->addMonthlyPos(-1, at.dayOfWeek());
+            }
+            break;
+        }
         case CalendarEvent::RecurYearly:
             event->recurrence()->setYearly(1);
             break;
