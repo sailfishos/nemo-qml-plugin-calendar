@@ -135,16 +135,16 @@ void CalendarManager::setDefaultNotebook(const QString &notebookUid)
 
 CalendarEvent* CalendarManager::eventObject(const QString &eventUid, const KDateTime &recurrenceId)
 {
+    QMultiHash<QString, CalendarEvent *>::iterator it = mEventObjects.find(eventUid);
+    while (it != mEventObjects.end() && it.key() == eventUid) {
+        if ((*it)->recurrenceId() == recurrenceId) {
+            return *it;
+        }
+        ++it;
+    }
+
     CalendarData::Event event = getEvent(eventUid, recurrenceId);
     if (event.isValid()) {
-        QMultiHash<QString, CalendarEvent *>::iterator it = mEventObjects.find(eventUid);
-        while (it != mEventObjects.end() && it.key() == eventUid) {
-            if ((*it)->recurrenceId() == recurrenceId) {
-                return *it;
-            }
-            ++it;
-        }
-
         CalendarEvent *calendarEvent = new CalendarEvent(this, eventUid, recurrenceId);
         mEventObjects.insert(eventUid, calendarEvent);
         return calendarEvent;
