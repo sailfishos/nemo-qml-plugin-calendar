@@ -143,6 +143,19 @@ void CalendarEventModification::unsetRecurEndDate()
     setRecurEndDate(QDateTime());
 }
 
+CalendarEvent::Days CalendarEventModification::recurWeeklyDays() const
+{
+    return m_event.recurWeeklyDays;
+}
+
+void CalendarEventModification::setRecurWeeklyDays(CalendarEvent::Days days)
+{
+    if (m_event.recurWeeklyDays != days) {
+        m_event.recurWeeklyDays = days;
+        emit recurWeeklyDaysChanged();
+    }
+}
+
 QString CalendarEventModification::recurrenceIdString() const
 {
     if (m_event.recurrenceId.isValid()) {

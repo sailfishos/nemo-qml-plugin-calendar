@@ -64,8 +64,12 @@ CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr
 
     if (rt == KCalCore::Recurrence::rDaily && freq == 1) {
         return CalendarEvent::RecurDaily;
-    } else if (rt == KCalCore::Recurrence::rWeekly && freq == 1 && event->recurrence()->days().count(true) == 0) {
-        return CalendarEvent::RecurWeekly;
+    } else if (rt == KCalCore::Recurrence::rWeekly && freq == 1) {
+        if (event->recurrence()->days().count(true) == 0) {
+            return CalendarEvent::RecurWeekly;
+        } else {
+            return CalendarEvent::RecurWeeklyByDays;
+        }
     } else if (rt == KCalCore::Recurrence::rWeekly && freq == 2 && event->recurrence()->days().count(true) == 0) {
         return CalendarEvent::RecurBiweekly;
     } else if (rt == KCalCore::Recurrence::rMonthlyDay && freq == 1) {
@@ -83,6 +87,35 @@ CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr
     }
 
     return CalendarEvent::RecurCustom;
+}
+
+CalendarEvent::Days CalendarUtils::convertDayPositions(const KCalCore::Event::Ptr &event)
+{
+    if (!event->recurs())
+        return CalendarEvent::NoDays;
+
+    if (event->recurrence()->rRules().count() != 1)
+        return CalendarEvent::NoDays;
+
+    if (event->recurrence()->recurrenceType() != KCalCore::Recurrence::rWeekly
+        || event->recurrence()->frequency() != 1)
+        return CalendarEvent::NoDays;
+
+    const CalendarEvent::Day week[7] = {CalendarEvent::Monday,
+                                        CalendarEvent::Tuesday,
+                                        CalendarEvent::Wednesday,
+                                        CalendarEvent::Thursday,
+                                        CalendarEvent::Friday,
+                                        CalendarEvent::Saturday,
+                                        CalendarEvent::Sunday};
+
+    const QList<KCalCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
+    CalendarEvent::Days days = CalendarEvent::NoDays;
+    for (QList<KCalCore::RecurrenceRule::WDayPos>::ConstIterator it = monthPositions.constBegin();
+         it != monthPositions.constEnd(); ++it) {
+        days |= week[it->day() - 1];
+    }
+    return days;
 }
 
 CalendarEvent::Secrecy CalendarUtils::convertSecrecy(const KCalCore::Event::Ptr &event)

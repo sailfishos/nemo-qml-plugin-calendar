@@ -92,6 +92,11 @@ bool CalendarEvent::hasRecurEndDate() const
     return mManager->getEvent(mUniqueId, mRecurrenceId).recurEndDate.isValid();
 }
 
+CalendarEvent::Days CalendarEvent::recurWeeklyDays() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).recurWeeklyDays;
+}
+
 int CalendarEvent::reminder() const
 {
     return mManager->getEvent(mUniqueId, mRecurrenceId).reminder;

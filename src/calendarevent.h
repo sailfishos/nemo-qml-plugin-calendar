@@ -56,6 +56,7 @@ class CalendarEvent : public QObject
     Q_PROPERTY(CalendarEvent::Recur recur READ recur NOTIFY recurChanged)
     Q_PROPERTY(QDateTime recurEndDate READ recurEndDate NOTIFY recurEndDateChanged)
     Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
+    Q_PROPERTY(CalendarEvent::Days recurWeeklyDays READ recurWeeklyDays NOTIFY recurWeeklyDaysChanged)
     Q_PROPERTY(int reminder READ reminder NOTIFY reminderChanged)
     Q_PROPERTY(QString uniqueId READ uniqueId NOTIFY uniqueIdChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
@@ -74,12 +75,26 @@ public:
         RecurDaily,
         RecurWeekly,
         RecurBiweekly,
+        RecurWeeklyByDays,
         RecurMonthly,
         RecurMonthlyByDayOfWeek,
         RecurYearly,
         RecurCustom
     };
     Q_ENUM(Recur)
+
+    enum Day {
+        NoDays    = 0x00,
+        Monday    = 0x01,
+        Tuesday   = 0x02,
+        Wednesday = 0x04,
+        Thursday  = 0x08,
+        Friday    = 0x10,
+        Saturday  = 0x20,
+        Sunday    = 0x40
+    };
+    Q_DECLARE_FLAGS(Days, Day)
+    Q_FLAG(Days)
 
     enum TimeSpec {
         SpecLocalZone,
@@ -110,6 +125,7 @@ public:
     Recur recur() const;
     QDateTime recurEndDate() const;
     bool hasRecurEndDate() const;
+    Days recurWeeklyDays() const;
     int reminder() const;
     QString uniqueId() const;
     QString color() const;
@@ -144,6 +160,7 @@ signals:
     void locationChanged();
     void recurEndDateChanged();
     void hasRecurEndDateChanged();
+    void recurWeeklyDaysChanged();
     void secrecyChanged();
     void ownerStatusChanged();
     void rsvpChanged();

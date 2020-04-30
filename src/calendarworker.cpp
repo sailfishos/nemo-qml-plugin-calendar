@@ -37,6 +37,7 @@
 
 #include <QDebug>
 #include <QSettings>
+#include <QBitArray>
 
 // mkcal
 #include <notebook.h>
@@ -268,7 +269,7 @@ void CalendarWorker::setEventData(KCalCore::Event::Ptr &event, const CalendarDat
     event->setAllDay(eventData.allDay);
     event->setLocation(eventData.location);
     setReminder(event, eventData.reminder);
-    setRecurrence(event, eventData.recur);
+    setRecurrence(event, eventData.recur, eventData.recurWeeklyDays);
 
     if (eventData.recur != CalendarEvent::RecurOnce) {
         event->recurrence()->setEndDate(eventData.recurEndDate);
@@ -335,7 +336,7 @@ void CalendarWorker::init()
     loadNotebooks();
 }
 
-bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::Recur recur)
+bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::Recur recur, CalendarEvent::Days days)
 {
     if (!event)
         return false;
@@ -345,7 +346,9 @@ bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::R
     if (recur == CalendarEvent::RecurOnce)
         event->recurrence()->clear();
 
-    if (oldRecur != recur || recur == CalendarEvent::RecurMonthlyByDayOfWeek) {
+    if (oldRecur != recur
+        || recur == CalendarEvent::RecurMonthlyByDayOfWeek
+        || recur == CalendarEvent::RecurWeeklyByDays) {
         switch (recur) {
         case CalendarEvent::RecurOnce:
             break;
@@ -358,6 +361,18 @@ bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::R
         case CalendarEvent::RecurBiweekly:
             event->recurrence()->setWeekly(2);
             break;
+        case CalendarEvent::RecurWeeklyByDays: {
+            QBitArray rDays(7);
+            rDays.setBit(0, days & CalendarEvent::Monday);
+            rDays.setBit(1, days & CalendarEvent::Tuesday);
+            rDays.setBit(2, days & CalendarEvent::Wednesday);
+            rDays.setBit(3, days & CalendarEvent::Thursday);
+            rDays.setBit(4, days & CalendarEvent::Friday);
+            rDays.setBit(5, days & CalendarEvent::Saturday);
+            rDays.setBit(6, days & CalendarEvent::Sunday);
+            event->recurrence()->setWeekly(1, rDays);
+            break;
+        }
         case CalendarEvent::RecurMonthly:
             event->recurrence()->setMonthly(1);
             break;
@@ -794,6 +809,7 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr
     event.secrecy = CalendarUtils::convertSecrecy(e);
     event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
     event.recur = CalendarUtils::convertRecurrence(e);
+    event.recurWeeklyDays = CalendarUtils::convertDayPositions(e);
     bool externalInvitation = false;
     const QString &calendarOwnerEmail = getNotebookAddress(e);
 
