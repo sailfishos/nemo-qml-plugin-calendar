@@ -111,11 +111,15 @@ void CalendarWorker::deleteEvent(const QString &uid, const KDateTime &recurrence
         return;
 
     if (event->recurs() && dateTime.isValid()) {
+        // We're deleting an occurrence from a recurring event.
+        // No incidence is deleted from the database in that case,
+        // only the base incidence is modified by adding an exDate.
         event->recurrence()->addExDateTime(KDateTime(dateTime, KDateTime::Spec(KDateTime::LocalZone)));
+        event->setRevision(event->revision() + 1);
     } else {
         mCalendar->deleteEvent(event);
+        mExceptionEvents.append(QPair<QString, QDateTime>(uid, dateTime));
     }
-    mExceptionEvents.append(QPair<QString, QDateTime>(uid, dateTime));
 }
 
 void CalendarWorker::deleteAll(const QString &uid)
