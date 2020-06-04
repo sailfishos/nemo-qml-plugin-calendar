@@ -47,6 +47,7 @@
 #include <QFile>
 #include <QUrl>
 #include <QString>
+#include <QBitArray>
 #include <QByteArray>
 #include <QtDebug>
 
@@ -63,9 +64,9 @@ CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr
 
     if (rt == KCalCore::Recurrence::rDaily && freq == 1) {
         return CalendarEvent::RecurDaily;
-    } else if (rt == KCalCore::Recurrence::rWeekly && freq == 1) {
+    } else if (rt == KCalCore::Recurrence::rWeekly && freq == 1 && event->recurrence()->days().count(true) == 0) {
         return CalendarEvent::RecurWeekly;
-    } else if (rt == KCalCore::Recurrence::rWeekly && freq == 2) {
+    } else if (rt == KCalCore::Recurrence::rWeekly && freq == 2 && event->recurrence()->days().count(true) == 0) {
         return CalendarEvent::RecurBiweekly;
     } else if (rt == KCalCore::Recurrence::rMonthlyDay && freq == 1) {
         return CalendarEvent::RecurMonthly;

@@ -342,11 +342,6 @@ bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::R
 
     CalendarEvent::Recur oldRecur = CalendarUtils::convertRecurrence(event);
 
-    if (recur == CalendarEvent::RecurCustom) {
-        qWarning() << "Cannot assign RecurCustom, will assing RecurOnce";
-        recur = CalendarEvent::RecurOnce;
-    }
-
     if (recur == CalendarEvent::RecurOnce)
         event->recurrence()->clear();
 
@@ -370,6 +365,7 @@ bool CalendarWorker::setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::R
             event->recurrence()->setYearly(1);
             break;
         case CalendarEvent::RecurCustom:
+            // Unable to handle the recurrence rules, keep the existing ones.
             break;
         }
         return true;
