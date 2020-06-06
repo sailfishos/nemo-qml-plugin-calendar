@@ -435,6 +435,7 @@ void tst_CalendarEvent::testRecurrence_data()
     QTest::newRow("Every two weeks") << CalendarEvent::RecurBiweekly;
     QTest::newRow("Every month") << CalendarEvent::RecurMonthly;
     QTest::newRow("Every month on same day of week") << CalendarEvent::RecurMonthlyByDayOfWeek;
+    QTest::newRow("Every month on last day of week") << CalendarEvent::RecurMonthlyByLastDayOfWeek;
     QTest::newRow("Every year") << CalendarEvent::RecurYearly;
 }
 

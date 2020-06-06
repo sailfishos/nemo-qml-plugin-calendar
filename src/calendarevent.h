@@ -78,6 +78,7 @@ public:
         RecurWeeklyByDays,
         RecurMonthly,
         RecurMonthlyByDayOfWeek,
+        RecurMonthlyByLastDayOfWeek,
         RecurYearly,
         RecurCustom
     };

@@ -78,9 +78,11 @@ CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr
         const QList<KCalCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
         if (monthPositions.length() == 1
             && monthPositions.first().day() == event->dtStart().date().dayOfWeek()) {
-            return CalendarEvent::RecurMonthlyByDayOfWeek;
-        } else {
-            return CalendarEvent::RecurCustom;
+            if (monthPositions.first().pos() > 0) {
+                return CalendarEvent::RecurMonthlyByDayOfWeek;
+            } else if (monthPositions.first().pos() == -1) {
+                return CalendarEvent::RecurMonthlyByLastDayOfWeek;
+            }
         }
     } else if (rt == KCalCore::Recurrence::rYearlyMonth && freq == 1) {
         return CalendarEvent::RecurYearly;
