@@ -582,22 +582,20 @@ QStringList CalendarWorker::excludedNotebooks() const
 
 bool CalendarWorker::saveExcludeNotebook(const QString &notebookUid, bool exclude)
 {
-    if (!mNotebooks.contains(notebookUid))
+    QHash<QString, CalendarData::Notebook>::Iterator notebook = mNotebooks.find(notebookUid);
+    if (notebook == mNotebooks.end())
         return false;
+    bool changed = (notebook->excluded != exclude);
+    notebook->excluded = exclude;
 
-    if (mNotebooks.value(notebookUid).excluded == exclude)
-        return false;
+    // Ensure, mKCal backend is up-to-date on notebook visibility.
+    const mKCal::Notebook::Ptr mkNotebook = mStorage->notebook(notebookUid);
+    if (mkNotebook && mkNotebook->isVisible() != !exclude) {
+        mkNotebook->setIsVisible(!exclude);
+        mStorage->updateNotebook(mkNotebook);
+    }
 
-    CalendarData::Notebook notebook = mNotebooks.value(notebookUid);
-    QSettings settings("nemo", "nemo-qml-plugin-calendar");
-    notebook.excluded = exclude;
-    if (exclude)
-        settings.setValue("exclude/" + notebook.uid, true);
-    else
-        settings.remove("exclude/" + notebook.uid);
-
-    mNotebooks.insert(notebook.uid, notebook);
-    return true;
+    return changed;
 }
 
 void CalendarWorker::setExcludedNotebooks(const QStringList &list)
@@ -829,12 +827,34 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr
     return event;
 }
 
+static bool serviceIsEnabled(Accounts::Account *account, const QString &syncProfile)
+{
+    account->selectService();
+    if (account->enabled()) {
+        for (const Accounts::Service &service : account->services()) {
+            account->selectService(service);
+            const QStringList allKeys = account->allKeys();
+            for (const QString &key : allKeys) {
+                if (key.endsWith(QLatin1String("/profile_id"))
+                    && account->valueAsString(key) == syncProfile) {
+                    bool ret = account->enabled();
+                    account->selectService();
+                    return ret;
+                }
+            }
+        }
+        account->selectService();
+        return true;
+    }
+    return false;
+}
+
 void CalendarWorker::loadNotebooks()
 {
     QStringList defaultNotebookColors = QStringList() << "#00aeef" << "red" << "blue" << "green" << "pink" << "yellow";
     int nextDefaultNotebookColor = 0;
 
-    mKCal::Notebook::List notebooks = mStorage->notebooks();
+    const mKCal::Notebook::List notebooks = mStorage->notebooks();
     QSettings settings("nemo", "nemo-qml-plugin-calendar");
 
     QHash<QString, CalendarData::Notebook> newNotebooks;
@@ -854,7 +874,9 @@ void CalendarWorker::loadNotebooks()
                 && !mkNotebook->isShared()
                 && mkNotebook->pluginName().isEmpty();
 
-        notebook.excluded = settings.value("exclude/" + notebook.uid, false).toBool();
+        notebook.excluded = !mkNotebook->isVisible()
+            // To keep backward compatibility:
+            || settings.value("exclude/" + notebook.uid, false).toBool();
 
         notebook.color = settings.value("colors/" + notebook.uid, QString()).toString();
         if (notebook.color.isEmpty())
@@ -872,6 +894,9 @@ void CalendarWorker::loadNotebooks()
             if (ok && accountId > 0) {
                 Accounts::Account *account = Accounts::Account::fromId(mAccountManager, accountId, this);
                 if (account) {
+                    if (!serviceIsEnabled(account, mkNotebook->syncProfile())) {
+                        continue;
+                    }
                     notebook.accountId = accountId;
                     notebook.accountIcon = mAccountManager->provider(account->providerName()).iconName();
                     if (notebook.description.isEmpty()) {
@@ -886,9 +911,7 @@ void CalendarWorker::loadNotebooks()
         if (mNotebooks.contains(notebook.uid) && mNotebooks.value(notebook.uid) != notebook)
             changed = true;
 
-        if (mkNotebook->isVisible()) {
-            newNotebooks.insert(notebook.uid, notebook);
-        }
+        newNotebooks.insert(notebook.uid, notebook);
     }
 
     if (changed || mNotebooks.count() != newNotebooks.count()) {
