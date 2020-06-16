@@ -118,7 +118,7 @@ private:
     QStringList excludedNotebooks() const;
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
-    bool setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::Recur recur);
+    bool setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::Recur recur, CalendarEvent::Days days);
     bool setReminder(KCalCore::Event::Ptr &event, int reminderSeconds);
     bool needSendCancellation(KCalCore::Event::Ptr &event) const;
     void updateEventAttendees(KCalCore::Event::Ptr event, bool newEvent,

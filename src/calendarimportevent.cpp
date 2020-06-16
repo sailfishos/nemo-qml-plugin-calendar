@@ -93,6 +93,14 @@ CalendarEvent::Recur CalendarImportEvent::recur()
     return CalendarUtils::convertRecurrence(mEvent);
 }
 
+CalendarEvent::Days CalendarImportEvent::recurWeeklyDays()
+{
+    if (!mEvent)
+        return CalendarEvent::NoDays;
+
+    return CalendarUtils::convertDayPositions(mEvent);
+}
+
 int CalendarImportEvent::reminder() const
 {
     // note: returns seconds before event, so 15 minutes before = 900.

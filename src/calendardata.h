@@ -35,6 +35,7 @@ struct Event {
     bool externalInvitation = false;
     CalendarEvent::Recur recur;
     QDate recurEndDate;
+    CalendarEvent::Days recurWeeklyDays;
     int reminder; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
     QString uniqueId;
     KDateTime recurrenceId;

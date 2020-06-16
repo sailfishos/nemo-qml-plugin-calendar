@@ -49,6 +49,7 @@ class CalendarImportEvent : public QObject
     Q_PROPERTY(QDateTime endTime READ endTime CONSTANT)
     Q_PROPERTY(bool allDay READ allDay CONSTANT)
     Q_PROPERTY(CalendarEvent::Recur recur READ recur CONSTANT)
+    Q_PROPERTY(CalendarEvent::Days recurWeeklyDays READ recurWeeklyDays CONSTANT)
     Q_PROPERTY(int reminder READ reminder CONSTANT)
     Q_PROPERTY(QString uniqueId READ uniqueId CONSTANT)
     Q_PROPERTY(QString color READ color WRITE setColor NOTIFY colorChanged)
@@ -69,6 +70,7 @@ public:
     QDateTime endTime() const;
     bool allDay() const;
     CalendarEvent::Recur recur();
+    CalendarEvent::Days recurWeeklyDays();
     int reminder() const;
     QString uniqueId() const;
     QString color() const;
