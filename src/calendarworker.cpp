@@ -907,9 +907,15 @@ void CalendarWorker::loadNotebooks()
                 && !mkNotebook->isShared()
                 && mkNotebook->pluginName().isEmpty();
 
-        notebook.excluded = !mkNotebook->isVisible()
-            // To keep backward compatibility:
-            || settings.value("exclude/" + notebook.uid, false).toBool();
+        notebook.excluded = !mkNotebook->isVisible();
+        // To keep backward compatibility:
+        if (settings.value("exclude/" + notebook.uid, false).toBool()) {
+            mkNotebook->setIsVisible(false);
+            if (notebook.excluded || mStorage->updateNotebook(mkNotebook)) {
+                settings.remove("exclude/" + notebook.uid);
+            }
+            notebook.excluded = true;
+        }
 
         notebook.color = settings.value("colors/" + notebook.uid, QString()).toString();
         if (notebook.color.isEmpty())
