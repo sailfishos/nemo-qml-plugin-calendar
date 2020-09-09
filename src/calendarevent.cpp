@@ -64,12 +64,56 @@ QString CalendarEvent::description() const
 
 QDateTime CalendarEvent::startTime() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).startTime.dateTime();
+    // Cannot use KDateTime::dateTime() here because it is handling UTC
+    // spec in a different manner than other specs. If UTC, the QDateTime
+    // will be in UTC also and the UI will convert it to local when displaying
+    // the time, while in every other case, it set the QDateTime in
+    // local zone.
+    const KDateTime kdt = mManager->getEvent(mUniqueId, mRecurrenceId).startTime;
+    return QDateTime(kdt.date(), kdt.time());
 }
 
 QDateTime CalendarEvent::endTime() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).endTime.dateTime();
+    const KDateTime kdt = mManager->getEvent(mUniqueId, mRecurrenceId).endTime;
+    return QDateTime(kdt.date(), kdt.time());
+}
+
+static CalendarEvent::TimeSpec toTimeSpec(const KDateTime &dt)
+{
+    switch (dt.timeType()) {
+    case (KDateTime::ClockTime):
+        return CalendarEvent::SpecClockTime;
+    case (KDateTime::LocalZone):
+        return CalendarEvent::SpecLocalZone;
+    case (KDateTime::TimeZone):
+        return CalendarEvent::SpecTimeZone;
+    case (KDateTime::UTC):
+        return CalendarEvent::SpecUtc;
+    default:
+        // Ignore other time types.
+        return CalendarEvent::SpecLocalZone;
+    }
+}
+
+CalendarEvent::TimeSpec CalendarEvent::startTimeSpec() const
+{
+    return toTimeSpec(mManager->getEvent(mUniqueId, mRecurrenceId).startTime);
+}
+
+CalendarEvent::TimeSpec CalendarEvent::endTimeSpec() const
+{
+    return toTimeSpec(mManager->getEvent(mUniqueId, mRecurrenceId).endTime);
+}
+
+QString CalendarEvent::startTimeZone() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).startTime.timeZone().name();
+}
+
+QString CalendarEvent::endTimeZone() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).endTime.timeZone().name();
 }
 
 bool CalendarEvent::allDay() const

@@ -44,7 +44,6 @@ class CalendarEvent : public QObject
 {
     Q_OBJECT
     Q_ENUMS(Reminder)
-    Q_ENUMS(TimeSpec)
     Q_ENUMS(Secrecy)
     Q_ENUMS(Response)
 
@@ -52,6 +51,10 @@ class CalendarEvent : public QObject
     Q_PROPERTY(QString description READ description NOTIFY descriptionChanged)
     Q_PROPERTY(QDateTime startTime READ startTime NOTIFY startTimeChanged)
     Q_PROPERTY(QDateTime endTime READ endTime NOTIFY endTimeChanged)
+    Q_PROPERTY(CalendarEvent::TimeSpec startTimeSpec READ startTimeSpec NOTIFY startTimeChanged)
+    Q_PROPERTY(CalendarEvent::TimeSpec endTimeSpec READ endTimeSpec NOTIFY endTimeChanged)
+    Q_PROPERTY(QString startTimeZone READ startTimeZone NOTIFY startTimeChanged)
+    Q_PROPERTY(QString endTimeZone READ endTimeZone NOTIFY endTimeChanged)
     Q_PROPERTY(bool allDay READ allDay NOTIFY allDayChanged)
     Q_PROPERTY(CalendarEvent::Recur recur READ recur NOTIFY recurChanged)
     Q_PROPERTY(QDateTime recurEndDate READ recurEndDate NOTIFY recurEndDateChanged)
@@ -99,8 +102,11 @@ public:
 
     enum TimeSpec {
         SpecLocalZone,
-        SpecClockTime
+        SpecClockTime,
+        SpecTimeZone,
+        SpecUtc
     };
+    Q_ENUM(TimeSpec)
 
     enum Secrecy {
         SecrecyPublic,
@@ -122,6 +128,10 @@ public:
     QString description() const;
     QDateTime startTime() const;
     QDateTime endTime() const;
+    TimeSpec startTimeSpec() const;
+    TimeSpec endTimeSpec() const;
+    QString startTimeZone() const;
+    QString endTimeZone() const;
     bool allDay() const;
     Recur recur() const;
     QDateTime recurEndDate() const;
