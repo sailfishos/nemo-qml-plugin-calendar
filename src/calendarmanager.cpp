@@ -98,9 +98,10 @@ CalendarManager::CalendarManager()
     connect(mTimer, SIGNAL(timeout()), this, SLOT(timeout()));
 }
 
+static CalendarManager *managerInstance = nullptr;
+
 CalendarManager *CalendarManager::instance(bool createIfNeeded)
 {
-    static CalendarManager *managerInstance;
     if (!managerInstance && createIfNeeded)
         managerInstance = new CalendarManager;
 
@@ -111,6 +112,9 @@ CalendarManager::~CalendarManager()
 {
     mWorkerThread.quit();
     mWorkerThread.wait();
+    if (managerInstance == this) {
+        managerInstance = nullptr;
+    }
 }
 
 QList<CalendarData::Notebook> CalendarManager::notebooks()
