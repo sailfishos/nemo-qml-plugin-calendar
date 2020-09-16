@@ -97,7 +97,7 @@ public:
         // will be destroyed via deleteLater when control returns to the event loop.
         // Deleting CalendarManager in NemoCalendarPlugin dtor is not an option
         // as it is called after the event loop is stopped.
-        delete CalendarManager::instance();
+        delete CalendarManager::instance(false);
     }
 };
 
