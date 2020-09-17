@@ -43,6 +43,7 @@ struct Event {
     CalendarEvent::Secrecy secrecy;
     QString calendarUid;
     CalendarEvent::Response ownerStatus = CalendarEvent::ResponseUnspecified;
+    CalendarEvent::SyncFailure syncFailure = CalendarEvent::NoSyncFailure;
 
     bool operator==(const Event& other) const
     {

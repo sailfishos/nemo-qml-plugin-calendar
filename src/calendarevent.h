@@ -68,6 +68,7 @@ class CalendarEvent : public QObject
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
     Q_PROPERTY(CalendarEvent::Secrecy secrecy READ secrecy NOTIFY secrecyChanged)
+    Q_PROPERTY(CalendarEvent::SyncFailure syncFailure READ syncFailure NOTIFY syncFailureChanged)
     Q_PROPERTY(CalendarEvent::Response ownerStatus READ ownerStatus NOTIFY ownerStatusChanged)
     Q_PROPERTY(bool rsvp READ rsvp NOTIFY rsvpChanged)
     Q_PROPERTY(bool externalInvitation READ externalInvitation NOTIFY externalInvitationChanged)
@@ -121,6 +122,14 @@ public:
         ResponseDecline
     };
 
+    enum SyncFailure {
+        NoSyncFailure,
+        UploadFailure,
+        UpdateFailure,
+        DeleteFailure
+    };
+    Q_ENUM(SyncFailure)
+
     CalendarEvent(CalendarManager *manager, const QString &uid, const KDateTime &recurrenceId);
     ~CalendarEvent();
 
@@ -146,6 +155,7 @@ public:
     KDateTime recurrenceId() const;
     QString recurrenceIdString() const;
     Secrecy secrecy() const;
+    SyncFailure syncFailure() const;
     Response ownerStatus() const;
     bool rsvp() const;
     bool externalInvitation() const;
@@ -173,6 +183,7 @@ signals:
     void hasRecurEndDateChanged();
     void recurWeeklyDaysChanged();
     void secrecyChanged();
+    void syncFailureChanged();
     void ownerStatusChanged();
     void rsvpChanged();
     void externalInvitationChanged();

@@ -176,6 +176,11 @@ CalendarEvent::Secrecy CalendarEvent::secrecy() const
     return mManager->getEvent(mUniqueId, mRecurrenceId).secrecy;
 }
 
+CalendarEvent::SyncFailure CalendarEvent::syncFailure() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).syncFailure;
+}
+
 CalendarEvent::Response CalendarEvent::ownerStatus() const
 {
     return mManager->getEvent(mUniqueId, mRecurrenceId).ownerStatus;

@@ -815,6 +815,14 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalCore::Event::Ptr
     event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
     event.recur = CalendarUtils::convertRecurrence(e);
     event.recurWeeklyDays = CalendarUtils::convertDayPositions(e);
+    const QString &syncFailure = e->customProperty("VOLATILE", "SYNC-FAILURE");
+    if (syncFailure.compare("upload", Qt::CaseInsensitive) == 0) {
+        event.syncFailure = CalendarEvent::UploadFailure;
+    } else if (syncFailure.compare("update", Qt::CaseInsensitive) == 0) {
+        event.syncFailure = CalendarEvent::UpdateFailure;
+    } else if (syncFailure.compare("delete", Qt::CaseInsensitive) == 0) {
+        event.syncFailure = CalendarEvent::DeleteFailure;
+    }
     bool externalInvitation = false;
     const QString &calendarOwnerEmail = getNotebookAddress(e);
 
