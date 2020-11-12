@@ -465,9 +465,19 @@ void CalendarManager::doAgendaAndQueryRefresh()
         if (event.uniqueId.isEmpty()
                 && !mLoadedQueries.contains(eventUid)
                 && !missingUidList.contains(eventUid)) {
+            // we haven't yet loaded this event from storage.
             missingUidList << eventUid;
+            query->doRefresh(event, false);
+        } else if (event.uniqueId.isEmpty() && mLoadedQueries.contains(eventUid)) {
+            // the event was unable to be loaded from storage,
+            // even though we have attempted to load its data.
+            // most likely, the event has been deleted.
+            query->doRefresh(event, true);
+        } else {
+            // we have loaded this event from storage.
+            // refresh the query based on the loaded event data.
+            query->doRefresh(event, false);
         }
-        query->doRefresh(event);
 
         if (mResetPending && !missingUidList.contains(eventUid))
             missingUidList << eventUid;

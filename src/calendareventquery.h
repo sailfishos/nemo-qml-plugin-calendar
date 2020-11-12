@@ -100,6 +100,7 @@ class CalendarEventQuery : public QObject, public QQmlParserStatus
     Q_PROPERTY(QObject *event READ event NOTIFY eventChanged)
     Q_PROPERTY(QObject *occurrence READ occurrence NOTIFY occurrenceChanged)
     Q_PROPERTY(QList<QObject*> attendees READ attendees NOTIFY attendeesChanged)
+    Q_PROPERTY(bool eventError READ eventError NOTIFY eventErrorChanged)
 
 public:
     CalendarEventQuery();
@@ -121,10 +122,12 @@ public:
 
     QList<QObject*> attendees();
 
+    bool eventError() const;
+
     virtual void classBegin();
     virtual void componentComplete();
 
-    void doRefresh(CalendarData::Event event);
+    void doRefresh(CalendarData::Event event, bool eventError);
 
 signals:
     void uniqueIdChanged();
@@ -133,6 +136,7 @@ signals:
     void occurrenceChanged();
     void attendeesChanged();
     void startTimeChanged();
+    void eventErrorChanged();
 
     // Indicates that the event UID has changed in database, event has been moved between notebooks.
     // The property uniqueId will not be changed, the data pointer properties event and occurrence
@@ -151,6 +155,7 @@ private:
     CalendarData::Event mEvent;
     CalendarEventOccurrence *mOccurrence;
     bool mAttendeesCached;
+    bool mEventError;
     QList<CalendarData::Attendee> mAttendees;
 };
 
