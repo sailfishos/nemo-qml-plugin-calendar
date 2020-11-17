@@ -37,7 +37,7 @@
 #include "calendarutils.h"
 
 CalendarEventQuery::CalendarEventQuery()
-    : mIsComplete(true), mOccurrence(0), mAttendeesCached(false)
+    : mIsComplete(true), mOccurrence(0), mAttendeesCached(false), mEventError(false)
 {
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
@@ -161,7 +161,7 @@ void CalendarEventQuery::componentComplete()
     refresh();
 }
 
-void CalendarEventQuery::doRefresh(CalendarData::Event event)
+void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
 {
     // The value of mUid may have changed, verify that we got what we asked for
     if (event.isValid() && (event.uniqueId != mUid || event.recurrenceId != mRecurrenceId))
@@ -212,6 +212,16 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event)
         mAttendeesCached = true;
         emit attendeesChanged();
     }
+
+    if (mEventError != eventError) {
+        mEventError = eventError;
+        emit eventErrorChanged();
+    }
+}
+
+bool CalendarEventQuery::eventError() const
+{
+    return mEventError;
 }
 
 KDateTime CalendarEventQuery::recurrenceId()
