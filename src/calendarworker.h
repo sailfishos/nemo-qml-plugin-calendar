@@ -140,11 +140,10 @@ private:
     mKCal::ExtendedCalendar::Ptr mCalendar;
     mKCal::ExtendedStorage::Ptr mStorage;
 
-    // mDeletedEvents and mExceptionEvents are used to make sure
+    // mDeletedEvents is used to make sure
     // that we are sending a cancellation email for events only
     // when user actually saved (so truly deleted) changes by calling of save()
-    QStringList mDeletedEvents;
-    QList<QPair<QString, QDateTime>> mExceptionEvents;
+    QList<QPair<QString, KDateTime>> mDeletedEvents;
 
     QHash<QString, CalendarData::Notebook> mNotebooks;
 

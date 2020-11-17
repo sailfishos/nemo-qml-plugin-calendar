@@ -119,7 +119,7 @@ void CalendarWorker::deleteEvent(const QString &uid, const KDateTime &recurrence
         event->setRevision(event->revision() + 1);
     } else {
         mCalendar->deleteEvent(event);
-        mExceptionEvents.append(QPair<QString, QDateTime>(uid, dateTime));
+        mDeletedEvents.append(QPair<QString, KDateTime>(uid, recurrenceId));
     }
 }
 
@@ -133,7 +133,7 @@ void CalendarWorker::deleteAll(const QString &uid)
 
     mCalendar->deleteEventInstances(event);
     mCalendar->deleteEvent(event);
-    mDeletedEvents.append(uid);
+    mDeletedEvents.append(QPair<QString, KDateTime>(uid, KDateTime()));
 }
 
 bool CalendarWorker::sendResponse(const CalendarData::Event &eventData, const CalendarEvent::Response response)
@@ -174,8 +174,8 @@ void CalendarWorker::save()
     // FIXME: should send response update if deleting an even we have responded to.
     // FIXME: should send cancel only if we own the event
     if (!mDeletedEvents.isEmpty()) {
-        for (const QString &uid: mDeletedEvents) {
-            KCalCore::Event::Ptr event = mCalendar->deletedEvent(uid);
+        for (const QPair<QString, KDateTime> &pair: mDeletedEvents) {
+            KCalCore::Event::Ptr event = mCalendar->deletedEvent(pair.first, pair.second);
             if (!needSendCancellation(event)) {
                 continue;
             }
@@ -183,18 +183,6 @@ void CalendarWorker::save()
             mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
         }
         mDeletedEvents.clear();
-    }
-    if (!mExceptionEvents.isEmpty()) {
-        for (const QPair<QString, QDateTime> &exceptionEvent: mExceptionEvents) {
-            KCalCore::Event::Ptr event = mCalendar->deletedEvent(exceptionEvent.first,
-                                                                 KDateTime(exceptionEvent.second, KDateTime::Spec(KDateTime::LocalZone)));
-            if (!needSendCancellation(event)) {
-                continue;
-            }
-            event->setStatus(KCalCore::Incidence::StatusCanceled);
-            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
-        }
-        mExceptionEvents.clear();
     }
 }
 
