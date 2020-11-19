@@ -281,7 +281,7 @@ void CalendarWorker::setEventData(KCalendarCore::Event::Ptr &event, const Calend
     event->setDtEnd(eventData.endTime);
     event->setAllDay(eventData.allDay);
     event->setLocation(eventData.location);
-    setReminder(event, eventData.reminder);
+    setReminder(event, eventData.reminder, eventData.reminderDateTime);
     setRecurrence(event, eventData.recur, eventData.recurWeeklyDays);
 
     if (eventData.recur != CalendarEvent::RecurOnce) {
@@ -416,12 +416,13 @@ bool CalendarWorker::setRecurrence(KCalendarCore::Event::Ptr &event, CalendarEve
     return false;
 }
 
-bool CalendarWorker::setReminder(KCalendarCore::Event::Ptr &event, int seconds)
+bool CalendarWorker::setReminder(KCalendarCore::Event::Ptr &event, int seconds, const QDateTime &dateTime)
 {
     if (!event)
         return false;
 
-    if (CalendarUtils::getReminder(event) == seconds)
+    if (CalendarUtils::getReminder(event) == seconds
+        && CalendarUtils::getReminderDateTime(event) == dateTime)
         return false;
 
     KCalendarCore::Alarm::List alarms = event->alarms();
@@ -438,6 +439,11 @@ bool CalendarWorker::setReminder(KCalendarCore::Event::Ptr &event, int seconds)
         alarm->setEnabled(true);
         // backend stores as "offset to dtStart", i.e negative if reminder before event.
         alarm->setStartOffset(-1 * seconds);
+        alarm->setType(KCalendarCore::Alarm::Display);
+    } else if (dateTime.isValid()) {
+        KCalendarCore::Alarm::Ptr alarm = event->newAlarm();
+        alarm->setEnabled(true);
+        alarm->setTime(dateTime);
         alarm->setType(KCalendarCore::Alarm::Display);
     }
 
@@ -888,6 +894,7 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
         event.recurEndDate = defaultRule->endDt().date();
     }
     event.reminder = CalendarUtils::getReminder(e);
+    event.reminderDateTime = CalendarUtils::getReminderDateTime(e);
     event.startTime = e->dtStart();
     return event;
 }
