@@ -9,7 +9,7 @@ QT -= gui
 QMAKE_CXXFLAGS += -Werror
 
 target.path = $$[QT_INSTALL_QML]/$$PLUGIN_IMPORT_PATH
-PKGCONFIG += KF5CalendarCore libmkcal-qt5 libical accounts-qt5
+PKGCONFIG += KF5CalendarCore libmkcal-qt5 accounts-qt5
 
 INSTALLS += target
 

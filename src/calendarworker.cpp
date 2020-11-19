@@ -50,9 +50,6 @@
 #include <KCalendarCore/RecurrenceRule>
 #include <KCalendarCore/MemoryCalendar>
 
-#include <libical/vobject.h>
-#include <libical/vcaltmp.h>
-
 // libaccounts-qt
 #include <Accounts/Manager>
 #include <Accounts/Provider>

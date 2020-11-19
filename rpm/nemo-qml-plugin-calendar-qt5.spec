@@ -3,9 +3,8 @@ Name:       nemo-qml-plugin-calendar-qt5
 Summary:    Calendar plugin for Nemo Mobile
 Version:    0.6.13
 Release:    1
-Group:      System/Libraries
 License:    BSD
-URL:        https://git.merproject.org/mer-core/nemo-qml-plugin-calendar
+URL:        https://git.sailfishos.org/mer-core/nemo-qml-plugin-calendar
 Source0:    %{name}-%{version}.tar.bz2
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Gui)
@@ -13,7 +12,6 @@ BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(libmkcal-qt5)
 BuildRequires:  pkgconfig(KF5CalendarCore)
-BuildRequires:  pkgconfig(libical)
 BuildRequires:  pkgconfig(accounts-qt5)
 
 %description
@@ -21,7 +19,6 @@ BuildRequires:  pkgconfig(accounts-qt5)
 
 %package tests
 Summary:    QML calendar plugin tests
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5Test)
 Requires:   %{name} = %{version}-%{release}
 
@@ -30,7 +27,6 @@ Requires:   %{name} = %{version}-%{release}
 
 %package lightweight
 Summary:    Calendar lightweight QML plugin
-Group:      System/Libraries
 BuildRequires:  pkgconfig(Qt5DBus)
 
 %description lightweight
@@ -39,7 +35,6 @@ BuildRequires:  pkgconfig(Qt5DBus)
 %package tools
 Summary:    Calendar import/export tool
 License:    BSD
-Group:      Applications/System
 BuildRequires:  pkgconfig(libmkcal-qt5)
 BuildRequires:  pkgconfig(KF5CalendarCore)
 
@@ -53,7 +48,7 @@ BuildRequires:  pkgconfig(KF5CalendarCore)
 
 %qmake5 
 
-make %{?jobs:-j%jobs}
+make %{?_smp_mflags}
 
 %install
 rm -rf %{buildroot}
