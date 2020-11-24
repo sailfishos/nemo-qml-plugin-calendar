@@ -744,8 +744,6 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     // Load all recurring incidences, we have no other way to detect if they occur within a range
     mStorage->loadRecurringIncidences();
 
-    KCalCore::Event::List list = mCalendar->rawEvents();
-
     if (reset)
         mSentEvents.clear();
 
@@ -753,7 +751,11 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     QMultiHash<QString, KDateTime> allDay;
     bool orphansDeleted = false;
 
-    foreach (const KCalCore::Event::Ptr e, list) {
+    const KCalCore::Event::List list = mCalendar->rawEvents();
+    for (const KCalCore::Event::Ptr e : list) {
+        if (!mCalendar->isVisible(e)) {
+            continue;
+        }
         // The database may have changed after loading the events, make sure that the notebook
         // of the event still exists.
         mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(e));
