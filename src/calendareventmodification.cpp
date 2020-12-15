@@ -1,8 +1,59 @@
+/*
+ * Copyright (c) 2014 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 Open Mobile Platform LLC.
+ *
+ * You may use this file under the terms of the BSD license as follows:
+ *
+ * "Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *   * Neither the name of Nemo Mobile nor the names of its contributors
+ *     may be used to endorse or promote products derived from this
+ *     software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+ */
+
 #include "calendareventmodification.h"
 #include "calendarmanager.h"
-#include <ksystemtimezone.h>
+#include "calendarutils.h"
 
+#include <QTimeZone>
 #include <QDebug>
+
+namespace {
+
+void updateTime(QDateTime *dt, Qt::TimeSpec spec, const QString &timeZone)
+{
+    if (spec == Qt::TimeZone) {
+        QTimeZone tz(timeZone.toUtf8());
+        if (tz.isValid()) {
+            dt->setTimeZone(tz);
+        } else {
+            qWarning() << "Cannot find time zone:" << timeZone;
+        }
+    } else {
+        dt->setTimeSpec(spec);
+    }
+}
+
+}
 
 CalendarEventModification::CalendarEventModification(CalendarData::Event data, QObject *parent)
     : QObject(parent), m_event(data), m_attendeesSet(false)
@@ -16,8 +67,6 @@ CalendarEventModification::CalendarEventModification(QObject *parent)
     m_event.reminder = -1; // ReminderNone
     m_event.allDay = false;
     m_event.readOnly = false;
-    m_event.startTime = KDateTime(QDateTime(), KDateTime::LocalZone);
-    m_event.endTime = KDateTime(QDateTime(), KDateTime::LocalZone);
 }
 
 CalendarEventModification::~CalendarEventModification()
@@ -52,46 +101,28 @@ void CalendarEventModification::setDescription(const QString &description)
 
 QDateTime CalendarEventModification::startTime() const
 {
-    return m_event.startTime.dateTime();
+    return m_event.startTime;
 }
 
-static KDateTime toKDateTime(const QDateTime &dt, int spec, const QString &timezone)
+void CalendarEventModification::setStartTime(const QDateTime &startTime, Qt::TimeSpec spec, const QString &timezone)
 {
-    if (spec == CalendarEvent::SpecTimeZone) {
-        KTimeZone tz = KSystemTimeZones::zone(timezone);
-        if (tz.isValid()) {
-            return KDateTime(dt, tz);
-        } else {
-            qWarning() << "Invalid zone name, falling back to local zone:" << timezone;
-            return KDateTime(dt, KDateTime::LocalZone);
-        }
-    } else if (spec == CalendarEvent::SpecClockTime) {
-        return KDateTime(dt, KDateTime::ClockTime);
-    } else if (spec == CalendarEvent::SpecUtc) {
-        return KDateTime(QDateTime(dt.date(), dt.time(), Qt::UTC));
-    }
-    return KDateTime(dt, KDateTime::LocalZone);
-}
-
-void CalendarEventModification::setStartTime(const QDateTime &startTime, int spec, const QString &timezone)
-{
-    const KDateTime time = toKDateTime(startTime, spec, timezone);
-    if (m_event.startTime != time) {
-        m_event.startTime = time;
+    if (m_event.startTime != startTime) {
+        m_event.startTime = startTime;
+        updateTime(&m_event.startTime, spec, timezone);
         emit startTimeChanged();
     }
 }
 
 QDateTime CalendarEventModification::endTime() const
 {
-    return m_event.endTime.dateTime();
+    return m_event.endTime;
 }
 
-void CalendarEventModification::setEndTime(const QDateTime &endTime, int spec, const QString &timezone)
+void CalendarEventModification::setEndTime(const QDateTime &endTime, Qt::TimeSpec spec, const QString &timezone)
 {
-    const KDateTime time = toKDateTime(endTime, spec, timezone);
-    if (m_event.endTime != time) {
-        m_event.endTime = time;
+    if (m_event.endTime != endTime) {
+        m_event.endTime = endTime;
+        updateTime(&m_event.endTime, spec, timezone);
         emit endTimeChanged();
     }
 }
@@ -168,7 +199,7 @@ void CalendarEventModification::setRecurWeeklyDays(CalendarEvent::Days days)
 QString CalendarEventModification::recurrenceIdString() const
 {
     if (m_event.recurrenceId.isValid()) {
-        return m_event.recurrenceId.toString();
+        return CalendarUtils::recurrenceIdToString(m_event.recurrenceId);
     } else {
         return QString();
     }

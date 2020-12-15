@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Robin Burchell <robin.burchell@jollamobile.com>
+ * Copyright (c) 2013 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -33,13 +33,13 @@
 #include "calendarevent.h"
 
 #include <QQmlInfo>
+#include <QDateTime>
+#include <QTimeZone>
 
-// kcalcore
-#include <KDateTime>
-
+#include "calendarutils.h"
 #include "calendarmanager.h"
 
-CalendarEvent::CalendarEvent(CalendarManager *manager, const QString &uid, const KDateTime &recurrenceId)
+CalendarEvent::CalendarEvent(CalendarManager *manager, const QString &uid, const QDateTime &recurrenceId)
     : QObject(manager), mManager(manager), mUniqueId(uid), mRecurrenceId(recurrenceId)
 {
     connect(mManager, SIGNAL(notebookColorChanged(QString)),
@@ -64,56 +64,47 @@ QString CalendarEvent::description() const
 
 QDateTime CalendarEvent::startTime() const
 {
-    // Cannot use KDateTime::dateTime() here because it is handling UTC
-    // spec in a different manner than other specs. If UTC, the QDateTime
+    // Cannot return the date time directly here. If UTC, the QDateTime
     // will be in UTC also and the UI will convert it to local when displaying
     // the time, while in every other case, it set the QDateTime in
     // local zone.
-    const KDateTime kdt = mManager->getEvent(mUniqueId, mRecurrenceId).startTime;
-    return QDateTime(kdt.date(), kdt.time());
+    const QDateTime dt = mManager->getEvent(mUniqueId, mRecurrenceId).startTime;
+    return QDateTime(dt.date(), dt.time());
 }
 
 QDateTime CalendarEvent::endTime() const
 {
-    const KDateTime kdt = mManager->getEvent(mUniqueId, mRecurrenceId).endTime;
-    return QDateTime(kdt.date(), kdt.time());
+    const QDateTime dt = mManager->getEvent(mUniqueId, mRecurrenceId).endTime;
+    return QDateTime(dt.date(), dt.time());
 }
 
-static CalendarEvent::TimeSpec toTimeSpec(const KDateTime &dt)
+static Qt::TimeSpec toTimeSpec(const QDateTime &dt)
 {
-    switch (dt.timeType()) {
-    case (KDateTime::ClockTime):
-        return CalendarEvent::SpecClockTime;
-    case (KDateTime::LocalZone):
-        return CalendarEvent::SpecLocalZone;
-    case (KDateTime::TimeZone):
-        return CalendarEvent::SpecTimeZone;
-    case (KDateTime::UTC):
-        return CalendarEvent::SpecUtc;
-    default:
-        // Ignore other time types.
-        return CalendarEvent::SpecLocalZone;
+    if (dt.timeZone() == QTimeZone::utc()) {
+        return Qt::UTC;
     }
+
+    return dt.timeSpec();
 }
 
-CalendarEvent::TimeSpec CalendarEvent::startTimeSpec() const
+Qt::TimeSpec CalendarEvent::startTimeSpec() const
 {
     return toTimeSpec(mManager->getEvent(mUniqueId, mRecurrenceId).startTime);
 }
 
-CalendarEvent::TimeSpec CalendarEvent::endTimeSpec() const
+Qt::TimeSpec CalendarEvent::endTimeSpec() const
 {
     return toTimeSpec(mManager->getEvent(mUniqueId, mRecurrenceId).endTime);
 }
 
 QString CalendarEvent::startTimeZone() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).startTime.timeZone().name();
+    return QString::fromLatin1(mManager->getEvent(mUniqueId, mRecurrenceId).startTime.timeZone().id());
 }
 
 QString CalendarEvent::endTimeZone() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).endTime.timeZone().name();
+    return QString::fromLatin1(mManager->getEvent(mUniqueId, mRecurrenceId).endTime.timeZone().id());
 }
 
 bool CalendarEvent::allDay() const
@@ -201,7 +192,7 @@ bool CalendarEvent::sendResponse(int response)
     return mManager->sendResponse(mManager->getEvent(mUniqueId, mRecurrenceId), (Response)response);
 }
 
-KDateTime CalendarEvent::recurrenceId() const
+QDateTime CalendarEvent::recurrenceId() const
 {
     return mRecurrenceId;
 }
@@ -209,7 +200,7 @@ KDateTime CalendarEvent::recurrenceId() const
 QString CalendarEvent::recurrenceIdString() const
 {
     if (mRecurrenceId.isValid()) {
-        return mRecurrenceId.toString();
+        return CalendarUtils::recurrenceIdToString(mRecurrenceId);
     } else {
         return QString();
     }

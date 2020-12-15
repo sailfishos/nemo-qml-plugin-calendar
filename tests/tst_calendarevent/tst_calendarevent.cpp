@@ -1,10 +1,40 @@
+/*
+ * Copyright (c) 2014 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 Open Mobile Platform LLC.
+ *
+ * You may use this file under the terms of the BSD license as follows:
+ *
+ * "Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *   * Neither the name of Nemo Mobile nor the names of its contributors
+ *     may be used to endorse or promote products derived from this
+ *     software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+ */
 #include <QObject>
 #include <QtTest>
 #include <QQmlEngine>
 #include <QSignalSpy>
 #include <QSet>
-
-#include <KDateTime>
+#include <QDateTime>
 
 #include "calendarapi.h"
 #include "calendarevent.h"
@@ -48,8 +78,14 @@ void tst_CalendarEvent::initTestCase()
     plugin->initializeEngine(engine, "foobar");
     calendarApi = new CalendarApi(this);
 
+    // Ensure a default notebook exists for saving new events
+    CalendarManager *manager = CalendarManager::instance();
+    if (manager->defaultNotebook().isEmpty()) {
+        manager->setDefaultNotebook(manager->notebooks().value(0).uid);
+    }
+
     // FIXME: calls made directly after instantiating seem to have threading issues.
-    // KDateTime/Timezone initialization somehow fails and caches invalid timezones,
+    // QDateTime/Timezone initialization somehow fails and caches invalid timezones,
     // resulting in times such as 2014-11-26T00:00:00--596523:-14
     // (Above offset hour is -2147482800 / (60*60))
     QTest::qWait(100);
@@ -86,7 +122,7 @@ void tst_CalendarEvent::modSetters()
 
     QSignalSpy endTimeSpy(eventMod, SIGNAL(endTimeChanged()));
     QDateTime endTime = QDateTime::currentDateTime();
-    eventMod->setEndTime(endTime, CalendarEvent::SpecLocalZone);
+    eventMod->setEndTime(endTime, Qt::LocalTime);
     QCOMPARE(endTimeSpy.count(), 1);
     QCOMPARE(eventMod->endTime(), endTime);
 
@@ -111,7 +147,7 @@ void tst_CalendarEvent::modSetters()
 
     QSignalSpy startTimeSpy(eventMod, SIGNAL(startTimeChanged()));
     QDateTime startTime = QDateTime::currentDateTime();
-    eventMod->setStartTime(startTime, CalendarEvent::SpecLocalZone);
+    eventMod->setStartTime(startTime, Qt::LocalTime);
     QCOMPARE(startTimeSpy.count(), 1);
     QCOMPARE(eventMod->startTime(), startTime);
 
@@ -140,7 +176,7 @@ void tst_CalendarEvent::testSave()
     QCOMPARE(eventMod->location(), location);
 
     QDateTime endTime = QDateTime::currentDateTime();
-    eventMod->setEndTime(endTime, CalendarEvent::SpecLocalZone);
+    eventMod->setEndTime(endTime, Qt::LocalTime);
     QCOMPARE(eventMod->endTime(), endTime);
 
     CalendarEvent::Recur recur = CalendarEvent::RecurDaily;
@@ -156,7 +192,7 @@ void tst_CalendarEvent::testSave()
     QCOMPARE(eventMod->reminder(), reminder);
 
     QDateTime startTime = QDateTime::currentDateTime();
-    eventMod->setStartTime(startTime, CalendarEvent::SpecLocalZone);
+    eventMod->setStartTime(startTime, Qt::LocalTime);
     QCOMPARE(eventMod->startTime(), startTime);
 
     QString uid;
@@ -179,15 +215,15 @@ void tst_CalendarEvent::testSave()
     CalendarEvent *eventB = (CalendarEvent*) query.event();
     QVERIFY(eventB != 0);
 
-    // mKCal DB stores times as seconds, loosing millisecond accuracy.
+    // mKCal DB stores times as seconds, losing millisecond accuracy.
     // Compare dates with QDateTime::toTime_t() instead of QDateTime::toMSecsSinceEpoch()
     QCOMPARE(eventB->endTime().toTime_t(), endTime.toTime_t());
     QCOMPARE(eventB->startTime().toTime_t(), startTime.toTime_t());
 
     QCOMPARE(eventB->endTime().timeSpec(), Qt::LocalTime);
     QCOMPARE(eventB->startTime().timeSpec(), Qt::LocalTime);
-    QCOMPARE(eventB->endTimeSpec(), CalendarEvent::SpecTimeZone);
-    QCOMPARE(eventB->startTimeSpec(), CalendarEvent::SpecTimeZone);
+    QCOMPARE(eventB->endTimeSpec(), Qt::TimeZone);
+    QCOMPARE(eventB->startTimeSpec(), Qt::TimeZone);
     QCOMPARE(eventB->endTimeZone().toUtf8(), endTime.timeZone().id());
     QCOMPARE(eventB->startTimeZone().toUtf8(), startTime.timeZone().id());
 
@@ -207,23 +243,22 @@ void tst_CalendarEvent::testSave()
 
 void tst_CalendarEvent::testTimeZone_data()
 {
-    QTest::addColumn<CalendarEvent::TimeSpec>("spec");
+    QTest::addColumn<Qt::TimeSpec>("spec");
 
-    QTest::newRow("clock time") << CalendarEvent::SpecClockTime;
-    QTest::newRow("local zone") << CalendarEvent::SpecLocalZone;
-    QTest::newRow("UTC") << CalendarEvent::SpecUtc;
-    QTest::newRow("time zone") << CalendarEvent::SpecTimeZone;
+    QTest::newRow("local zone") << Qt::LocalTime;
+    QTest::newRow("UTC") << Qt::UTC;
+    QTest::newRow("time zone") << Qt::TimeZone;
 }
 
 void tst_CalendarEvent::testTimeZone()
 {
-    QFETCH(CalendarEvent::TimeSpec, spec);
+    QFETCH(Qt::TimeSpec, spec);
 
     CalendarEventModification *eventMod = calendarApi->createNewEvent();
     QVERIFY(eventMod != 0);
 
     QDateTime startTime = QDateTime(QDate(2020, 4, 8), QTime(16, 50));
-    if (spec == CalendarEvent::SpecTimeZone) {
+    if (spec == Qt::TimeZone) {
         // Using the system time zone, because agendamodels are looking for
         // events in the same day in the system time zone.
         eventMod->setStartTime(startTime, spec, QDateTime::currentDateTime().timeZone().id());
@@ -231,7 +266,7 @@ void tst_CalendarEvent::testTimeZone()
         eventMod->setStartTime(startTime, spec);
     }
     QDateTime endTime = startTime.addSecs(3600);
-    if (spec == CalendarEvent::SpecTimeZone) {
+    if (spec == Qt::TimeZone) {
         eventMod->setEndTime(endTime, spec, QDateTime::currentDateTime().timeZone().id());
     } else {
         eventMod->setEndTime(endTime, spec);
@@ -262,13 +297,12 @@ void tst_CalendarEvent::testTimeZone()
 
     QCOMPARE(eventB->endTime().timeSpec(), Qt::LocalTime);
     QCOMPARE(eventB->startTime().timeSpec(), Qt::LocalTime);
-    if (spec == CalendarEvent::SpecClockTime
-        || spec == CalendarEvent::SpecUtc) {
+    if (spec == Qt::UTC) {
         QCOMPARE(eventB->endTimeSpec(), spec);
         QCOMPARE(eventB->startTimeSpec(), spec);
     } else {
-        QCOMPARE(eventB->endTimeSpec(), CalendarEvent::SpecTimeZone);
-        QCOMPARE(eventB->startTimeSpec(), CalendarEvent::SpecTimeZone);
+        QCOMPARE(eventB->endTimeSpec(), Qt::TimeZone);
+        QCOMPARE(eventB->startTimeSpec(), Qt::TimeZone);
         QCOMPARE(eventB->endTimeZone().toUtf8(), endTime.timeZone().id());
         QCOMPARE(eventB->startTimeZone().toUtf8(), startTime.timeZone().id());
     }
@@ -288,8 +322,8 @@ void tst_CalendarEvent::testRecurrenceException()
     event->setDisplayLabel("Recurring event");
     QDateTime startTime = QDateTime(QDate(2014, 6, 7), QTime(12, 00));
     QDateTime endTime = startTime.addSecs(60 * 60);
-    event->setStartTime(startTime, CalendarEvent::SpecLocalZone);
-    event->setEndTime(endTime, CalendarEvent::SpecLocalZone);
+    event->setStartTime(startTime, Qt::LocalTime);
+    event->setEndTime(endTime, Qt::LocalTime);
     CalendarEvent::Recur recur = CalendarEvent::RecurWeekly;
     event->setRecur(recur);
     QString uid;
@@ -320,8 +354,8 @@ void tst_CalendarEvent::testRecurrenceException()
     CalendarEventModification *recurrenceException = calendarApi->createModification(savedEvent);
     QVERIFY(recurrenceException != 0);
     QDateTime modifiedSecond = secondStart.addSecs(10*60); // 12:10
-    recurrenceException->setStartTime(modifiedSecond, CalendarEvent::SpecLocalZone);
-    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), CalendarEvent::SpecLocalZone);
+    recurrenceException->setStartTime(modifiedSecond, Qt::LocalTime);
+    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::LocalTime);
     recurrenceException->setDisplayLabel("Modified recurring event instance");
     CalendarChangeInformation *info
             = recurrenceException->replaceOccurrence(static_cast<CalendarEventOccurrence*>(query.occurrence()));
@@ -334,17 +368,19 @@ void tst_CalendarEvent::testRecurrenceException()
     QTest::qWait(1000); // allow saved data to be reloaded
 
     // check the occurrences are correct
-    CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime(),
+    CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(),
                                                                                                  startTime.addDays(-1));
+    QVERIFY(occurrence);
     // first
     QCOMPARE(occurrence->startTime(), startTime);
     // third
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime(), startTime.addDays(1));
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(1));
+    QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), startTime.addDays(14));
     // second is exception
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime::fromString(info->recurrenceId()),
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime::fromString(info->recurrenceId(), Qt::ISODate),
                                                                 startTime.addDays(1));
-
+    QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), modifiedSecond);
     delete recurrenceException;
     recurrenceException = 0;
@@ -361,22 +397,22 @@ void tst_CalendarEvent::testRecurrenceException()
     QVERIFY(recurrenceException != 0);
 
     modifiedSecond = modifiedSecond.addSecs(20*60); // 12:30
-    recurrenceException->setStartTime(modifiedSecond, CalendarEvent::SpecLocalZone);
-    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), CalendarEvent::SpecLocalZone);
+    recurrenceException->setStartTime(modifiedSecond, Qt::LocalTime);
+    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::LocalTime);
     QString modifiedLabel("Modified recurring event instance, ver 2");
     recurrenceException->setDisplayLabel(modifiedLabel);
     recurrenceException->save();
     QTest::qWait(1000); // allow saved data to be reloaded
 
     // check the occurrences are correct
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime(), startTime.addDays(-1));
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(-1));
     // first
     QCOMPARE(occurrence->startTime(), startTime);
     // third
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime(), startTime.addDays(1));
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(1));
     QCOMPARE(occurrence->startTime(), startTime.addDays(14));
     // second is exception
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime::fromString(info->recurrenceId()),
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime::fromString(info->recurrenceId(), Qt::ISODate),
                                                                 startTime.addDays(1));
 
     QVERIFY(occurrence);
@@ -387,18 +423,18 @@ void tst_CalendarEvent::testRecurrenceException()
     CalendarEventModification *mod = calendarApi->createModification(savedEvent);
     QVERIFY(mod != 0);
     QDateTime modifiedStart = startTime.addSecs(40*60); // 12:40
-    mod->setStartTime(modifiedStart, CalendarEvent::SpecLocalZone);
-    mod->setEndTime(modifiedStart.addSecs(40*60), CalendarEvent::SpecLocalZone);
+    mod->setStartTime(modifiedStart, Qt::LocalTime);
+    mod->setEndTime(modifiedStart.addSecs(40*60), Qt::LocalTime);
     mod->save();
     QTest::qWait(1000);
 
     // and check
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime(), startTime.addDays(-1));
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(-1));
     QCOMPARE(occurrence->startTime(), modifiedStart);
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime(), startTime.addDays(1));
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(1));
     // TODO: Would be the best if second occurrence in the main series stays away, but at the moment it doesn't.
     //QCOMPARE(occurrence->startTime(), modifiedStart.addDays(14));
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime::fromString(info->recurrenceId()),
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime::fromString(info->recurrenceId(), Qt::ISODate),
                                                                 startTime.addDays(1));
     QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), modifiedSecond);
@@ -425,9 +461,9 @@ void tst_CalendarEvent::testRecurrenceException()
     // ensure all gone
     calendarApi->removeAll(uid);
     mSavedEvents.remove(uid);
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime(), startTime.addDays(-1));
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(-1));
     QVERIFY(!occurrence->startTime().isValid());
-    occurrence = CalendarManager::instance()->getNextOccurrence(uid, KDateTime::fromString(info->recurrenceId()),
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime::fromString(info->recurrenceId(), Qt::ISODate),
                                                                 startTime.addDays(1));
     QVERIFY(!occurrence->startTime().isValid());
 
@@ -440,8 +476,8 @@ void tst_CalendarEvent::testRecurrenceException()
 bool tst_CalendarEvent::saveEvent(CalendarEventModification *eventMod, QString *uid)
 {
     CalendarAgendaModel agendaModel;
-    agendaModel.setStartDate(eventMod->startTime().date());
-    agendaModel.setEndDate(eventMod->endTime().date());
+    agendaModel.setStartDate(eventMod->startTime().toLocalTime().date());
+    agendaModel.setEndDate(eventMod->endTime().toLocalTime().date());
 
     // Wait for the agendaModel to get updated, no way to determine when that happens, so just wait
     QTest::qWait(2000);
@@ -463,7 +499,7 @@ bool tst_CalendarEvent::saveEvent(CalendarEventModification *eventMod, QString *
 
     if (agendaModel.count() != count + 1
             || countSpy.count() == 0) {
-        qWarning() << "saveEvent() - invalid counts";
+        qWarning() << "saveEvent() - invalid counts" << agendaModel.count();
         return false;
     }
 
@@ -496,8 +532,8 @@ void tst_CalendarEvent::testDate()
 
     eventMod->setDisplayLabel(QString("test event for ") + date.toString());
     QDateTime startTime(date, QTime(12, 0));
-    eventMod->setStartTime(startTime, CalendarEvent::SpecLocalZone);
-    eventMod->setEndTime(startTime.addSecs(10*60), CalendarEvent::SpecLocalZone);
+    eventMod->setStartTime(startTime, Qt::LocalTime);
+    eventMod->setEndTime(startTime.addSecs(10*60), Qt::LocalTime);
 
     QString uid;
     bool ok = saveEvent(eventMod, &uid);
@@ -530,8 +566,8 @@ void tst_CalendarEvent::testRecurrence()
     QVERIFY(eventMod != 0);
 
     const QDateTime dt(QDate(2020, 4, 27), QTime(8, 0));
-    eventMod->setStartTime(dt, CalendarEvent::SpecLocalZone);
-    eventMod->setEndTime(dt.addSecs(10*60), CalendarEvent::SpecLocalZone);
+    eventMod->setStartTime(dt, Qt::LocalTime);
+    eventMod->setEndTime(dt.addSecs(10*60), Qt::LocalTime);
     eventMod->setRecur(recurType);
     eventMod->setDescription(QMetaEnum::fromType<CalendarEvent::Recur>().valueToKey(recurType));
 
@@ -570,8 +606,8 @@ void tst_CalendarEvent::testRecurWeeklyDays()
     days |= CalendarEvent::Wednesday;
     days |= CalendarEvent::Thursday;
     const QDateTime dt(QDate(2020, 4, 30), QTime(9, 0)); // This is a Thursday
-    eventMod->setStartTime(dt, CalendarEvent::SpecLocalZone);
-    eventMod->setEndTime(dt.addSecs(10*60), CalendarEvent::SpecLocalZone);
+    eventMod->setStartTime(dt, Qt::LocalTime);
+    eventMod->setEndTime(dt.addSecs(10*60), Qt::LocalTime);
     eventMod->setRecur(CalendarEvent::RecurWeeklyByDays);
     eventMod->setRecurWeeklyDays(days);
     eventMod->setDescription(QLatin1String("Testing weekly by days..."));

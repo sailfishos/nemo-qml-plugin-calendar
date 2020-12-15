@@ -38,9 +38,7 @@
 #include <QThread>
 #include <QTimer>
 #include <QPointer>
-
-// KCalCore
-#include <KDateTime>
+#include <QDateTime>
 
 #include "calendardata.h"
 #include "calendarevent.h"
@@ -62,7 +60,7 @@ public:
     static CalendarManager *instance(bool createIfNeeded = true);
     ~CalendarManager();
 
-    CalendarEvent* eventObject(const QString &eventUid, const KDateTime &recurrenceId);
+    CalendarEvent* eventObject(const QString &eventUid, const QDateTime &recurrenceId);
 
     void saveModification(CalendarData::Event eventData, bool updateAttendees,
                           const QList<CalendarData::EmailContact> &required,
@@ -72,7 +70,7 @@ public:
                                                   bool updateAttendees,
                                                   const QList<CalendarData::EmailContact> &required,
                                                   const QList<CalendarData::EmailContact> &optional);
-    void deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime);
+    void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     void save();
 
@@ -80,7 +78,7 @@ public:
     QString convertEventToICalendarSync(const QString &uid, const QString &prodId);
 
     // Event
-    CalendarData::Event getEvent(const QString& uid, const KDateTime &recurrenceId);
+    CalendarData::Event getEvent(const QString& uid, const QDateTime &recurrenceId);
     bool sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response);
 
     // Notebooks
@@ -108,10 +106,10 @@ public:
 
     // Caller gets ownership of returned CalendarEventOccurrence object
     // Does synchronous DB thread access - no DB operations, though, fast when no ongoing DB ops
-    CalendarEventOccurrence* getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
+    CalendarEventOccurrence* getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                const QDateTime &start);
     // return attendees for given event, synchronous call
-    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const KDateTime &recurrenceId, bool *resultValid);
+    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId, bool *resultValid);
 
 private slots:
     void storageModifiedSlot(const QString &info);
@@ -127,7 +125,7 @@ private slots:
     void timeout();
     void occurrenceExceptionFailedSlot(const CalendarData::Event &data, const QDateTime &occurrence);
     void occurrenceExceptionCreatedSlot(const CalendarData::Event &data, const QDateTime &occurrence,
-                                        const KDateTime &newRecurrenceId);
+                                        const QDateTime &newRecurrenceId);
     void findMatchingEventFinished(const QString &invitationFile,
                                    const CalendarData::Event &event);
 

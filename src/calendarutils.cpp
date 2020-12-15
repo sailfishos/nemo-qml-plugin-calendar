@@ -1,8 +1,6 @@
 /*
  * Copyright (c) 2015-2019 Jolla Ltd.
- * Copyright (c) 2019 Open Mobile Platform LLC.
- *
- * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
+ * Copyright (c) 2019 - 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -36,9 +34,9 @@
 
 #include "calendareventquery.h"
 
-// kcalcore
-#include <icalformat.h>
-#include <vcalformat.h>
+// kcalendarcore
+#include <KCalendarCore/ICalFormat>
+#include <KCalendarCore/VCalFormat>
 
 //mkcal
 #include <servicehandler.h>
@@ -51,7 +49,7 @@
 #include <QByteArray>
 #include <QtDebug>
 
-CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr &event)
+CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalendarCore::Event::Ptr &event)
 {
     if (!event->recurs())
         return CalendarEvent::RecurOnce;
@@ -62,20 +60,20 @@ CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr
     ushort rt = event->recurrence()->recurrenceType();
     int freq = event->recurrence()->frequency();
 
-    if (rt == KCalCore::Recurrence::rDaily && freq == 1) {
+    if (rt == KCalendarCore::Recurrence::rDaily && freq == 1) {
         return CalendarEvent::RecurDaily;
-    } else if (rt == KCalCore::Recurrence::rWeekly && freq == 1) {
+    } else if (rt == KCalendarCore::Recurrence::rWeekly && freq == 1) {
         if (event->recurrence()->days().count(true) == 0) {
             return CalendarEvent::RecurWeekly;
         } else {
             return CalendarEvent::RecurWeeklyByDays;
         }
-    } else if (rt == KCalCore::Recurrence::rWeekly && freq == 2 && event->recurrence()->days().count(true) == 0) {
+    } else if (rt == KCalendarCore::Recurrence::rWeekly && freq == 2 && event->recurrence()->days().count(true) == 0) {
         return CalendarEvent::RecurBiweekly;
-    } else if (rt == KCalCore::Recurrence::rMonthlyDay && freq == 1) {
+    } else if (rt == KCalendarCore::Recurrence::rMonthlyDay && freq == 1) {
         return CalendarEvent::RecurMonthly;
-    } else if (rt == KCalCore::Recurrence::rMonthlyPos && freq == 1) {
-        const QList<KCalCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
+    } else if (rt == KCalendarCore::Recurrence::rMonthlyPos && freq == 1) {
+        const QList<KCalendarCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
         if (monthPositions.length() == 1
             && monthPositions.first().day() == event->dtStart().date().dayOfWeek()) {
             if (monthPositions.first().pos() > 0) {
@@ -84,14 +82,14 @@ CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalCore::Event::Ptr
                 return CalendarEvent::RecurMonthlyByLastDayOfWeek;
             }
         }
-    } else if (rt == KCalCore::Recurrence::rYearlyMonth && freq == 1) {
+    } else if (rt == KCalendarCore::Recurrence::rYearlyMonth && freq == 1) {
         return CalendarEvent::RecurYearly;
     }
 
     return CalendarEvent::RecurCustom;
 }
 
-CalendarEvent::Days CalendarUtils::convertDayPositions(const KCalCore::Event::Ptr &event)
+CalendarEvent::Days CalendarUtils::convertDayPositions(const KCalendarCore::Event::Ptr &event)
 {
     if (!event->recurs())
         return CalendarEvent::NoDays;
@@ -99,7 +97,7 @@ CalendarEvent::Days CalendarUtils::convertDayPositions(const KCalCore::Event::Pt
     if (event->recurrence()->rRules().count() != 1)
         return CalendarEvent::NoDays;
 
-    if (event->recurrence()->recurrenceType() != KCalCore::Recurrence::rWeekly
+    if (event->recurrence()->recurrenceType() != KCalendarCore::Recurrence::rWeekly
         || event->recurrence()->frequency() != 1)
         return CalendarEvent::NoDays;
 
@@ -111,42 +109,42 @@ CalendarEvent::Days CalendarUtils::convertDayPositions(const KCalCore::Event::Pt
                                         CalendarEvent::Saturday,
                                         CalendarEvent::Sunday};
 
-    const QList<KCalCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
+    const QList<KCalendarCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
     CalendarEvent::Days days = CalendarEvent::NoDays;
-    for (QList<KCalCore::RecurrenceRule::WDayPos>::ConstIterator it = monthPositions.constBegin();
+    for (QList<KCalendarCore::RecurrenceRule::WDayPos>::ConstIterator it = monthPositions.constBegin();
          it != monthPositions.constEnd(); ++it) {
         days |= week[it->day() - 1];
     }
     return days;
 }
 
-CalendarEvent::Secrecy CalendarUtils::convertSecrecy(const KCalCore::Event::Ptr &event)
+CalendarEvent::Secrecy CalendarUtils::convertSecrecy(const KCalendarCore::Event::Ptr &event)
 {
-    KCalCore::Incidence::Secrecy s = event->secrecy();
+    KCalendarCore::Incidence::Secrecy s = event->secrecy();
     switch (s) {
-    case KCalCore::Incidence::SecrecyPrivate:
+    case KCalendarCore::Incidence::SecrecyPrivate:
         return CalendarEvent::SecrecyPrivate;
-    case KCalCore::Incidence::SecrecyConfidential:
+    case KCalendarCore::Incidence::SecrecyConfidential:
         return CalendarEvent::SecrecyConfidential;
-    case KCalCore::Incidence::SecrecyPublic:
+    case KCalendarCore::Incidence::SecrecyPublic:
     default:
         return CalendarEvent::SecrecyPublic;
     }
 }
 
-int CalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
+int CalendarUtils::getReminder(const KCalendarCore::Event::Ptr &event)
 {
-    KCalCore::Alarm::List alarms = event->alarms();
+    KCalendarCore::Alarm::List alarms = event->alarms();
 
-    KCalCore::Alarm::Ptr alarm;
+    KCalendarCore::Alarm::Ptr alarm;
 
     int seconds = -1;
     for (int ii = 0; ii < alarms.count(); ++ii) {
-        if (alarms.at(ii)->type() == KCalCore::Alarm::Procedure)
+        if (alarms.at(ii)->type() == KCalendarCore::Alarm::Procedure)
             continue;
         alarm = alarms.at(ii);
         if (alarm) {
-            KCalCore::Duration d = alarm->startOffset();
+            KCalendarCore::Duration d = alarm->startOffset();
             seconds = d.asSeconds() * -1; // backend stores as "offset in seconds to dtStart", we return "seconds before"
             if (seconds >= 0) {
                 break;
@@ -158,35 +156,34 @@ int CalendarUtils::getReminder(const KCalCore::Event::Ptr &event)
     return seconds;
 }
 
-QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalCore::Event::Ptr &event)
+QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalendarCore::Event::Ptr &event)
 {
     QList<CalendarData::Attendee> result;
-    KCalCore::Person::Ptr calOrganizer = event->organizer();
+    const KCalendarCore::Person calOrganizer = event->organizer();
 
     CalendarData::Attendee organizer;
-
-    if (!calOrganizer.isNull() && !calOrganizer->isEmpty()) {
+    if (!calOrganizer.email().isEmpty()) {
         organizer.isOrganizer = true;
-        organizer.name = calOrganizer->name();
-        organizer.email = calOrganizer->email();
-        organizer.participationRole = KCalCore::Attendee::Chair;
+        organizer.name = calOrganizer.name();
+        organizer.email = calOrganizer.email();
+        organizer.participationRole = KCalendarCore::Attendee::Chair;
         result.append(organizer);
     }
 
-    KCalCore::Attendee::List attendees = event->attendees();
+    const KCalendarCore::Attendee::List attendees = event->attendees();
     CalendarData::Attendee attendee;
     attendee.isOrganizer = false;
 
-    foreach (KCalCore::Attendee::Ptr calAttendee, attendees) {
-        attendee.name = calAttendee->name();
-        attendee.email = calAttendee->email();
+    for (const KCalendarCore::Attendee &calAttendee : attendees) {
+        attendee.name = calAttendee.name();
+        attendee.email = calAttendee.email();
         if (attendee.name == organizer.name && attendee.email == organizer.email) {
             // avoid duplicate info
             continue;
         }
 
-        attendee.status = calAttendee->status();
-        attendee.participationRole = calAttendee->role();
+        attendee.status = calAttendee.status();
+        attendee.participationRole = calAttendee.role();
         result.append(attendee);
     }
 
@@ -199,13 +196,13 @@ QList<QObject *> CalendarUtils::convertAttendeeList(const QList<CalendarData::At
     foreach (const CalendarData::Attendee &attendee, list) {
         Person::AttendeeRole role;
         switch (attendee.participationRole) {
-        case KCalCore::Attendee::ReqParticipant:
+        case KCalendarCore::Attendee::ReqParticipant:
             role = Person::RequiredParticipant;
             break;
-        case KCalCore::Attendee::OptParticipant:
+        case KCalendarCore::Attendee::OptParticipant:
             role = Person::OptionalParticipant;
             break;
-        case KCalCore::Attendee::Chair:
+        case KCalendarCore::Attendee::Chair:
             role = Person::ChairParticipant;
             break;
         default:
@@ -215,13 +212,13 @@ QList<QObject *> CalendarUtils::convertAttendeeList(const QList<CalendarData::At
 
         Person::ParticipationStatus status;
         switch (attendee.status) {
-        case KCalCore::Attendee::Accepted:
+        case KCalendarCore::Attendee::Accepted:
             status = Person::AcceptedParticipation;
             break;
-        case KCalCore::Attendee::Declined:
+        case KCalendarCore::Attendee::Declined:
             status = Person::DeclinedParticipation;
             break;
-        case KCalCore::Attendee::Tentative:
+        case KCalendarCore::Attendee::Tentative:
             status = Person::TentativeParticipation;
             break;
         default:
@@ -235,28 +232,30 @@ QList<QObject *> CalendarUtils::convertAttendeeList(const QList<CalendarData::At
     return result;
 }
 
-CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalCore::Event::Ptr &event,
+CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCore::Event::Ptr &event,
                                                                const QDateTime &start)
 {
+    const QTimeZone systemTimeZone = QTimeZone::systemTimeZone();
+
     CalendarData::EventOccurrence occurrence;
     if (event) {
-        QDateTime dtStart = event->dtStart().toLocalZone().dateTime();
-        QDateTime dtEnd = event->dtEnd().toLocalZone().dateTime();
+        QDateTime dtStart = event->dtStart().toTimeZone(systemTimeZone);
+        QDateTime dtEnd = event->dtEnd().toTimeZone(systemTimeZone);
 
         if (!start.isNull() && event->recurs()) {
-            KDateTime startTime = KDateTime(start, KDateTime::Spec(KDateTime::LocalZone));
-            KCalCore::Recurrence *recurrence = event->recurrence();
+            const QDateTime startTime = start.toTimeZone(systemTimeZone);
+            KCalendarCore::Recurrence *recurrence = event->recurrence();
             if (recurrence->recursAt(startTime)) {
-                dtStart = startTime.toLocalZone().dateTime();
-                dtEnd = KCalCore::Duration(event->dtStart(), event->dtEnd()).end(startTime).toLocalZone().dateTime();
+                dtStart = startTime;
+                dtEnd = KCalendarCore::Duration(event->dtStart(), event->dtEnd()).end(startTime).toTimeZone(systemTimeZone);
             } else {
-                KDateTime match = recurrence->getNextDateTime(startTime);
+                QDateTime match = recurrence->getNextDateTime(startTime);
                 if (match.isNull())
                     match = recurrence->getPreviousDateTime(startTime);
 
                 if (!match.isNull()) {
-                    dtStart = match.toLocalZone().dateTime();
-                    dtEnd = KCalCore::Duration(event->dtStart(), event->dtEnd()).end(match).toLocalZone().dateTime();
+                    dtStart = match.toTimeZone(systemTimeZone);
+                    dtEnd = KCalendarCore::Duration(event->dtStart(), event->dtEnd()).end(match).toTimeZone(systemTimeZone);
                 }
             }
         }
@@ -271,7 +270,7 @@ CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalCore::E
 }
 
 bool CalendarUtils::importFromFile(const QString &fileName,
-                                   KCalCore::Calendar::Ptr calendar)
+                                   KCalendarCore::Calendar::Ptr calendar)
 {
     QString filePath;
     QUrl url(fileName);
@@ -294,10 +293,10 @@ bool CalendarUtils::importFromFile(const QString &fileName,
 
     bool ok = false;
     if (filePath.endsWith(".vcs")) {
-        KCalCore::VCalFormat vcalFormat;
+        KCalendarCore::VCalFormat vcalFormat;
         ok = vcalFormat.fromRawString(calendar, fileContent);
     } else if (filePath.endsWith(".ics")) {
-        KCalCore::ICalFormat icalFormat;
+        KCalendarCore::ICalFormat icalFormat;
         ok = icalFormat.fromRawString(calendar, fileContent);
     }
     if (!ok)
@@ -307,10 +306,10 @@ bool CalendarUtils::importFromFile(const QString &fileName,
 }
 
 bool CalendarUtils::importFromIcsRawData(const QByteArray &icsData,
-                                         KCalCore::Calendar::Ptr calendar)
+                                         KCalendarCore::Calendar::Ptr calendar)
 {
     bool ok = false;
-    KCalCore::ICalFormat icalFormat;
+    KCalendarCore::ICalFormat icalFormat;
     ok = icalFormat.fromRawString(calendar, icsData);
     if (!ok)
         qWarning() << "Failed to import from raw data";
@@ -318,33 +317,33 @@ bool CalendarUtils::importFromIcsRawData(const QByteArray &icsData,
     return ok;
 }
 
-CalendarEvent::Response CalendarUtils::convertPartStat(KCalCore::Attendee::PartStat status)
+CalendarEvent::Response CalendarUtils::convertPartStat(KCalendarCore::Attendee::PartStat status)
 {
     switch (status) {
-    case KCalCore::Attendee::Accepted:
+    case KCalendarCore::Attendee::Accepted:
         return CalendarEvent::ResponseAccept;
-    case KCalCore::Attendee::Declined:
+    case KCalendarCore::Attendee::Declined:
         return CalendarEvent::ResponseDecline;
-    case KCalCore::Attendee::Tentative:
+    case KCalendarCore::Attendee::Tentative:
         return CalendarEvent::ResponseTentative;
-    case KCalCore::Attendee::NeedsAction:
-    case KCalCore::Attendee::None:
+    case KCalendarCore::Attendee::NeedsAction:
+    case KCalendarCore::Attendee::None:
     default:
         return CalendarEvent::ResponseUnspecified;
     }
 }
 
-KCalCore::Attendee::PartStat CalendarUtils::convertResponse(CalendarEvent::Response response)
+KCalendarCore::Attendee::PartStat CalendarUtils::convertResponse(CalendarEvent::Response response)
 {
     switch (response) {
     case CalendarEvent::ResponseAccept:
-        return KCalCore::Attendee::Accepted;
+        return KCalendarCore::Attendee::Accepted;
     case CalendarEvent::ResponseTentative:
-        return KCalCore::Attendee::Tentative;
+        return KCalendarCore::Attendee::Tentative;
     case CalendarEvent::ResponseDecline:
-        return KCalCore::Attendee::Declined;
+        return KCalendarCore::Attendee::Declined;
     default:
-        return KCalCore::Attendee::NeedsAction;
+        return KCalendarCore::Attendee::NeedsAction;
     }
 }
 
@@ -365,4 +364,12 @@ CalendarEvent::Response CalendarUtils::convertResponseType(const QString &respon
     default:
         return CalendarEvent::ResponseUnspecified;
     }
+}
+
+QString CalendarUtils::recurrenceIdToString(const QDateTime &dt)
+{
+    // Convert to Qt::OffsetFromUTC spec to ensure time zone offset is included in string format,
+    // to be consistent with previous versions that used KDateTime::toString() to produce the
+    // same string format for recurrence ids.
+    return dt.toOffsetFromUtc(dt.offsetFromUtc()).toString(Qt::ISODate);
 }

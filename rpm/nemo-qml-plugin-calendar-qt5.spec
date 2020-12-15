@@ -12,7 +12,7 @@ BuildRequires:  pkgconfig(Qt5Gui)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(libmkcal-qt5)
-BuildRequires:  pkgconfig(libkcalcoren-qt5)
+BuildRequires:  pkgconfig(KF5CalendarCore)
 BuildRequires:  pkgconfig(libical)
 BuildRequires:  pkgconfig(accounts-qt5)
 
@@ -41,7 +41,7 @@ Summary:    Calendar import/export tool
 License:    BSD
 Group:      Applications/System
 BuildRequires:  pkgconfig(libmkcal-qt5)
-BuildRequires:  pkgconfig(libkcalcoren-qt5)
+BuildRequires:  pkgconfig(KF5CalendarCore)
 
 %description tools
 %{summary}.

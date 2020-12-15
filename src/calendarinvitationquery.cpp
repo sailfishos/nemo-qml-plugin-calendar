@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2017 Jolla Ltd.
- * Contact: Chris Adams <chris.adams@jollamobile.com>
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -140,13 +140,14 @@ void CalendarInvitationQuery::queryResult(CalendarData::Event event)
         needUidEmit = true;
     }
 
-    if (mRid != event.recurrenceId.toString()) {
-        mRid = event.recurrenceId.toString();
+    const QString &recurrenceIdString = CalendarUtils::recurrenceIdToString(event.recurrenceId);
+    if (mRid != recurrenceIdString) {
+        mRid = recurrenceIdString;
         needRidEmit = true;
     }
 
-    if (mStartTime != event.startTime.toString()) {
-        mStartTime = event.startTime.toString();
+    if (mStartTime != event.startTime.toString(Qt::ISODate)) {
+        mStartTime = event.startTime.toString(Qt::ISODate);
         needSTEmit = true;
     }
 

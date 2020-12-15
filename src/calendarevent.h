@@ -36,8 +36,6 @@
 #include <QObject>
 #include <QDateTime>
 
-#include <KDateTime>
-
 class CalendarManager;
 
 class CalendarEvent : public QObject
@@ -51,8 +49,8 @@ class CalendarEvent : public QObject
     Q_PROPERTY(QString description READ description NOTIFY descriptionChanged)
     Q_PROPERTY(QDateTime startTime READ startTime NOTIFY startTimeChanged)
     Q_PROPERTY(QDateTime endTime READ endTime NOTIFY endTimeChanged)
-    Q_PROPERTY(CalendarEvent::TimeSpec startTimeSpec READ startTimeSpec NOTIFY startTimeChanged)
-    Q_PROPERTY(CalendarEvent::TimeSpec endTimeSpec READ endTimeSpec NOTIFY endTimeChanged)
+    Q_PROPERTY(Qt::TimeSpec startTimeSpec READ startTimeSpec NOTIFY startTimeChanged)
+    Q_PROPERTY(Qt::TimeSpec endTimeSpec READ endTimeSpec NOTIFY endTimeChanged)
     Q_PROPERTY(QString startTimeZone READ startTimeZone NOTIFY startTimeChanged)
     Q_PROPERTY(QString endTimeZone READ endTimeZone NOTIFY endTimeChanged)
     Q_PROPERTY(bool allDay READ allDay NOTIFY allDayChanged)
@@ -101,14 +99,6 @@ public:
     Q_DECLARE_FLAGS(Days, Day)
     Q_FLAG(Days)
 
-    enum TimeSpec {
-        SpecLocalZone,
-        SpecClockTime,
-        SpecTimeZone,
-        SpecUtc
-    };
-    Q_ENUM(TimeSpec)
-
     enum Secrecy {
         SecrecyPublic,
         SecrecyPrivate,
@@ -130,15 +120,15 @@ public:
     };
     Q_ENUM(SyncFailure)
 
-    CalendarEvent(CalendarManager *manager, const QString &uid, const KDateTime &recurrenceId);
+    CalendarEvent(CalendarManager *manager, const QString &uid, const QDateTime &recurrenceId);
     ~CalendarEvent();
 
     QString displayLabel() const;
     QString description() const;
     QDateTime startTime() const;
     QDateTime endTime() const;
-    TimeSpec startTimeSpec() const;
-    TimeSpec endTimeSpec() const;
+    Qt::TimeSpec startTimeSpec() const;
+    Qt::TimeSpec endTimeSpec() const;
     QString startTimeZone() const;
     QString endTimeZone() const;
     bool allDay() const;
@@ -152,7 +142,7 @@ public:
     bool readOnly() const;
     QString calendarUid() const;
     QString location() const;
-    KDateTime recurrenceId() const;
+    QDateTime recurrenceId() const;
     QString recurrenceIdString() const;
     Secrecy secrecy() const;
     SyncFailure syncFailure() const;
@@ -191,7 +181,7 @@ signals:
 private:
     CalendarManager *mManager;
     QString mUniqueId;
-    KDateTime mRecurrenceId;
+    QDateTime mRecurrenceId;
 };
 
 #endif // CALENDAREVENT_H

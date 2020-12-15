@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Aaron Kennedy <aaron.kennedy@jollamobile.com>
+ * Copyright (C) 2013 - 2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -36,8 +36,6 @@
 #include <QObject>
 #include <QDateTime>
 #include <QQmlParserStatus>
-
-#include <KDateTime>
 
 #include "calendardata.h"
 
@@ -111,7 +109,7 @@ public:
 
     QString recurrenceIdString();
     void setRecurrenceIdString(const QString &recurrenceId);
-    KDateTime recurrenceId();
+    QDateTime recurrenceId();
 
     QDateTime startTime() const;
     void setStartTime(const QDateTime &);
@@ -150,7 +148,7 @@ private slots:
 private:
     bool mIsComplete;
     QString mUid;
-    KDateTime mRecurrenceId;
+    QDateTime mRecurrenceId;
     QDateTime mStartTime;
     CalendarData::Event mEvent;
     CalendarEventOccurrence *mOccurrence;
