@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Aaron Kennedy <aaron.kennedy@jollamobile.com>
+ * Copyright (c) 2013 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -35,6 +35,8 @@
 #include "calendarmanager.h"
 #include "calendareventoccurrence.h"
 #include "calendarutils.h"
+
+#include <QDebug>
 
 CalendarEventQuery::CalendarEventQuery()
     : mIsComplete(true), mOccurrence(0), mAttendeesCached(false), mEventError(false)
@@ -82,7 +84,7 @@ void CalendarEventQuery::setUniqueId(const QString &uid)
 QString CalendarEventQuery::recurrenceIdString()
 {
     if (mRecurrenceId.isValid()) {
-        return mRecurrenceId.toString();
+        return CalendarUtils::recurrenceIdToString(mRecurrenceId);
     } else {
         return QString();
     }
@@ -90,7 +92,7 @@ QString CalendarEventQuery::recurrenceIdString()
 
 void CalendarEventQuery::setRecurrenceIdString(const QString &recurrenceId)
 {
-    KDateTime recurrenceIdTime = KDateTime::fromString(recurrenceId);
+    QDateTime recurrenceIdTime = QDateTime::fromString(recurrenceId, Qt::ISODate);
     if (mRecurrenceId == recurrenceIdTime) {
         return;
     }
@@ -224,7 +226,7 @@ bool CalendarEventQuery::eventError() const
     return mEventError;
 }
 
-KDateTime CalendarEventQuery::recurrenceId()
+QDateTime CalendarEventQuery::recurrenceId()
 {
     return mRecurrenceId;
 }

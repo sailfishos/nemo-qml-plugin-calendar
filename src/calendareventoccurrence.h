@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Robin Burchell <robin.burchell@jollamobile.com>
+ * Copyright (C) 2013 - 2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -36,8 +36,6 @@
 #include <QObject>
 #include <QDateTime>
 
-#include <KDateTime>
-
 class CalendarEvent;
 
 class CalendarEventOccurrence : public QObject
@@ -53,7 +51,7 @@ class CalendarEventOccurrence : public QObject
 
 public:
     CalendarEventOccurrence(const QString &eventUid,
-                            const KDateTime &recurrenceId,
+                            const QDateTime &recurrenceId,
                             const QDateTime &startTime,
                             const QDateTime &endTime,
                             QObject *parent = 0);
@@ -70,7 +68,7 @@ private slots:
 
 private:
     QString mEventUid;
-    KDateTime mRecurrenceId;
+    QDateTime mRecurrenceId;
     QDateTime mStartTime;
     QDateTime mEndTime;
 };

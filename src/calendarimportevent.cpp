@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2015 Jolla Ltd.
- * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
+ * Copyright (C) 2015 - 2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -38,7 +38,7 @@
 
 #include <QDebug>
 
-CalendarImportEvent::CalendarImportEvent(KCalCore::Event::Ptr event)
+CalendarImportEvent::CalendarImportEvent(KCalendarCore::Event::Ptr event)
     : QObject(),
       mEvent(event),
       mColor("#ffffff")
@@ -66,7 +66,7 @@ QDateTime CalendarImportEvent::startTime() const
     if (!mEvent)
         return QDateTime();
 
-    return mEvent->dtStart().dateTime();
+    return mEvent->dtStart();
 }
 
 QDateTime CalendarImportEvent::endTime() const
@@ -74,7 +74,7 @@ QDateTime CalendarImportEvent::endTime() const
     if (!mEvent)
         return QDateTime();
 
-    return mEvent->dtEnd().dateTime();
+    return mEvent->dtEnd();
 }
 
 bool CalendarImportEvent::allDay() const
@@ -148,18 +148,18 @@ CalendarEvent::Secrecy CalendarImportEvent::secrecy() const
 
 QString CalendarImportEvent::organizer() const
 {
-    if (!mEvent || !mEvent->organizer())
+    if (!mEvent)
         return QString();
 
-    return mEvent->organizer()->fullName();
+    return mEvent->organizer().fullName();
 }
 
 QString CalendarImportEvent::organizerEmail() const
 {
-    if (!mEvent || !mEvent->organizer())
+    if (!mEvent)
         return QString();
 
-    return mEvent->organizer()->email();
+    return mEvent->organizer().email();
 }
 
 void CalendarImportEvent::setColor(const QString &color)

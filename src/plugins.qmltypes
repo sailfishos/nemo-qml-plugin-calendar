@@ -156,15 +156,6 @@ Module {
             }
         }
         Enum {
-            name: "TimeSpec"
-            values: {
-                "SpecLocalZone": 0,
-                "SpecClockTime": 1,
-                "SpecTimeZone": 2,
-                "SpecUtc": 3
-            }
-        }
-        Enum {
             name: "Secrecy"
             values: {
                 "SecrecyPublic": 0,

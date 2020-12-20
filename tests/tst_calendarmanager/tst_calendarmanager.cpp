@@ -5,8 +5,8 @@
 #include "extendedcalendar.h"
 #include "extendedstorage.h"
 
-// kCalCore
-#include <calformat.h>
+// kcalendarcore
+#include <KCalendarCore/CalFormat>
 
 #include "calendarmanager.h"
 #include <QSignalSpy>
@@ -513,7 +513,7 @@ void tst_CalendarManager::test_addRanges()
 
 mKCal::Notebook::Ptr tst_CalendarManager::createNotebook()
 {
-    return mKCal::Notebook::Ptr(new mKCal::Notebook(KCalCore::CalFormat::createUniqueId(),
+    return mKCal::Notebook::Ptr(new mKCal::Notebook(KCalendarCore::CalFormat::createUniqueId(),
                                                     "",
                                                     QLatin1String(""),
                                                     "#110000",
@@ -542,7 +542,7 @@ void tst_CalendarManager::test_notebookApi()
     int notebookCount = manager->notebooks().count();
     mDefaultNotebook = manager->defaultNotebook();
 
-    mCalendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(KDateTime::Spec::LocalZone()));
+    mCalendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
     mStorage = mCalendar->defaultStorage(mCalendar);
     mStorage->open();
 

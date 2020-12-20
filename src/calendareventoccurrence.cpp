@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Robin Burchell <robin.burchell@jollamobile.com>
+ * Copyright (C) 2013 - 2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -38,7 +38,7 @@
 #include "calendarmanager.h"
 
 CalendarEventOccurrence::CalendarEventOccurrence(const QString &eventUid,
-                                                 const KDateTime &recurrenceId,
+                                                 const QDateTime &recurrenceId,
                                                  const QDateTime &startTime,
                                                  const QDateTime &endTime,
                                                  QObject *parent)
@@ -74,15 +74,15 @@ void CalendarEventOccurrence::eventUidChanged(QString oldUid, QString newUid)
 }
 
 static QDateTime toEventDateTime(const QDateTime &dateTime,
-                                 CalendarEvent::TimeSpec eventSpec,
+                                 Qt::TimeSpec eventSpec,
                                  const QString &eventTimezone)
 {
     switch (eventSpec) {
-    case (CalendarEvent::SpecTimeZone): {
+    case (Qt::TimeZone): {
         const QDateTime dt = dateTime.toTimeZone(QTimeZone(eventTimezone.toUtf8()));
         return QDateTime(dt.date(), dt.time());
     }
-    case (CalendarEvent::SpecUtc): {
+    case (Qt::UTC): {
         const QDateTime dt = dateTime.toUTC();
         return QDateTime(dt.date(), dt.time());
     }

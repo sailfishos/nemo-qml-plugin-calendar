@@ -69,7 +69,7 @@ public slots:
     void replaceOccurrence(const CalendarData::Event &eventData, const QDateTime &startTime, bool updateAttendees,
                            const QList<CalendarData::EmailContact> &required,
                            const QList<CalendarData::EmailContact> &optional);
-    void deleteEvent(const QString &uid, const KDateTime &recurrenceId, const QDateTime &dateTime);
+    void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     bool sendResponse(const CalendarData::Event &eventData, const CalendarEvent::Response response);
     QString convertEventToICalendar(const QString &uid, const QString &prodId) const;
@@ -83,9 +83,9 @@ public slots:
     void loadData(const QList<CalendarData::Range> &ranges,
                   const QStringList &uidList, bool reset);
 
-    CalendarData::EventOccurrence getNextOccurrence(const QString &uid, const KDateTime &recurrenceId,
+    CalendarData::EventOccurrence getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                     const QDateTime &startTime) const;
-    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const KDateTime &recurrenceId);
+    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId);
 
     void findMatchingEvent(const QString &invitationFile);
 
@@ -107,32 +107,32 @@ signals:
 
     void occurrenceExceptionFailed(const CalendarData::Event &eventData, const QDateTime &startTime);
     void occurrenceExceptionCreated(const CalendarData::Event &eventData, const QDateTime &startTime,
-                                    const KDateTime &newRecurrenceId);
+                                    const QDateTime &newRecurrenceId);
 
     void findMatchingEventFinished(const QString &invitationFile,
                                    const CalendarData::Event &eventData);
 
 private:
-    void setEventData(KCalCore::Event::Ptr &event, const CalendarData::Event &eventData);
+    void setEventData(KCalendarCore::Event::Ptr &event, const CalendarData::Event &eventData);
     void loadNotebooks();
     QStringList excludedNotebooks() const;
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
-    bool setRecurrence(KCalCore::Event::Ptr &event, CalendarEvent::Recur recur, CalendarEvent::Days days);
-    bool setReminder(KCalCore::Event::Ptr &event, int reminderSeconds);
-    bool needSendCancellation(KCalCore::Event::Ptr &event) const;
-    void updateEventAttendees(KCalCore::Event::Ptr event, bool newEvent,
+    bool setRecurrence(KCalendarCore::Event::Ptr &event, CalendarEvent::Recur recur, CalendarEvent::Days days);
+    bool setReminder(KCalendarCore::Event::Ptr &event, int reminderSeconds);
+    bool needSendCancellation(KCalendarCore::Event::Ptr &event) const;
+    void updateEventAttendees(KCalendarCore::Event::Ptr event, bool newEvent,
                               const QList<CalendarData::EmailContact> &required,
                               const QList<CalendarData::EmailContact> &optional,
                               const QString &notebookUid);
     QString getNotebookAddress(const QString &notebookUid) const;
-    QString getNotebookAddress(const KCalCore::Event::Ptr &event) const;
+    QString getNotebookAddress(const KCalendarCore::Event::Ptr &event) const;
 
-    CalendarData::Event createEventStruct(const KCalCore::Event::Ptr &event,
+    CalendarData::Event createEventStruct(const KCalendarCore::Event::Ptr &event,
                                           mKCal::Notebook::Ptr notebook = mKCal::Notebook::Ptr()) const;
     QHash<QString, CalendarData::EventOccurrence> eventOccurrences(const QList<CalendarData::Range> &ranges) const;
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
-                                                    const QMultiHash<QString, KDateTime> &allDay,
+                                                    const QMultiHash<QString, QDateTime> &allDay,
                                                     const QList<CalendarData::EventOccurrence> &occurrences);
 
     Accounts::Manager *mAccountManager;
@@ -143,12 +143,12 @@ private:
     // mDeletedEvents is used to make sure
     // that we are sending a cancellation email for events only
     // when user actually saved (so truly deleted) changes by calling of save()
-    QList<QPair<QString, KDateTime>> mDeletedEvents;
+    QList<QPair<QString, QDateTime>> mDeletedEvents;
 
     QHash<QString, CalendarData::Notebook> mNotebooks;
 
     // Tracks which events have been already passed to manager. Maps Uid -> RecurrenceId
-    QMultiHash<QString, KDateTime> mSentEvents;
+    QMultiHash<QString, QDateTime> mSentEvents;
 };
 
 #endif // CALENDARWORKER_H

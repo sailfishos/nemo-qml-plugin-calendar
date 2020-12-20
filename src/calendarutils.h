@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2019 Jolla Ltd.
- * Copyright (c) 2019 Open Mobile Platform LLC.
+ * Copyright (c) 2019 - 2020 Open Mobile Platform LLC.
  *
  * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
  *
@@ -38,25 +38,26 @@
 #include "calendarevent.h"
 #include "calendardata.h"
 
-// kCalCore
-#include <event.h>
-#include <calendar.h>
+// KCalendarCore
+#include <KCalendarCore/Event>
+#include <KCalendarCore/Calendar>
 
 namespace CalendarUtils {
 
-CalendarEvent::Recur convertRecurrence(const KCalCore::Event::Ptr &event);
-CalendarEvent::Days convertDayPositions(const KCalCore::Event::Ptr &event);
-CalendarEvent::Secrecy convertSecrecy(const KCalCore::Event::Ptr &event);
-int getReminder(const KCalCore::Event::Ptr &event);
-QList<CalendarData::Attendee> getEventAttendees(const KCalCore::Event::Ptr &event);
+CalendarEvent::Recur convertRecurrence(const KCalendarCore::Event::Ptr &event);
+CalendarEvent::Days convertDayPositions(const KCalendarCore::Event::Ptr &event);
+CalendarEvent::Secrecy convertSecrecy(const KCalendarCore::Event::Ptr &event);
+int getReminder(const KCalendarCore::Event::Ptr &event);
+QList<CalendarData::Attendee> getEventAttendees(const KCalendarCore::Event::Ptr &event);
 QList<QObject*> convertAttendeeList(const QList<CalendarData::Attendee> &list);
-CalendarData::EventOccurrence getNextOccurrence(const KCalCore::Event::Ptr &event,
+CalendarData::EventOccurrence getNextOccurrence(const KCalendarCore::Event::Ptr &event,
                                                 const QDateTime &start = QDateTime::currentDateTime());
-bool importFromFile(const QString &fileName, KCalCore::Calendar::Ptr calendar);
-bool importFromIcsRawData(const QByteArray &icsData, KCalCore::Calendar::Ptr calendar);
-CalendarEvent::Response convertPartStat(KCalCore::Attendee::PartStat status);
-KCalCore::Attendee::PartStat convertResponse(CalendarEvent::Response response);
+bool importFromFile(const QString &fileName, KCalendarCore::Calendar::Ptr calendar);
+bool importFromIcsRawData(const QByteArray &icsData, KCalendarCore::Calendar::Ptr calendar);
+CalendarEvent::Response convertPartStat(KCalendarCore::Attendee::PartStat status);
+KCalendarCore::Attendee::PartStat convertResponse(CalendarEvent::Response response);
 CalendarEvent::Response convertResponseType(const QString &responseType);
+QString recurrenceIdToString(const QDateTime &dt);
 
 } // namespace CalendarUtils
 

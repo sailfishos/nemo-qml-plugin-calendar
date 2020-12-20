@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2015 Jolla Ltd.
- * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
+ * Copyright (C) 2015 - 2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -35,8 +35,8 @@
 
 #include <QAbstractListModel>
 
-// kCalCore
-#include <calendar.h>
+// kcalendarcore
+#include <KCalendarCore/Calendar>
 
 class CalendarImportModel : public QAbstractListModel
 {
@@ -90,7 +90,7 @@ private:
 
     QString mFileName;
     QByteArray mIcsRawData;
-    KCalCore::Event::List mEventList;
+    KCalendarCore::Event::List mEventList;
 };
 
 #endif // CALENDARIMPORT_H

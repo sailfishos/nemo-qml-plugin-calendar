@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2017 Jolla Ltd.
- * Contact: Chris Adams <chris.adams@jollamobile.com>
+ * Copyright (C) 2017 - 2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -38,8 +38,6 @@
 #include <QObject>
 #include <QDateTime>
 #include <QQmlParserStatus>
-
-#include <KDateTime>
 
 class CalendarManager;
 class CalendarInvitationQuery : public QObject, public QQmlParserStatus

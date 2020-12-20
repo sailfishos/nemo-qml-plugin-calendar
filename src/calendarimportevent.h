@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2015 Jolla Ltd.
- * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
+ * Copyright (C) 2015 - 2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -35,8 +35,8 @@
 
 #include <QObject>
 
-// kCalCore
-#include <event.h>
+// KCalendarCore
+#include <KCalendarCore/Event>
 
 #include "calendarevent.h"
 
@@ -62,7 +62,7 @@ class CalendarImportEvent : public QObject
     Q_PROPERTY(bool rsvp READ rsvp CONSTANT)
 
 public:
-    CalendarImportEvent(KCalCore::Event::Ptr event);
+    CalendarImportEvent(KCalendarCore::Event::Ptr event);
 
     QString displayLabel() const;
     QString description() const;
@@ -94,7 +94,7 @@ signals:
     void colorChanged();
 
 private:
-    KCalCore::Event::Ptr mEvent;
+    KCalendarCore::Event::Ptr mEvent;
     QString mColor;
 };
 #endif // CALENDARIMPORTEVENT_H

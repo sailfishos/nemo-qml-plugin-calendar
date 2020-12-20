@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Aaron Kennedy <aaron.kennedy@jollamobile.com>
+ * Copyright (C) 2013 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -65,7 +65,7 @@ CalendarEventModification * CalendarApi::createModification(CalendarEvent *sourc
 
 void CalendarApi::remove(const QString &uid, const QString &recurrenceId, const QDateTime &time)
 {
-    KDateTime recurrenceTime = KDateTime::fromString(recurrenceId);
+    QDateTime recurrenceTime = QDateTime::fromString(recurrenceId, Qt::ISODate);
     CalendarManager::instance()->deleteEvent(uid, recurrenceTime, time);
 
     // TODO: this sucks

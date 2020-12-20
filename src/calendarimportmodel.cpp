@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2015 Jolla Ltd.
- * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
+ * Copyright (C) 2015 - 2019 Jolla Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -42,8 +42,8 @@
 #include <extendedcalendar.h>
 #include <extendedstorage.h>
 
-// kcalcore
-#include <memorycalendar.h>
+// kcalendarcore
+#include <KCalendarCore/MemoryCalendar>
 
 CalendarImportModel::CalendarImportModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -111,7 +111,7 @@ QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() >= mEventList.count())
         return QVariant();
 
-    KCalCore::Event::Ptr event = mEventList.at(index.row());
+    KCalendarCore::Event::Ptr event = mEventList.at(index.row());
 
     switch(role) {
     case DisplayLabelRole:
@@ -119,9 +119,9 @@ QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
     case DescriptionRole:
         return event->description();
     case StartTimeRole:
-        return event->dtStart().dateTime();
+        return event->dtStart();
     case EndTimeRole:
-        return event->dtEnd().dateTime();
+        return event->dtEnd();
     case AllDayRole:
         return event->allDay();
     case LocationRole:
@@ -135,7 +135,7 @@ QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
 
 bool CalendarImportModel::importToNotebook(const QString &notebookUid)
 {
-    mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(KDateTime::Spec::LocalZone()));
+    mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
     mKCal::ExtendedStorage::Ptr storage = calendar->defaultStorage(calendar);
     if (!storage->open()) {
         qWarning() << "Unable to open calendar DB";
@@ -177,8 +177,8 @@ QHash<int, QByteArray> CalendarImportModel::roleNames() const
     return roleNames;
 }
 
-static bool incidenceLessThan(const KCalCore::Incidence::Ptr e1,
-                              const KCalCore::Incidence::Ptr e2)
+static bool incidenceLessThan(const KCalendarCore::Incidence::Ptr e1,
+                              const KCalendarCore::Incidence::Ptr e2)
 {
     if (e1->dtStart() == e2->dtStart()) {
         int cmp = QString::compare(e1->summary(),
@@ -211,17 +211,17 @@ bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArr
         mEventList.clear();
 
     beginResetModel();
-    KCalCore::MemoryCalendar::Ptr cal(new KCalCore::MemoryCalendar(KDateTime::Spec::LocalZone()));
+    KCalendarCore::MemoryCalendar::Ptr cal(new KCalendarCore::MemoryCalendar(QTimeZone::systemTimeZone()));
     if (!fileName.isEmpty()) {
         CalendarUtils::importFromFile(fileName, cal);
     } else {
         CalendarUtils::importFromIcsRawData(icsData, cal);
     }
-    KCalCore::Incidence::List incidenceList = cal->incidences();
+    KCalendarCore::Incidence::List incidenceList = cal->incidences();
     for (int i = 0; i < incidenceList.size(); i++) {
-        KCalCore::Incidence::Ptr incidence = incidenceList.at(i);
-        if (incidence->type() == KCalCore::IncidenceBase::TypeEvent)
-            mEventList.append(incidence.staticCast<KCalCore::Event>());
+        KCalendarCore::Incidence::Ptr incidence = incidenceList.at(i);
+        if (incidence->type() == KCalendarCore::IncidenceBase::TypeEvent)
+            mEventList.append(incidence.staticCast<KCalendarCore::Event>());
     }
     if (!mEventList.isEmpty())
         qSort(mEventList.begin(), mEventList.end(), incidenceLessThan);

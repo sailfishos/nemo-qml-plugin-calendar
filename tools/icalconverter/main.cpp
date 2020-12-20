@@ -40,17 +40,17 @@
 #include <QTextStream>
 #include <QtDebug>
 
-#include <memorycalendar.h>
+#include <KCalendarCore/MemoryCalendar>
+#include <KCalendarCore/ICalFormat>
+#include <KCalendarCore/VCalFormat>
+#include <KCalendarCore/Incidence>
+#include <KCalendarCore/Event>
+#include <KCalendarCore/Todo>
+#include <KCalendarCore/Journal>
+#include <KCalendarCore/Attendee>
+
 #include <extendedcalendar.h>
 #include <extendedstorage.h>
-#include <icalformat.h>
-#include <vcalformat.h>
-#include <incidence.h>
-#include <event.h>
-#include <todo.h>
-#include <journal.h>
-#include <attendee.h>
-#include <kdatetime.h>
 
 #define LOG_DEBUG(msg) if (printDebug) qDebug() << msg
 
@@ -92,7 +92,7 @@ namespace {
 
 namespace CalendarImportExport {
     namespace IncidenceHandler {
-        void normalizePersonEmail(KCalCore::Person *p)
+        void normalizePersonEmail(KCalendarCore::Person *p)
         {
             QString email = p->email().replace(QStringLiteral("mailto:"), QString(), Qt::CaseInsensitive);
             if (email != p->email()) {
@@ -114,7 +114,7 @@ namespace CalendarImportExport {
             return true;
         }
 
-        bool eventsEqual(const KCalCore::Event::Ptr &a, const KCalCore::Event::Ptr &b, bool printDebug)
+        bool eventsEqual(const KCalendarCore::Event::Ptr &a, const KCalendarCore::Event::Ptr &b, bool printDebug)
         {
             RETURN_FALSE_IF_NOT_EQUAL_CUSTOM(a->dateEnd() != b->dateEnd(), "dateEnd", (a->dateEnd().toString() + " != " + b->dateEnd().toString()));
             RETURN_FALSE_IF_NOT_EQUAL(a, b, transparency(), "transparency");
@@ -145,7 +145,7 @@ namespace CalendarImportExport {
             return true;
         }
 
-        bool todosEqual(const KCalCore::Todo::Ptr &a, const KCalCore::Todo::Ptr &b, bool printDebug)
+        bool todosEqual(const KCalendarCore::Todo::Ptr &a, const KCalendarCore::Todo::Ptr &b, bool printDebug)
         {
             RETURN_FALSE_IF_NOT_EQUAL(a, b, hasCompletedDate(), "hasCompletedDate");
             RETURN_FALSE_IF_NOT_EQUAL_CUSTOM(a->dtRecurrence() != b->dtRecurrence(), "dtRecurrence", (a->dtRecurrence().toString() + " != " + b->dtRecurrence().toString()));
@@ -159,14 +159,14 @@ namespace CalendarImportExport {
             return true;
         }
 
-        bool journalsEqual(const KCalCore::Journal::Ptr &, const KCalCore::Journal::Ptr &, bool)
+        bool journalsEqual(const KCalendarCore::Journal::Ptr &, const KCalendarCore::Journal::Ptr &, bool)
         {
             // no journal-specific properties; it only uses the base incidence properties
             return true;
         }
 
         // Checks whether a specific set of properties are equal.
-        bool copiedPropertiesAreEqual(const KCalCore::Incidence::Ptr &a, const KCalCore::Incidence::Ptr &b, bool printDebug)
+        bool copiedPropertiesAreEqual(const KCalendarCore::Incidence::Ptr &a, const KCalendarCore::Incidence::Ptr &b, bool printDebug)
         {
             if (!a || !b) {
                 qWarning() << "Invalid paramters! a:" << a << "b:" << b;
@@ -176,7 +176,7 @@ namespace CalendarImportExport {
             // Do not compare created() or lastModified() because we don't update these fields when
             // an incidence is updated by copyIncidenceProperties(), so they are guaranteed to be unequal.
             // TODO compare deref alarms and attachment lists to compare them also.
-            // Don't compare resources() for now because KCalCore may insert QStringList("") as the resources
+            // Don't compare resources() for now because KCalendarCore may insert QStringList("") as the resources
             // when in fact it should be QStringList(), which causes the comparison to fail.
             RETURN_FALSE_IF_NOT_EQUAL(a, b, type(), "type");
             RETURN_FALSE_IF_NOT_EQUAL(a, b, duration(), "duration");
@@ -208,37 +208,37 @@ namespace CalendarImportExport {
             }
 
             // Some servers insert a mailto: in the organizer email address, so ignore this when comparing organizers
-            KCalCore::Person personA(*a->organizer().data());
-            KCalCore::Person personB(*b->organizer().data());
+            KCalendarCore::Person personA(a->organizer());
+            KCalendarCore::Person personB(b->organizer());
             normalizePersonEmail(&personA);
             normalizePersonEmail(&personB);
             RETURN_FALSE_IF_NOT_EQUAL_CUSTOM(personA != personB, "organizer", (personA.fullName() + " != " + personB.fullName()));
 
             switch (a->type()) {
-            case KCalCore::IncidenceBase::TypeEvent:
-                if (!eventsEqual(a.staticCast<KCalCore::Event>(), b.staticCast<KCalCore::Event>(), printDebug)) {
+            case KCalendarCore::IncidenceBase::TypeEvent:
+                if (!eventsEqual(a.staticCast<KCalendarCore::Event>(), b.staticCast<KCalendarCore::Event>(), printDebug)) {
                     return false;
                 }
                 break;
-            case KCalCore::IncidenceBase::TypeTodo:
-                if (!todosEqual(a.staticCast<KCalCore::Todo>(), b.staticCast<KCalCore::Todo>(), printDebug)) {
+            case KCalendarCore::IncidenceBase::TypeTodo:
+                if (!todosEqual(a.staticCast<KCalendarCore::Todo>(), b.staticCast<KCalendarCore::Todo>(), printDebug)) {
                     return false;
                 }
                 break;
-            case KCalCore::IncidenceBase::TypeJournal:
-                if (!journalsEqual(a.staticCast<KCalCore::Journal>(), b.staticCast<KCalCore::Journal>(), printDebug)) {
+            case KCalendarCore::IncidenceBase::TypeJournal:
+                if (!journalsEqual(a.staticCast<KCalendarCore::Journal>(), b.staticCast<KCalendarCore::Journal>(), printDebug)) {
                     return false;
                 }
                 break;
-            case KCalCore::IncidenceBase::TypeFreeBusy:
-            case KCalCore::IncidenceBase::TypeUnknown:
+            case KCalendarCore::IncidenceBase::TypeFreeBusy:
+            case KCalendarCore::IncidenceBase::TypeUnknown:
                 LOG_DEBUG("Unable to compare FreeBusy or Unknown incidence, assuming equal");
                 break;
             }
             return true;
         }
 
-        void copyIncidenceProperties(KCalCore::Incidence::Ptr dest, const KCalCore::Incidence::Ptr &src)
+        void copyIncidenceProperties(KCalendarCore::Incidence::Ptr dest, const KCalendarCore::Incidence::Ptr &src)
         {
             if (!dest || !src) {
                 qWarning() << "Invalid parameters!";
@@ -249,29 +249,29 @@ namespace CalendarImportExport {
                 return;
             }
 
-            KDateTime origCreated = dest->created();
-            KDateTime origLastModified = dest->lastModified();
+            QDateTime origCreated = dest->created();
+            QDateTime origLastModified = dest->lastModified();
 
             // Copy recurrence information if required.
             if (*(dest->recurrence()) != *(src->recurrence())) {
                 dest->recurrence()->clear();
 
-                KCalCore::Recurrence *dr = dest->recurrence();
-                KCalCore::Recurrence *sr = src->recurrence();
+                KCalendarCore::Recurrence *dr = dest->recurrence();
+                KCalendarCore::Recurrence *sr = src->recurrence();
 
                 // recurrence rules and dates
-                KCalCore::RecurrenceRule::List srRRules = sr->rRules();
-                for (QList<KCalCore::RecurrenceRule*>::const_iterator it = srRRules.constBegin(), end = srRRules.constEnd(); it != end; ++it) {
-                    KCalCore::RecurrenceRule *r = new KCalCore::RecurrenceRule(*(*it));
+                KCalendarCore::RecurrenceRule::List srRRules = sr->rRules();
+                for (QList<KCalendarCore::RecurrenceRule*>::const_iterator it = srRRules.constBegin(), end = srRRules.constEnd(); it != end; ++it) {
+                    KCalendarCore::RecurrenceRule *r = new KCalendarCore::RecurrenceRule(*(*it));
                     dr->addRRule(r);
                 }
                 dr->setRDates(sr->rDates());
                 dr->setRDateTimes(sr->rDateTimes());
 
                 // exception rules and dates
-                KCalCore::RecurrenceRule::List srExRules = sr->exRules();
-                for (QList<KCalCore::RecurrenceRule*>::const_iterator it = srExRules.constBegin(), end = srExRules.constEnd(); it != end; ++it) {
-                    KCalCore::RecurrenceRule *r = new KCalCore::RecurrenceRule(*(*it));
+                KCalendarCore::RecurrenceRule::List srExRules = sr->exRules();
+                for (QList<KCalendarCore::RecurrenceRule*>::const_iterator it = srExRules.constBegin(), end = srExRules.constEnd(); it != end; ++it) {
+                    KCalendarCore::RecurrenceRule *r = new KCalendarCore::RecurrenceRule(*(*it));
                     dr->addExRule(r);
                 }
                 dr->setExDates(sr->exDates());
@@ -281,16 +281,16 @@ namespace CalendarImportExport {
             // copy the duration before the dtEnd as calling setDuration() changes the dtEnd
             COPY_IF_NOT_EQUAL(dest, src, duration(), setDuration);
 
-            if (dest->type() == KCalCore::IncidenceBase::TypeEvent && src->type() == KCalCore::IncidenceBase::TypeEvent) {
-                KCalCore::Event::Ptr destEvent = dest.staticCast<KCalCore::Event>();
-                KCalCore::Event::Ptr srcEvent = src.staticCast<KCalCore::Event>();
+            if (dest->type() == KCalendarCore::IncidenceBase::TypeEvent && src->type() == KCalendarCore::IncidenceBase::TypeEvent) {
+                KCalendarCore::Event::Ptr destEvent = dest.staticCast<KCalendarCore::Event>();
+                KCalendarCore::Event::Ptr srcEvent = src.staticCast<KCalendarCore::Event>();
                 COPY_IF_NOT_EQUAL(destEvent, srcEvent, dtEnd(), setDtEnd);
                 COPY_IF_NOT_EQUAL(destEvent, srcEvent, transparency(), setTransparency);
             }
 
-            if (dest->type() == KCalCore::IncidenceBase::TypeTodo && src->type() == KCalCore::IncidenceBase::TypeTodo) {
-                KCalCore::Todo::Ptr destTodo = dest.staticCast<KCalCore::Todo>();
-                KCalCore::Todo::Ptr srcTodo = src.staticCast<KCalCore::Todo>();
+            if (dest->type() == KCalendarCore::IncidenceBase::TypeTodo && src->type() == KCalendarCore::IncidenceBase::TypeTodo) {
+                KCalendarCore::Todo::Ptr destTodo = dest.staticCast<KCalendarCore::Todo>();
+                KCalendarCore::Todo::Ptr srcTodo = src.staticCast<KCalendarCore::Todo>();
                 COPY_IF_NOT_EQUAL(destTodo, srcTodo, completed(), setCompleted);
                 COPY_IF_NOT_EQUAL(destTodo, srcTodo, dtRecurrence(), setDtRecurrence);
                 COPY_IF_NOT_EQUAL(destTodo, srcTodo, percentComplete(), setPercentComplete);
@@ -304,9 +304,9 @@ namespace CalendarImportExport {
             COPY_IF_NOT_EQUAL(dest, src, organizer(), setOrganizer);
             COPY_IF_NOT_EQUAL(dest, src, isReadOnly(), setReadOnly);
 
-            if (!pointerDataEqual(src->attendees(), dest->attendees())) {
+            if (src->attendees() != dest->attendees()) {
                 dest->clearAttendees();
-                Q_FOREACH (const KCalCore::Attendee::Ptr &attendee, src->attendees()) {
+                Q_FOREACH (const KCalendarCore::Attendee &attendee, src->attendees()) {
                     dest->addAttendee(attendee);
                 }
             }
@@ -340,14 +340,14 @@ namespace CalendarImportExport {
 
             if (!pointerDataEqual(src->alarms(), dest->alarms())) {
                 dest->clearAlarms();
-                Q_FOREACH (const KCalCore::Alarm::Ptr &alarm, src->alarms()) {
+                Q_FOREACH (const KCalendarCore::Alarm::Ptr &alarm, src->alarms()) {
                     dest->addAlarm(alarm);
                 }
             }
 
-            if (!pointerDataEqual(src->attachments(), dest->attachments())) {
+            if (src->attachments() != dest->attachments()) {
                 dest->clearAttachments();
-                Q_FOREACH (const KCalCore::Attachment::Ptr &attachment, src->attachments()) {
+                Q_FOREACH (const KCalendarCore::Attachment &attachment, src->attachments()) {
                     dest->addAttachment(attachment);
                 }
             }
@@ -362,17 +362,17 @@ namespace CalendarImportExport {
             }
         }
 
-        void prepareImportedIncidence(KCalCore::Incidence::Ptr incidence, bool printDebug)
+        void prepareImportedIncidence(KCalendarCore::Incidence::Ptr incidence, bool printDebug)
         {
-            if (incidence->type() != KCalCore::IncidenceBase::TypeEvent) {
+            if (incidence->type() != KCalendarCore::IncidenceBase::TypeEvent) {
                 qWarning() << "unable to handle imported non-event incidence; skipping";
                 return;
             }
-            KCalCore::Event::Ptr event = incidence.staticCast<KCalCore::Event>();
+            KCalendarCore::Event::Ptr event = incidence.staticCast<KCalendarCore::Event>();
 
             if (event->allDay()) {
-                KDateTime dtStart = event->dtStart();
-                KDateTime dtEnd = event->dtEnd();
+                QDateTime dtStart = event->dtStart();
+                QDateTime dtEnd = event->dtEnd();
 
                 // calendar processing requires all-day events to have a dtEnd
                 if (!dtEnd.isValid()) {
@@ -385,30 +385,23 @@ namespace CalendarImportExport {
             }
         }
 
-        KCalCore::Incidence::Ptr incidenceToExport(KCalCore::Incidence::Ptr sourceIncidence, bool printDebug)
+        KCalendarCore::Incidence::Ptr incidenceToExport(KCalendarCore::Incidence::Ptr sourceIncidence, bool printDebug)
         {
-            if (sourceIncidence->type() != KCalCore::IncidenceBase::TypeEvent) {
+            if (sourceIncidence->type() != KCalendarCore::IncidenceBase::TypeEvent) {
                 LOG_DEBUG("Incidence not an event; cannot create exportable version");
                 return sourceIncidence;
             }
 
-            KCalCore::Incidence::Ptr incidence = QSharedPointer<KCalCore::Incidence>(sourceIncidence->clone());
-            KCalCore::Event::Ptr event = incidence.staticCast<KCalCore::Event>();
+            KCalendarCore::Incidence::Ptr incidence = QSharedPointer<KCalendarCore::Incidence>(sourceIncidence->clone());
+            KCalendarCore::Event::Ptr event = incidence.staticCast<KCalendarCore::Event>();
             bool eventIsAllDay = event->allDay();
             if (eventIsAllDay) {
                 if (event->dtStart() == event->dtEnd()) {
                     // A single-day all-day event was received without a DTEND, and it is still a single-day
                     // all-day event, so remove the DTEND before upsyncing.
                     LOG_DEBUG("Removing DTEND from" << incidence->uid());
-                    event->setDtEnd(KDateTime());
+                    event->setDtEnd(QDateTime());
                 }
-            }
-
-            if (event->dtStart().isDateOnly()) {
-                KDateTime dt = KDateTime(event->dtStart().date(), KDateTime::Spec::ClockTime());
-                dt.setDateOnly(true);
-                event->setDtStart(dt);
-                LOG_DEBUG("Stripping time from date-only DTSTART:" << dt.toString());
             }
 
             // setting dtStart/End changes the allDay value, so ensure it is still set to true if needed.
@@ -418,15 +411,23 @@ namespace CalendarImportExport {
 
             // The default storage implementation applies the organizer as an attendee by default.
             // Undo this as it turns the incidence into a scheduled event requiring acceptance/rejection/etc.
-            const KCalCore::Person::Ptr organizer = event->organizer();
-            if (organizer) {
-                Q_FOREACH (const KCalCore::Attendee::Ptr &attendee, event->attendees()) {
-                    if (attendee->email() == organizer->email() && attendee->fullName() == organizer->fullName()) {
-                        LOG_DEBUG("Discarding organizer as attendee" << attendee->fullName());
-                        event->deleteAttendee(attendee);
+            const KCalendarCore::Person organizer = event->organizer();
+            if (!organizer.email().isEmpty()) {
+                bool found = false;
+                KCalendarCore::Attendee::List attendees = event->attendees();
+                for (int i = attendees.size() - 1; i >= 0; --i) {
+                    const KCalendarCore::Attendee &attendee(attendees[i]);
+                    if (attendee.email() == organizer.email() && attendee.fullName() == organizer.fullName()) {
+                        LOG_DEBUG("Discarding organizer as attendee" << attendee.fullName());
+                        attendees.removeAt(i);
+                        found = true;
                     } else {
-                        LOG_DEBUG("Not discarding attendee:" << attendee->fullName() << attendee->email() << ": not organizer:" << organizer->fullName() << organizer->email());
+                        LOG_DEBUG("Not discarding attendee:" << attendee.fullName() << attendee.email() << ": not organizer:" << organizer.fullName() << organizer.email());
                     }
+                }
+
+                if (found) {
+                    event->setAttendees(attendees);
                 }
             }
 
@@ -436,7 +437,7 @@ namespace CalendarImportExport {
 
     void listNotebooks()
     {
-        mKCal::ExtendedCalendar::Ptr calendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
+        mKCal::ExtendedCalendar::Ptr calendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::utc()));
         mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(calendar);
         storage->open();
         storage->load();
@@ -448,27 +449,27 @@ namespace CalendarImportExport {
         storage->close();
     }
 
-    QString constructExportIcs(mKCal::ExtendedCalendar::Ptr calendar, KCalCore::Incidence::List incidencesToExport, bool printDebug)
+    QString constructExportIcs(mKCal::ExtendedCalendar::Ptr calendar, KCalendarCore::Incidence::List incidencesToExport, bool printDebug)
     {
         // create an in-memory calendar
         // add to it the required incidences (ie, check if has recurrenceId -> load parent and all instances; etc)
         // for each of those, we need to do the IncidenceToExport() modifications first
         // then, export from that calendar to .ics file.
-        KCalCore::MemoryCalendar::Ptr memoryCalendar(new KCalCore::MemoryCalendar(KDateTime::UTC));
-        Q_FOREACH (KCalCore::Incidence::Ptr toExport, incidencesToExport) {
+        KCalendarCore::MemoryCalendar::Ptr memoryCalendar(new KCalendarCore::MemoryCalendar(QTimeZone::utc()));
+        Q_FOREACH (KCalendarCore::Incidence::Ptr toExport, incidencesToExport) {
           LOG_DEBUG("Exporting incidence:" << toExport->uid());
             if (toExport->hasRecurrenceId() || toExport->recurs()) {
-                KCalCore::Incidence::Ptr recurringIncidence = toExport->hasRecurrenceId()
-                                                        ? calendar->incidence(toExport->uid(), KDateTime())
+                KCalendarCore::Incidence::Ptr recurringIncidence = toExport->hasRecurrenceId()
+                                                        ? calendar->incidence(toExport->uid(), QDateTime())
                                                         : toExport;
                 // Don't crash on null instances
                 if (recurringIncidence.isNull()) continue;
-                KCalCore::Incidence::List instances = calendar->instances(recurringIncidence);
-                KCalCore::Incidence::Ptr exportableIncidence = IncidenceHandler::incidenceToExport(recurringIncidence, printDebug);
+                KCalendarCore::Incidence::List instances = calendar->instances(recurringIncidence);
+                KCalendarCore::Incidence::Ptr exportableIncidence = IncidenceHandler::incidenceToExport(recurringIncidence, printDebug);
 
                 // remove EXDATE values from the recurring incidence which correspond to the persistent occurrences (instances)
-                Q_FOREACH (KCalCore::Incidence::Ptr instance, instances) {
-                    QList<KDateTime> exDateTimes = exportableIncidence->recurrence()->exDateTimes();
+                Q_FOREACH (KCalendarCore::Incidence::Ptr instance, instances) {
+                    QList<QDateTime> exDateTimes = exportableIncidence->recurrence()->exDateTimes();
                     exDateTimes.removeAll(instance->recurrenceId());
                     exportableIncidence->recurrence()->setExDateTimes(exDateTimes);
                 }
@@ -477,13 +478,13 @@ namespace CalendarImportExport {
                 memoryCalendar->addIncidence(exportableIncidence);
 
                 // now create the persistent occurrences in the in-memory calendar
-                Q_FOREACH (KCalCore::Incidence::Ptr instance, instances) {
+                Q_FOREACH (KCalendarCore::Incidence::Ptr instance, instances) {
                     // We cannot call dissociateSingleOccurrence() on the MemoryCalendar
                     // as that's an mKCal specific function.
                     // We cannot call dissociateOccurrence() because that function
-                    // takes only a QDate instead of a KDateTime recurrenceId.
+                    // takes only a QDate instead of a QDateTime recurrenceId.
                     // Thus, we need to manually create an exception occurrence.
-                    KCalCore::Incidence::Ptr exportableOccurrence(exportableIncidence->clone());
+                    KCalendarCore::Incidence::Ptr exportableOccurrence(exportableIncidence->clone());
                     exportableOccurrence->setCreated(instance->created());
                     exportableOccurrence->setRevision(instance->revision());
                     exportableOccurrence->clearRecurrence();
@@ -498,20 +499,20 @@ namespace CalendarImportExport {
                     exportableOccurrence->endUpdates();
                 }
             } else {
-                KCalCore::Incidence::Ptr exportableIncidence = IncidenceHandler::incidenceToExport(toExport, printDebug);
+                KCalendarCore::Incidence::Ptr exportableIncidence = IncidenceHandler::incidenceToExport(toExport, printDebug);
                 memoryCalendar->addIncidence(exportableIncidence);
             }
         }
 
-        KCalCore::ICalFormat icalFormat;
+        KCalendarCore::ICalFormat icalFormat;
         return icalFormat.toString(memoryCalendar, QString(), false);
     }
 
-    QString constructExportIcs(const QString &notebookUid, const QString &incidenceUid, const KDateTime &recurrenceId, bool printDebug)
+    QString constructExportIcs(const QString &notebookUid, const QString &incidenceUid, const QDateTime &recurrenceId, bool printDebug)
     {
         // if notebookUid empty, we fall back to the default notebook.
         // if incidenceUid is empty, we load all incidences from the notebook.
-        mKCal::ExtendedCalendar::Ptr calendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
+        mKCal::ExtendedCalendar::Ptr calendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::utc()));
         mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(calendar);
         storage->open();
         storage->load();
@@ -523,7 +524,7 @@ namespace CalendarImportExport {
         }
         LOG_DEBUG("Exporting notebook:" << notebook->uid());
 
-        KCalCore::Incidence::List incidencesToExport;
+        KCalendarCore::Incidence::List incidencesToExport;
         if (incidenceUid.isEmpty()) {
             storage->loadNotebookIncidences(notebook->uid());
             storage->allIncidences(&incidencesToExport, notebook->uid());
@@ -538,30 +539,30 @@ namespace CalendarImportExport {
         return retn;
     }
 
-    bool updateIncidence(mKCal::ExtendedCalendar::Ptr calendar, mKCal::Notebook::Ptr notebook, KCalCore::Incidence::Ptr incidence, bool *criticalError, bool printDebug)
+    bool updateIncidence(mKCal::ExtendedCalendar::Ptr calendar, mKCal::Notebook::Ptr notebook, KCalendarCore::Incidence::Ptr incidence, bool *criticalError, bool printDebug)
     {
         if (incidence.isNull()) {
             return false;
         }
 
-        KCalCore::Incidence::Ptr storedIncidence;
+        KCalendarCore::Incidence::Ptr storedIncidence;
         switch (incidence->type()) {
-        case KCalCore::IncidenceBase::TypeEvent:
-            storedIncidence = calendar->event(incidence->uid(), incidence->hasRecurrenceId() ? incidence->recurrenceId() : KDateTime());
+        case KCalendarCore::IncidenceBase::TypeEvent:
+            storedIncidence = calendar->event(incidence->uid(), incidence->hasRecurrenceId() ? incidence->recurrenceId() : QDateTime());
             break;
-        case KCalCore::IncidenceBase::TypeTodo:
+        case KCalendarCore::IncidenceBase::TypeTodo:
             storedIncidence = calendar->todo(incidence->uid());
             break;
-        case KCalCore::IncidenceBase::TypeJournal:
+        case KCalendarCore::IncidenceBase::TypeJournal:
             storedIncidence = calendar->journal(incidence->uid());
             break;
-        case KCalCore::IncidenceBase::TypeFreeBusy:
-        case KCalCore::IncidenceBase::TypeUnknown:
+        case KCalendarCore::IncidenceBase::TypeFreeBusy:
+        case KCalendarCore::IncidenceBase::TypeUnknown:
             qWarning() << "Unsupported incidence type:" << incidence->type();
             return false;
         }
         if (storedIncidence) {
-            if (incidence->status() == KCalCore::Incidence::StatusCanceled
+            if (incidence->status() == KCalendarCore::Incidence::StatusCanceled
                     || incidence->customStatus().compare(QStringLiteral("CANCELLED"), Qt::CaseInsensitive) == 0) {
                 LOG_DEBUG("Deleting cancelled event:" << storedIncidence->uid() << storedIncidence->recurrenceId().toString());
                 if (!calendar->deleteIncidence(storedIncidence)) {
@@ -579,8 +580,8 @@ namespace CalendarImportExport {
                 // single instances will correspond to an EXDATE, but most sync servers do not (and
                 // so will not include the RECURRENCE-ID values as EXDATEs of the parent).
                 if (storedIncidence->recurs()) {
-                    KCalCore::Incidence::List instances = calendar->instances(incidence);
-                    Q_FOREACH (KCalCore::Incidence::Ptr instance, instances) {
+                    KCalendarCore::Incidence::List instances = calendar->instances(incidence);
+                    Q_FOREACH (KCalendarCore::Incidence::Ptr instance, instances) {
                         if (instance->hasRecurrenceId()) {
                             storedIncidence->recurrence()->addExDateTime(instance->recurrenceId());
                         }
@@ -591,16 +592,16 @@ namespace CalendarImportExport {
         } else {
             // the new incidence will be either a new persistent occurrence, or a new base-series (or new non-recurring).
             LOG_DEBUG("Have new incidence:" << incidence->uid() << incidence->recurrenceId().toString());
-            KCalCore::Incidence::Ptr occurrence;
+            KCalendarCore::Incidence::Ptr occurrence;
             if (incidence->hasRecurrenceId()) {
                 // no dissociated occurrence exists already (ie, it's not an update), so create a new one.
                 // need to detach, and then copy the properties into the detached occurrence.
-                KCalCore::Incidence::Ptr recurringIncidence = calendar->event(incidence->uid(), KDateTime());
+                KCalendarCore::Incidence::Ptr recurringIncidence = calendar->event(incidence->uid(), QDateTime());
                 if (recurringIncidence.isNull()) {
                     qWarning() << "error: parent recurring incidence could not be retrieved:" << incidence->uid();
                     return false;
                 }
-                occurrence = calendar->dissociateSingleOccurrence(recurringIncidence, incidence->recurrenceId(), incidence->recurrenceId().timeSpec());
+                occurrence = calendar->dissociateSingleOccurrence(recurringIncidence, incidence->recurrenceId());
                 if (occurrence.isNull()) {
                     qWarning() << "error: could not dissociate occurrence from recurring event:" << incidence->uid() << incidence->recurrenceId().toString();
                     return false;
@@ -608,7 +609,7 @@ namespace CalendarImportExport {
 
                 IncidenceHandler::prepareImportedIncidence(incidence, printDebug);
                 IncidenceHandler::copyIncidenceProperties(occurrence, incidence);
-                if (!calendar->addEvent(occurrence.staticCast<KCalCore::Event>(), notebook->uid())) {
+                if (!calendar->addEvent(occurrence.staticCast<KCalendarCore::Event>(), notebook->uid())) {
                     qWarning() << "error: could not add dissociated occurrence to calendar";
                     return false;
                 }
@@ -618,17 +619,17 @@ namespace CalendarImportExport {
                 IncidenceHandler::prepareImportedIncidence(incidence, printDebug);
                 bool added = false;
                 switch (incidence->type()) {
-                case KCalCore::IncidenceBase::TypeEvent:
-                    added = calendar->addEvent(incidence.staticCast<KCalCore::Event>(), notebook->uid());
+                case KCalendarCore::IncidenceBase::TypeEvent:
+                    added = calendar->addEvent(incidence.staticCast<KCalendarCore::Event>(), notebook->uid());
                     break;
-                case KCalCore::IncidenceBase::TypeTodo:
-                    added = calendar->addTodo(incidence.staticCast<KCalCore::Todo>(), notebook->uid());
+                case KCalendarCore::IncidenceBase::TypeTodo:
+                    added = calendar->addTodo(incidence.staticCast<KCalendarCore::Todo>(), notebook->uid());
                     break;
-                case KCalCore::IncidenceBase::TypeJournal:
-                    added = calendar->addJournal(incidence.staticCast<KCalCore::Journal>(), notebook->uid());
+                case KCalendarCore::IncidenceBase::TypeJournal:
+                    added = calendar->addJournal(incidence.staticCast<KCalendarCore::Journal>(), notebook->uid());
                     break;
-                case KCalCore::IncidenceBase::TypeFreeBusy:
-                case KCalCore::IncidenceBase::TypeUnknown:
+                case KCalendarCore::IncidenceBase::TypeFreeBusy:
+                case KCalendarCore::IncidenceBase::TypeUnknown:
                     qWarning() << "Unsupported incidence type:" << incidence->type();
                     return false;
                 }
@@ -646,11 +647,11 @@ namespace CalendarImportExport {
 
     bool importIcsData(const QString &icsData, const QString &notebookUid, bool destructiveImport, bool printDebug)
     {
-        KCalCore::ICalFormat iCalFormat;
-        KCalCore::MemoryCalendar::Ptr cal(new KCalCore::MemoryCalendar(KDateTime::UTC));
+        KCalendarCore::ICalFormat iCalFormat;
+        KCalendarCore::MemoryCalendar::Ptr cal(new KCalendarCore::MemoryCalendar(QTimeZone::utc()));
         if (!iCalFormat.fromString(cal, icsData)) {
             qWarning() << "unable to parse iCal data, trying as vCal";
-            KCalCore::VCalFormat vCalFormat;
+            KCalendarCore::VCalFormat vCalFormat;
             if (!vCalFormat.fromString(cal, icsData)) {
                 qWarning() << "unable to parse vCal data";
                 return false;
@@ -658,9 +659,9 @@ namespace CalendarImportExport {
         }
 
         // Reorganize the list of imported incidences into lists of incidences segregated by UID.
-        QHash<QString, KCalCore::Incidence::List> uidIncidences;
-        KCalCore::Incidence::List importedIncidences = cal->incidences();
-        Q_FOREACH (KCalCore::Incidence::Ptr imported, importedIncidences) {
+        QHash<QString, KCalendarCore::Incidence::List> uidIncidences;
+        KCalendarCore::Incidence::List importedIncidences = cal->incidences();
+        Q_FOREACH (KCalendarCore::Incidence::Ptr imported, importedIncidences) {
             IncidenceHandler::prepareImportedIncidence(imported, printDebug);
             uidIncidences[imported->uid()] << imported;
         }
@@ -669,7 +670,7 @@ namespace CalendarImportExport {
         // Note that the import may specify updates to existing events, so
         // we will need to compare the imported incidences with the
         // existing incidences, by UID.
-        mKCal::ExtendedCalendar::Ptr calendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(KDateTime::Spec::UTC()));
+        mKCal::ExtendedCalendar::Ptr calendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::utc()));
         mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(calendar);
         storage->open();
         storage->load();
@@ -679,13 +680,13 @@ namespace CalendarImportExport {
             storage->close();
             return false;
         }
-        KCalCore::Incidence::List notebookIncidences;
+        KCalendarCore::Incidence::List notebookIncidences;
         storage->loadNotebookIncidences(notebook->uid());
         storage->allIncidences(&notebookIncidences, notebook->uid());
 
         if (destructiveImport) {
             // Any incidences which don't exist in the import list should be deleted.
-            Q_FOREACH (KCalCore::Incidence::Ptr possiblyDoomed, notebookIncidences) {
+            Q_FOREACH (KCalendarCore::Incidence::Ptr possiblyDoomed, notebookIncidences) {
                 if (!uidIncidences.contains(possiblyDoomed->uid())) {
                     // no incidence or series with this UID exists in the import list.
                     LOG_DEBUG("Removing rolled-back incidence:" << possiblyDoomed->uid() << possiblyDoomed->recurrenceId().toString());
@@ -700,7 +701,7 @@ namespace CalendarImportExport {
 
         Q_FOREACH (const QString &uid, uidIncidences.keys()) {
             // deal with every incidence or series from the import list.
-            KCalCore::Incidence::List incidences(uidIncidences[uid]);
+            KCalendarCore::Incidence::List incidences(uidIncidences[uid]);
             // find the recurring incidence (parent) in the import list, and save it.
             // alternatively, it may be a non-recurring base incidence.
             bool criticalError = false;
@@ -715,7 +716,7 @@ namespace CalendarImportExport {
             if (parentIndex == -1) {
                 LOG_DEBUG("No parent or base incidence in incidence list, performing direct updates to persistent occurrences");
                 for (int i = 0; i < incidences.size(); ++i) {
-                    KCalCore::Incidence::Ptr importInstance = incidences[i];
+                    KCalendarCore::Incidence::Ptr importInstance = incidences[i];
                     updateIncidence(calendar, notebook, importInstance, &criticalError, printDebug);
                     if (criticalError) {
                         qWarning() << "Error saving updated persistent occurrence:" << importInstance->uid() << importInstance->recurrenceId().toString();
@@ -726,15 +727,15 @@ namespace CalendarImportExport {
             } else {
                 // if there was a parent / base incidence, then we need to compare local/import lists.
                 // load the local (persistent) occurrences of the series.  Later we will update or remove them as required.
-                KCalCore::Incidence::Ptr localBaseIncidence = calendar->incidence(uid, KDateTime());
-                KCalCore::Incidence::List localInstances;
+                KCalendarCore::Incidence::Ptr localBaseIncidence = calendar->incidence(uid, QDateTime());
+                KCalendarCore::Incidence::List localInstances;
                 if (!localBaseIncidence.isNull() && localBaseIncidence->recurs()) {
                     localInstances = calendar->instances(localBaseIncidence);
                 }
 
                 // first save the added/updated base incidence
                 LOG_DEBUG("Saving the added/updated base incidence before saving persistent exceptions:" << incidences[parentIndex]->uid());
-                KCalCore::Incidence::Ptr updatedBaseIncidence = incidences[parentIndex];
+                KCalendarCore::Incidence::Ptr updatedBaseIncidence = incidences[parentIndex];
                 updateIncidence(calendar, notebook, updatedBaseIncidence, &criticalError, printDebug); // update the base incidence first.
                 if (criticalError) {
                     qWarning() << "Error saving base incidence:" << updatedBaseIncidence->uid();
@@ -743,14 +744,14 @@ namespace CalendarImportExport {
                 }
 
                 // update persistent exceptions which are in the import list.
-                QList<KDateTime> importRecurrenceIds;
+                QList<QDateTime> importRecurrenceIds;
                 for (int i = 0; i < incidences.size(); ++i) {
                     if (i == parentIndex) {
                         continue; // already handled this one.
                     }
 
                     LOG_DEBUG("Now saving a persistent exception:" << incidences[i]->recurrenceId().toString());
-                    KCalCore::Incidence::Ptr importInstance = incidences[i];
+                    KCalendarCore::Incidence::Ptr importInstance = incidences[i];
                     importRecurrenceIds.append(importInstance->recurrenceId());
                     updateIncidence(calendar, notebook, importInstance, &criticalError, printDebug);
                     if (criticalError) {
@@ -763,7 +764,7 @@ namespace CalendarImportExport {
                 if (destructiveImport) {
                     // remove persistent exceptions which are not in the import list.
                     for (int i = 0; i < localInstances.size(); ++i) {
-                        KCalCore::Incidence::Ptr localInstance = localInstances[i];
+                        KCalendarCore::Incidence::Ptr localInstance = localInstances[i];
                         if (!importRecurrenceIds.contains(localInstance->recurrenceId())) {
                             LOG_DEBUG("Removing rolled-back persistent occurrence:" << localInstance->uid() << localInstance->recurrenceId().toString());
                             if (!calendar->deleteIncidence(localInstance)) {
@@ -850,7 +851,7 @@ int main(int argc, char *argv[])
         if (parser.positionalArguments().length() != 2)
             parser.showHelp();
         const QString backupFile = parser.positionalArguments().at(1);
-        QString exportIcsData = CalendarImportExport::constructExportIcs(parser.value("notebook"), QString(), KDateTime(), verbose);
+        QString exportIcsData = CalendarImportExport::constructExportIcs(parser.value("notebook"), QString(), QDateTime(), verbose);
         if (exportIcsData.isEmpty()) {
             qWarning() << "No data to export!";
             return 0;
