@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Robin Burchell <robin.burchell@jollamobile.com>
+ * Copyright (c) 2013 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 - 2021 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -162,6 +162,7 @@ public:
 
     Q_INVOKABLE bool sendResponse(int response);
     Q_INVOKABLE QString iCalendar(const QString &prodId = QString()) const;
+    Q_INVOKABLE void deleteEvent();
 
 private slots:
     void notebookColorChanged(QString notebookUid);

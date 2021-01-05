@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2015 Jolla Ltd.
- * Contact: Petri M. Gerdt <petri.gerdt@jollamobile.com>
+ * Copyright (c) 2015 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 - 2021 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -120,6 +120,11 @@ QString CalendarImportEvent::uniqueId() const
 QString CalendarImportEvent::color() const
 {
     return mColor;
+}
+
+bool CalendarImportEvent::readOnly() const
+{
+    return true;
 }
 
 QString CalendarImportEvent::location() const

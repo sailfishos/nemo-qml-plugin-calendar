@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
- * Contact: Robin Burchell <robin.burchell@jollamobile.com>
+ * Copyright (c) 2013 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 - 2021 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -199,6 +199,12 @@ bool CalendarEvent::externalInvitation() const
 bool CalendarEvent::sendResponse(int response)
 {
     return mManager->sendResponse(mManager->getEvent(mUniqueId, mRecurrenceId), (Response)response);
+}
+
+void CalendarEvent::deleteEvent()
+{
+    mManager->deleteEvent(mUniqueId, mRecurrenceId, QDateTime());
+    mManager->save();
 }
 
 KDateTime CalendarEvent::recurrenceId() const
