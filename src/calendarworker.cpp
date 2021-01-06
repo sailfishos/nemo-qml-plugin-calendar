@@ -650,12 +650,14 @@ void CalendarWorker::setNotebookColor(const QString &notebookUid, const QString 
         return;
 
     if (mNotebooks.value(notebookUid).color != color) {
+        if (mKCal::Notebook::Ptr mkNotebook = mStorage->notebook(notebookUid)) {
+            mkNotebook->setColor(color);
+            mStorage->updateNotebook(mkNotebook);
+        }
+
         CalendarData::Notebook notebook = mNotebooks.value(notebookUid);
         notebook.color = color;
         mNotebooks.insert(notebook.uid, notebook);
-
-        QSettings settings("nemo", "nemo-qml-plugin-calendar");
-        settings.setValue("colors/" + notebook.uid, notebook.color);
 
         emit notebooksChanged(mNotebooks.values());
     }
@@ -915,11 +917,20 @@ void CalendarWorker::loadNotebooks()
             notebook.excluded = true;
         }
 
-        notebook.color = settings.value("colors/" + notebook.uid, QString()).toString();
-        if (notebook.color.isEmpty())
-            notebook.color = mkNotebook->color();
-        if (notebook.color.isEmpty())
-            notebook.color = defaultNotebookColors.at((nextDefaultNotebookColor++) % defaultNotebookColors.count());
+        const QString &confColor = settings.value("colors/" + notebook.uid, QString()).toString();
+        const QString &notebookColor = confColor.isEmpty() ? mkNotebook->color() : confColor;
+        const bool confHasColor = !confColor.isEmpty();
+        notebook.color = notebookColor.isEmpty()
+                       ? defaultNotebookColors.at((nextDefaultNotebookColor++) % defaultNotebookColors.count())
+                       : notebookColor;
+        bool canRemoveConf = true;
+        if (notebook.color != mkNotebook->color()) {
+            mkNotebook->setColor(notebook.color);
+            canRemoveConf = mStorage->updateNotebook(mkNotebook);
+        }
+        if (confHasColor && canRemoveConf) {
+            settings.remove("colors/" + notebook.uid);
+        }
 
         QString accountStr = mkNotebook->account();
         if (!accountStr.isEmpty()) {
