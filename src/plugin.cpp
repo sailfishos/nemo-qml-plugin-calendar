@@ -47,6 +47,7 @@
 #include "calendarnotebookquery.h"
 #include "calendarimportmodel.h"
 #include "calendarcontactmodel.h"
+#include "calendarattendeemodel.h"
 
 class QtDate : public QObject
 {
@@ -131,6 +132,7 @@ public:
         qmlRegisterSingletonType<CalendarApi>(uri, 1, 0, "Calendar", CalendarApi::New);
         qmlRegisterType<CalendarImportModel>(uri, 1, 0, "ImportModel");
         qmlRegisterType<CalendarContactModel>(uri, 1, 0, "ContactModel");
+        qmlRegisterType<CalendarAttendeeModel>(uri, 1, 0, "AttendeeModel");
     }
 };
 
