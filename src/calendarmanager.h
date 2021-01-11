@@ -98,9 +98,8 @@ public:
     void scheduleAgendaRefresh(CalendarAgendaModel *model);
 
     // EventQuery
-    void registerEventQuery(CalendarEventQuery *query);
-    void unRegisterEventQuery(CalendarEventQuery *query);
     void scheduleEventQueryRefresh(CalendarEventQuery *query);
+    void cancelEventQueryRefresh(CalendarEventQuery *query);
 
     // Invitation event search
     void scheduleInvitationQuery(CalendarInvitationQuery *query, const QString &invitationFile);
@@ -160,7 +159,6 @@ private:
     QHash<QDate, QStringList> mEventOccurrenceForDates;
     QList<CalendarAgendaModel *> mAgendaRefreshList;
     QList<CalendarEventQuery *> mQueryRefreshList;
-    QList<CalendarEventQuery *> mQueryList; // List of all CalendarEventQuery instances
     QHash<CalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
     QStringList mExcludedNotebooks;
     QHash<QString, CalendarData::Notebook> mNotebooks;

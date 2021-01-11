@@ -44,13 +44,11 @@ CalendarEventQuery::CalendarEventQuery()
 
     connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
             this, SLOT(eventUidChanged(QString,QString)));
-
-    CalendarManager::instance()->registerEventQuery(this);
 }
 
 CalendarEventQuery::~CalendarEventQuery()
 {
-    CalendarManager::instance()->unRegisterEventQuery(this);
+    CalendarManager::instance()->cancelEventQueryRefresh(this);
 }
 
 // The uid of the matched event

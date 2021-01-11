@@ -257,16 +257,6 @@ void CalendarManager::scheduleAgendaRefresh(CalendarAgendaModel *model)
         mTimer->start();
 }
 
-void CalendarManager::registerEventQuery(CalendarEventQuery *query)
-{
-    mQueryList.append(query);
-}
-
-void CalendarManager::unRegisterEventQuery(CalendarEventQuery *query)
-{
-    mQueryList.removeOne(query);
-}
-
 void CalendarManager::scheduleEventQueryRefresh(CalendarEventQuery *query)
 {
     if (mQueryRefreshList.contains(query))
@@ -276,6 +266,11 @@ void CalendarManager::scheduleEventQueryRefresh(CalendarEventQuery *query)
 
     if (!mLoadPending)
         mTimer->start();
+}
+
+void CalendarManager::cancelEventQueryRefresh(CalendarEventQuery *query)
+{
+    mQueryRefreshList.removeOne(query);
 }
 
 static QDate agenda_endDate(const CalendarAgendaModel *model)
