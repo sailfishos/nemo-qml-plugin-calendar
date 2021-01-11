@@ -44,6 +44,7 @@ class CalendarImportModel : public QAbstractListModel
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QString fileName READ fileName WRITE setFileName NOTIFY fileNameChanged)
     Q_PROPERTY(QString icsString READ icsString WRITE setIcsString NOTIFY icsStringChanged)
+    Q_PROPERTY(bool error READ error NOTIFY errorChanged)
 
 public:
     enum {
@@ -67,6 +68,8 @@ public:
     QString icsString() const;
     void setIcsString(const QString &icsData);
 
+    bool error() const;
+
     virtual int rowCount(const QModelIndex &index) const;
     virtual QVariant data(const QModelIndex &index, int role) const;
 
@@ -77,6 +80,7 @@ signals:
     void countChanged();
     void fileNameChanged();
     void icsStringChanged();
+    bool errorChanged();
 
 public slots:
     bool importToNotebook(const QString &notebookUid = QString());
@@ -87,10 +91,12 @@ protected:
 private:
     void reload();
     bool importToMemory(const QString &fileName, const QByteArray &icsData);
+    void setError(bool error);
 
     QString mFileName;
     QByteArray mIcsRawData;
     KCalCore::Event::List mEventList;
+    bool mError;
 };
 
 #endif // CALENDARIMPORT_H
