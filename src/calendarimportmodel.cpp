@@ -46,7 +46,8 @@
 #include <KCalendarCore/MemoryCalendar>
 
 CalendarImportModel::CalendarImportModel(QObject *parent)
-    : QAbstractListModel(parent)
+    : QAbstractListModel(parent),
+      mError(false)
 {
 }
 
@@ -88,6 +89,11 @@ void CalendarImportModel::setIcsString(const QString &icsData)
     mIcsRawData = data;
     emit icsStringChanged();
     reload();
+}
+
+bool CalendarImportModel::error() const
+{
+    return mError;
 }
 
 QObject *CalendarImportModel::getEvent(int index)
@@ -196,12 +202,14 @@ static bool incidenceLessThan(const KCalendarCore::Incidence::Ptr e1,
 void CalendarImportModel::reload()
 {
     if (!mFileName.isEmpty() || !mIcsRawData.isEmpty()) {
-        importToMemory(mFileName, mIcsRawData);
+        bool success = importToMemory(mFileName, mIcsRawData);
+        setError(!success);
     } else if (!mEventList.isEmpty()) {
         beginResetModel();
         mEventList.clear();
         endResetModel();
         emit countChanged();
+        setError(false);
     }
 }
 
@@ -210,12 +218,14 @@ bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArr
     if (!mEventList.isEmpty())
         mEventList.clear();
 
+    bool success = false;
+
     beginResetModel();
     KCalendarCore::MemoryCalendar::Ptr cal(new KCalendarCore::MemoryCalendar(QTimeZone::systemTimeZone()));
     if (!fileName.isEmpty()) {
-        CalendarUtils::importFromFile(fileName, cal);
+        success = CalendarUtils::importFromFile(fileName, cal);
     } else {
-        CalendarUtils::importFromIcsRawData(icsData, cal);
+        success = CalendarUtils::importFromIcsRawData(icsData, cal);
     }
     KCalendarCore::Incidence::List incidenceList = cal->incidences();
     for (int i = 0; i < incidenceList.size(); i++) {
@@ -228,6 +238,14 @@ bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArr
 
     endResetModel();
     emit countChanged();
-    return true;
+    return success;
+}
+
+void CalendarImportModel::setError(bool error)
+{
+    if (error != mError) {
+        mError = error;
+        emit errorChanged();
+    }
 }
 
