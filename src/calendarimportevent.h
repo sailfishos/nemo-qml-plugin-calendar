@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2015 - 2019 Jolla Ltd.
- * Copyright (C) 2020 Open Mobile Platform LLC.
+ * Copyright (c) 2015 - 2019 Jolla Ltd.
+ * Copyright (c) 2020 - 2021 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -60,6 +60,7 @@ class CalendarImportEvent : public QObject
     Q_PROPERTY(CalendarEvent::Secrecy secrecy READ secrecy CONSTANT)
     Q_PROPERTY(CalendarEvent::Response ownerStatus READ ownerStatus CONSTANT)
     Q_PROPERTY(bool rsvp READ rsvp CONSTANT)
+    Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
 
 public:
     CalendarImportEvent(KCalendarCore::Event::Ptr event);
@@ -74,6 +75,7 @@ public:
     int reminder() const;
     QString uniqueId() const;
     QString color() const;
+    bool readOnly() const;
     QString location() const;
     QList<QObject*> attendees() const;
     CalendarEvent::Secrecy secrecy() const;
