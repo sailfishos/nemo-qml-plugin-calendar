@@ -143,6 +143,8 @@ bool CalendarImportModel::importToNotebook(const QString &notebookUid)
 {
     mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(KDateTime::Spec::LocalZone()));
     mKCal::ExtendedStorage::Ptr storage = calendar->defaultStorage(calendar);
+    bool success = false;
+
     if (!storage->open()) {
         qWarning() << "Unable to open calendar DB";
         return false;
@@ -161,12 +163,19 @@ bool CalendarImportModel::importToNotebook(const QString &notebookUid)
         }
     }
 
-    if (CalendarUtils::importFromFile(mFileName, calendar))
+    if (!mFileName.isEmpty()) {
+        success = CalendarUtils::importFromFile(mFileName, calendar);
+    } else {
+        success = CalendarUtils::importFromIcsRawData(mIcsRawData, calendar);
+    }
+
+    if (success) {
         storage->save();
+    }
 
     storage->close();
 
-    return true;
+    return success;
 }
 
 QHash<int, QByteArray> CalendarImportModel::roleNames() const
