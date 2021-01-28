@@ -823,4 +823,7 @@ void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent
 
     if (newEvent.ownerStatus != oldEvent.ownerStatus)
         emit eventObject->ownerStatusChanged();
+
+    if (newEvent.syncFailure != oldEvent.syncFailure)
+        emit eventObject->syncFailureChanged();
 }
