@@ -59,6 +59,7 @@ class CalendarEvent : public QObject
     Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
     Q_PROPERTY(CalendarEvent::Days recurWeeklyDays READ recurWeeklyDays NOTIFY recurWeeklyDaysChanged)
     Q_PROPERTY(int reminder READ reminder NOTIFY reminderChanged)
+    Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime NOTIFY reminderDateTimeChanged)
     Q_PROPERTY(QString uniqueId READ uniqueId NOTIFY uniqueIdChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
     Q_PROPERTY(QString color READ color NOTIFY colorChanged)
@@ -137,6 +138,7 @@ public:
     bool hasRecurEndDate() const;
     Days recurWeeklyDays() const;
     int reminder() const;
+    QDateTime reminderDateTime() const;
     QString uniqueId() const;
     QString color() const;
     bool readOnly() const;
@@ -166,6 +168,7 @@ signals:
     void allDayChanged();
     void recurChanged();
     void reminderChanged();
+    void reminderDateTimeChanged();
     void uniqueIdChanged();
     void colorChanged();
     void calendarUidChanged();

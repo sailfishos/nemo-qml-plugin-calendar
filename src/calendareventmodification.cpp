@@ -220,6 +220,19 @@ void CalendarEventModification::setReminder(int seconds)
     }
 }
 
+QDateTime CalendarEventModification::reminderDateTime() const
+{
+    return m_event.reminderDateTime;
+}
+
+void CalendarEventModification::setReminderDateTime(const QDateTime &dateTime)
+{
+    if (dateTime != m_event.reminderDateTime) {
+        m_event.reminderDateTime = dateTime;
+        emit reminderDateTimeChanged();
+    }
+}
+
 QString CalendarEventModification::location() const
 {
     return m_event.location;

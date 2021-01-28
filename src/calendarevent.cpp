@@ -137,6 +137,11 @@ int CalendarEvent::reminder() const
     return mManager->getEvent(mUniqueId, mRecurrenceId).reminder;
 }
 
+QDateTime CalendarEvent::reminderDateTime() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).reminderDateTime;
+}
+
 QString CalendarEvent::uniqueId() const
 {
     return mUniqueId;

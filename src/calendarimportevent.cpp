@@ -109,6 +109,11 @@ int CalendarImportEvent::reminder() const
     return CalendarUtils::getReminder(mEvent);
 }
 
+QDateTime CalendarImportEvent::reminderDateTime() const
+{
+    return mEvent ? CalendarUtils::getReminderDateTime(mEvent) : QDateTime();
+}
+
 QString CalendarImportEvent::uniqueId() const
 {
     if (!mEvent)

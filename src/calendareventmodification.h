@@ -55,6 +55,7 @@ class CalendarEventModification : public QObject
     Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
     Q_PROPERTY(int reminder READ reminder WRITE setReminder NOTIFY reminderChanged)
+    Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime WRITE setReminderDateTime NOTIFY reminderDateTimeChanged)
     Q_PROPERTY(QString location READ location WRITE setLocation NOTIFY locationChanged)
     Q_PROPERTY(QString calendarUid READ calendarUid WRITE setCalendarUid NOTIFY calendarUidChanged)
 
@@ -94,6 +95,9 @@ public:
     int reminder() const;
     void setReminder(int seconds);
 
+    QDateTime reminderDateTime() const;
+    void setReminderDateTime(const QDateTime &dateTime);
+
     QString location() const;
     void setLocation(const QString &newLocation);
 
@@ -114,6 +118,7 @@ signals:
     void recurChanged();
     void recurWeeklyDaysChanged();
     void reminderChanged();
+    void reminderDateTimeChanged();
     void locationChanged();
     void recurEndDateChanged();
     void hasRecurEndDateChanged();

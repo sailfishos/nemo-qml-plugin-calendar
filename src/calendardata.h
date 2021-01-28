@@ -69,6 +69,7 @@ struct Event {
     QDate recurEndDate;
     CalendarEvent::Days recurWeeklyDays;
     int reminder; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
+    QDateTime reminderDateTime; // Valid when reminder is at a given date and time.
     QString uniqueId;
     QDateTime recurrenceId;
     QString location;

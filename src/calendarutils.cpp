@@ -138,12 +138,12 @@ int CalendarUtils::getReminder(const KCalendarCore::Event::Ptr &event)
 
     KCalendarCore::Alarm::Ptr alarm;
 
-    int seconds = -1;
+    int seconds = -1; // Any negative values means "no reminder"
     for (int ii = 0; ii < alarms.count(); ++ii) {
         if (alarms.at(ii)->type() == KCalendarCore::Alarm::Procedure)
             continue;
         alarm = alarms.at(ii);
-        if (alarm) {
+        if (alarm && !alarm->hasTime()) {
             KCalendarCore::Duration d = alarm->startOffset();
             seconds = d.asSeconds() * -1; // backend stores as "offset in seconds to dtStart", we return "seconds before"
             if (seconds >= 0) {
@@ -154,6 +154,17 @@ int CalendarUtils::getReminder(const KCalendarCore::Event::Ptr &event)
     }
 
     return seconds;
+}
+
+QDateTime CalendarUtils::getReminderDateTime(const KCalendarCore::Event::Ptr &event)
+{
+    for (const KCalendarCore::Alarm::Ptr &alarm : event->alarms()) {
+        if (alarm && alarm->type() == KCalendarCore::Alarm::Display && alarm->hasTime()) {
+            return alarm->time();
+        }
+    }
+
+    return QDateTime();
 }
 
 QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalendarCore::Event::Ptr &event)
