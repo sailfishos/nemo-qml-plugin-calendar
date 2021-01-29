@@ -812,6 +812,9 @@ void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent
     if (newEvent.reminder != oldEvent.reminder)
         emit eventObject->reminderChanged();
 
+    if (newEvent.reminderDateTime != oldEvent.reminderDateTime)
+        emit eventObject->reminderDateTimeChanged();
+
     if (newEvent.startTime != oldEvent.startTime)
         emit eventObject->startTimeChanged();
 
