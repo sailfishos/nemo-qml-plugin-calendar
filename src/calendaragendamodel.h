@@ -44,12 +44,10 @@ class CalendarAgendaModel : public QAbstractListModel, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
-    Q_ENUMS(FilterMode)
-    Q_ENUMS(AgendaRoles)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QDate startDate READ startDate WRITE setStartDate NOTIFY startDateChanged)
     Q_PROPERTY(QDate endDate READ endDate WRITE setEndDate NOTIFY endDateChanged)
-    Q_PROPERTY(int filterMode READ filterMode WRITE setFilterMode NOTIFY filterModeChanged)
+    Q_PROPERTY(FilterModes filterMode READ filterMode WRITE setFilterMode NOTIFY filterModeChanged)
 
 public:
     enum AgendaRoles {
@@ -57,11 +55,16 @@ public:
         OccurrenceObjectRole,
         SectionBucketRole
     };
+    Q_ENUM(AgendaRoles)
 
     enum FilterMode {
         FilterNone,
-        FilterNonAllDay
+        FilterNonAllDay = 0x1,
+        FilterMultipleEventsPerNotebook = 0x2
     };
+    Q_ENUM(FilterMode)
+    Q_DECLARE_FLAGS(FilterModes, FilterMode)
+    Q_FLAG(FilterModes)
 
     explicit CalendarAgendaModel(QObject *parent = 0);
     virtual ~CalendarAgendaModel();
@@ -108,5 +111,7 @@ private:
     bool mIsComplete;
     int mFilterMode;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(CalendarAgendaModel::FilterModes)
 
 #endif // CALENDARAGENDAMODEL_H

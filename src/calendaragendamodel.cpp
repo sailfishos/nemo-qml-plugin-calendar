@@ -138,11 +138,25 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
     QList<CalendarEventOccurrence *> events = mEvents;
     QList<CalendarEventOccurrence *> skippedEvents;
 
+    QSet<QString> alreadyAddedCalendarUids;
     // filter out if necessary
-    if (mFilterMode == FilterNonAllDay) {
+    if (mFilterMode != FilterNone) {
         QList<CalendarEventOccurrence *>::iterator it = newEvents.begin();
         while (it != newEvents.end()) {
-            if (!(*it)->eventObject()->allDay()) {
+            bool skip = false;
+            if (mFilterMode & FilterNonAllDay && !(*it)->eventObject()->allDay()) {
+                skip = true;
+            }
+            if (mFilterMode & FilterMultipleEventsPerNotebook) {
+                QString uid = (*it)->eventObject()->calendarUid();
+                if (alreadyAddedCalendarUids.contains(uid)) {
+                    skip = true;
+                } else {
+                    alreadyAddedCalendarUids.insert(uid);
+                }
+            }
+
+            if (skip) {
                 skippedEvents.append(*it);
                 it = newEvents.erase(it);
             } else {
