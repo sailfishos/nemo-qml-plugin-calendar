@@ -275,7 +275,7 @@ void CalendarManager::cancelEventQueryRefresh(CalendarEventQuery *query)
 static QDate agenda_endDate(const CalendarAgendaModel *model)
 {
     QDate endDate = model->endDate();
-    return endDate.isValid() ? endDate: model->startDate();
+    return endDate.isValid() ? endDate : model->startDate();
 }
 
 bool CalendarManager::isRangeLoaded(const CalendarData::Range &r, QList<CalendarData::Range> *missingRanges)
