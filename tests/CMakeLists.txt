@@ -1,0 +1,5 @@
+enable_testing()
+
+add_subdirectory(tst_calendarevent)
+add_subdirectory(tst_calendarmanager)
+add_subdirectory(tst_calendaragendamodel)

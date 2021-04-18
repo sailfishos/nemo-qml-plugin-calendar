@@ -1,13 +1,8 @@
 # Build artefacts
 *.o
 *.so
-/lightweight/calendardataservice/calendardataservice
-/tests/tst_calendarevent/tst_calendarevent
-/tests/tst_calendarmanager/tst_calendarmanager
-/tests/tst_calendaragendamodel/tst_calendaragendamodel
-/tests/tst_calendarevent/Makefile.tst_calendareventbin
-/tools/icalconverter/icalconverter
 /RPMS
+build
 
 # Generated sources
 Makefile
