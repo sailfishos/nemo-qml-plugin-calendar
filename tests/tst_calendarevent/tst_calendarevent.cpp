@@ -80,6 +80,8 @@ void tst_CalendarEvent::initTestCase()
 
     // Ensure a default notebook exists for saving new events
     CalendarManager *manager = CalendarManager::instance();
+    // Need to wait for the notebooks to be loaded from worker;
+    QTest::qWait(1000);
     if (manager->defaultNotebook().isEmpty()) {
         manager->setDefaultNotebook(manager->notebooks().value(0).uid);
     }
@@ -458,7 +460,7 @@ void tst_CalendarEvent::testRecurrenceException()
     }
     QVERIFY(modificationFound);
 
-    // ensure all gone
+    // ensure all gone, this emits two warning for not finding the two occurrences.
     calendarApi->removeAll(uid);
     mSavedEvents.remove(uid);
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(-1));
@@ -489,6 +491,9 @@ bool tst_CalendarEvent::saveEvent(CalendarEventModification *eventMod, QString *
         return false;
     }
 
+    if (eventMod->calendarUid().isEmpty()) {
+        eventMod->setCalendarUid(CalendarManager::instance()->defaultNotebook());
+    }
     eventMod->save();
     for (int i = 0; i < 30; i++) {
         if (agendaModel.count() > count)
