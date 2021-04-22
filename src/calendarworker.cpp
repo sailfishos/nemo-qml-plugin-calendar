@@ -820,9 +820,8 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
             continue;
         }
 
-        CalendarData::Event event = createEventStruct(e, notebook);
-
-        if (!mSentEvents.contains(event.uniqueId, event.recurrenceId)) {
+        if (!mSentEvents.contains(e->uid(), e->recurrenceId())) {
+            CalendarData::Event event = createEventStruct(e, notebook);
             mSentEvents.insert(event.uniqueId, event.recurrenceId);
             events.insert(event.uniqueId, event);
             if (event.allDay)
