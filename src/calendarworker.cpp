@@ -831,6 +831,11 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
             CalendarData::Event event = createEventStruct(e, notebook);
             mSentEvents.insert(event.uniqueId, event.recurrenceId);
             events.insert(event.uniqueId, event);
+            const QString id = e->instanceIdentifier();
+            if (id != event.uniqueId) {
+                // Ensures that events can also be retrieved by instanceIdentifier
+                events.insert(id, event);
+            }
             if (event.allDay)
                 allDay.insert(event.uniqueId, event.recurrenceId);
         }

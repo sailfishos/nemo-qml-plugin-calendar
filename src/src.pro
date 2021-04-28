@@ -29,6 +29,7 @@ SOURCES += \
     $$SRCDIR/calendarevent.cpp \
     $$SRCDIR/calendareventoccurrence.cpp \
     $$SRCDIR/calendaragendamodel.cpp \
+    $$SRCDIR/calendareventlistmodel.cpp \
     $$SRCDIR/calendarapi.cpp \
     $$SRCDIR/calendareventquery.cpp \
     $$SRCDIR/calendarinvitationquery.cpp \
@@ -48,6 +49,7 @@ HEADERS += \
     $$SRCDIR/calendarevent.h \
     $$SRCDIR/calendareventoccurrence.h \
     $$SRCDIR/calendaragendamodel.h \
+    $$SRCDIR/calendareventlistmodel.h \
     $$SRCDIR/calendarapi.h \
     $$SRCDIR/calendareventquery.h \
     $$SRCDIR/calendarinvitationquery.h \

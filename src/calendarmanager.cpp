@@ -37,6 +37,7 @@
 #include "calendarworker.h"
 #include "calendarevent.h"
 #include "calendaragendamodel.h"
+#include "calendareventlistmodel.h"
 #include "calendareventoccurrence.h"
 #include "calendareventquery.h"
 #include "calendarinvitationquery.h"
@@ -256,6 +257,22 @@ void CalendarManager::scheduleAgendaRefresh(CalendarAgendaModel *model)
         mTimer->start();
 }
 
+void CalendarManager::cancelEventListRefresh(CalendarEventListModel *model)
+{
+    mEventListRefreshList.removeOne(model);
+}
+
+void CalendarManager::scheduleEventListRefresh(CalendarEventListModel *model)
+{
+    if (mEventListRefreshList.contains(model))
+        return;
+
+    mEventListRefreshList.append(model);
+
+    if (!mLoadPending)
+        mTimer->start();
+}
+
 void CalendarManager::scheduleEventQueryRefresh(CalendarEventQuery *query)
 {
     if (mQueryRefreshList.contains(query))
@@ -446,9 +463,10 @@ void CalendarManager::doAgendaAndQueryRefresh()
         mLoadedQueries.clear();
     }
 
+    QStringList missingInstanceList;
+
     QList<CalendarEventQuery *> queryList = mQueryRefreshList;
     mQueryRefreshList.clear();
-    QStringList missingInstanceList;
     foreach (CalendarEventQuery *query, queryList) {
         const QString eventUid = query->uniqueId();
         if (eventUid.isEmpty())
@@ -468,6 +486,22 @@ void CalendarManager::doAgendaAndQueryRefresh()
         query->doRefresh(event, !event.isValid() && loaded);
     }
 
+    const QList<CalendarEventListModel *> eventListModels = mEventListRefreshList;
+    mEventListRefreshList.clear();
+    for (CalendarEventListModel *model : eventListModels) {
+        for (const QString &id : model->identifiers()) {
+            if (id.isEmpty())
+                continue;
+
+            bool loaded;
+            CalendarData::Event event = getEvent(id, &loaded);
+            if (((!event.isValid() && !loaded) || mResetPending)
+                && !missingInstanceList.contains(id)) {
+                missingInstanceList << id;
+            }
+        }
+    }
+
     if (!missingRanges.isEmpty() || !missingInstanceList.isEmpty()) {
         mLoadPending = true;
         QMetaObject::invokeMethod(mCalendarWorker, "loadData", Qt::QueuedConnection,
@@ -483,7 +517,9 @@ void CalendarManager::timeout()
     if (mLoadPending)
         return;
 
-    if (!mAgendaRefreshList.isEmpty() || !mQueryRefreshList.isEmpty() || mResetPending)
+    if (!mAgendaRefreshList.isEmpty()
+        || !mQueryRefreshList.isEmpty()
+        || !mEventListRefreshList.isEmpty() || mResetPending)
         doAgendaAndQueryRefresh();
 }
 
@@ -555,6 +591,31 @@ CalendarData::Event CalendarManager::getEvent(const QString &uid, const QDateTim
             return it.value();
         }
         ++it;
+    }
+
+    return CalendarData::Event();
+}
+
+CalendarData::Event CalendarManager::getEvent(const QString &instanceIdentifier, bool *loaded) const
+{
+    if (loaded) {
+        *loaded = mLoadedQueries.contains(instanceIdentifier);
+    }
+    // See CalendarWorker::loadData(), in case where instanceIdentifier is not the
+    // UID, the event structure is duplicated with the key as the instanceIdentifier.
+    QList<CalendarData::Event> events = mEvents.values(instanceIdentifier);
+    if (events.count() == 1) {
+        // Either the event is not recurring or it's an exception.
+        return events[0];
+    } else if (events.count() > 1) {
+        // The event is recurring with exception, we look for the parent.
+        QList<CalendarData::Event>::ConstIterator it = events.constBegin();
+        while (it != events.constEnd()) {
+            if (!it->recurrenceId.isValid()) {
+                return *it;
+            }
+            ++it;
+        }
     }
 
     return CalendarData::Event();

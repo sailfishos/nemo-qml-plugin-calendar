@@ -46,6 +46,7 @@
 
 class CalendarWorker;
 class CalendarAgendaModel;
+class CalendarEventListModel;
 class CalendarEventOccurrence;
 class CalendarEventQuery;
 class CalendarInvitationQuery;
@@ -78,6 +79,7 @@ public:
     QString convertEventToICalendarSync(const QString &uid, const QString &prodId);
 
     // Event
+    CalendarData::Event getEvent(const QString& instanceIdentifier, bool *loaded = nullptr) const;
     CalendarData::Event getEvent(const QString& uid, const QDateTime &recurrenceId);
     bool sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response);
 
@@ -94,6 +96,10 @@ public:
     // AgendaModel
     void cancelAgendaRefresh(CalendarAgendaModel *model);
     void scheduleAgendaRefresh(CalendarAgendaModel *model);
+
+    // EventListModel
+    void cancelEventListRefresh(CalendarEventListModel *model);
+    void scheduleEventListRefresh(CalendarEventListModel *model);
 
     // EventQuery
     void scheduleEventQueryRefresh(CalendarEventQuery *query);
@@ -156,6 +162,7 @@ private:
     QHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
     QHash<QDate, QStringList> mEventOccurrenceForDates;
     QList<CalendarAgendaModel *> mAgendaRefreshList;
+    QList<CalendarEventListModel *> mEventListRefreshList;
     QList<CalendarEventQuery *> mQueryRefreshList;
     QHash<CalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
     QStringList mExcludedNotebooks;
