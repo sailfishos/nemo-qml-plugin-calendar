@@ -118,9 +118,13 @@ void CalendarWorker::storageFinished(mKCal::ExtendedStorage *storage, bool error
 void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime)
 {
     KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-
-    if (!event)
+    if (!event && mStorage->load(uid, recurrenceId)) {
+        event = mCalendar->event(uid, recurrenceId);
+    }
+    if (!event) {
+        qDebug() << uid << "event already deleted from DB";
         return;
+    }
 
     if (event->recurs() && dateTime.isValid()) {
         // We're deleting an occurrence from a recurring event.
@@ -137,8 +141,11 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
 void CalendarWorker::deleteAll(const QString &uid)
 {
     KCalendarCore::Event::Ptr event = mCalendar->event(uid);
+    if (!event && mStorage->loadSeries(uid)) {
+        event = mCalendar->event(uid);
+    }
     if (!event) {
-        qWarning() << "Failed to delete event, not found" << uid;
+        qDebug() << uid << "event already deleted from DB";
         return;
     }
 
@@ -813,9 +820,8 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
             continue;
         }
 
-        CalendarData::Event event = createEventStruct(e, notebook);
-
-        if (!mSentEvents.contains(event.uniqueId, event.recurrenceId)) {
+        if (!mSentEvents.contains(e->uid(), e->recurrenceId())) {
+            CalendarData::Event event = createEventStruct(e, notebook);
             mSentEvents.insert(event.uniqueId, event.recurrenceId);
             events.insert(event.uniqueId, event);
             if (event.allDay)
