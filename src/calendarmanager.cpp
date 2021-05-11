@@ -448,40 +448,31 @@ void CalendarManager::doAgendaAndQueryRefresh()
 
     QList<CalendarEventQuery *> queryList = mQueryRefreshList;
     mQueryRefreshList.clear();
-    QStringList missingUidList;
+    QStringList missingInstanceList;
     foreach (CalendarEventQuery *query, queryList) {
-        QString eventUid = query->uniqueId();
+        const QString eventUid = query->uniqueId();
         if (eventUid.isEmpty())
             continue;
 
-        QDateTime recurrenceId = query->recurrenceId();
+        const QDateTime recurrenceId = query->recurrenceId();
+        KCalendarCore::Event missing;
+        missing.setUid(eventUid);
+        missing.setRecurrenceId(recurrenceId);
+        const QString id = missing.instanceIdentifier();
+        bool loaded = mLoadedQueries.contains(id);
         CalendarData::Event event = getEvent(eventUid, recurrenceId);
-        if (event.uniqueId.isEmpty()
-                && !mLoadedQueries.contains(eventUid)
-                && !missingUidList.contains(eventUid)) {
-            // we haven't yet loaded this event from storage.
-            missingUidList << eventUid;
-            query->doRefresh(event, false);
-        } else if (event.uniqueId.isEmpty() && mLoadedQueries.contains(eventUid)) {
-            // the event was unable to be loaded from storage,
-            // even though we have attempted to load its data.
-            // most likely, the event has been deleted.
-            query->doRefresh(event, true);
-        } else {
-            // we have loaded this event from storage.
-            // refresh the query based on the loaded event data.
-            query->doRefresh(event, false);
+        if (((!event.isValid() && !loaded) || mResetPending)
+                && !missingInstanceList.contains(id)) {
+            missingInstanceList << id;
         }
-
-        if (mResetPending && !missingUidList.contains(eventUid))
-            missingUidList << eventUid;
+        query->doRefresh(event, !event.isValid() && loaded);
     }
 
-    if (!missingRanges.isEmpty() || !missingUidList.isEmpty()) {
+    if (!missingRanges.isEmpty() || !missingInstanceList.isEmpty()) {
         mLoadPending = true;
         QMetaObject::invokeMethod(mCalendarWorker, "loadData", Qt::QueuedConnection,
                                   Q_ARG(QList<CalendarData::Range>, missingRanges),
-                                  Q_ARG(QStringList, missingUidList),
+                                  Q_ARG(QStringList, missingInstanceList),
                                   Q_ARG(bool, mResetPending));
         mResetPending = false;
     }
@@ -736,7 +727,7 @@ QList<CalendarData::Attendee> CalendarManager::getEventAttendees(const QString &
 }
 
 void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
-                                     const QStringList &uidList,
+                                     const QStringList &instanceList,
                                      const QMultiHash<QString, CalendarData::Event> &events,
                                      const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                                      const QHash<QDate, QStringList> &dailyOccurrences,
@@ -756,7 +747,7 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
     }
 
     mLoadedRanges = addRanges(mLoadedRanges, ranges);
-    mLoadedQueries.append(uidList);
+    mLoadedQueries.append(instanceList);
     mEvents = mEvents.unite(events);
     mEventOccurrences = mEventOccurrences.unite(occurrences);
     mEventOccurrenceForDates = mEventOccurrenceForDates.unite(dailyOccurrences);

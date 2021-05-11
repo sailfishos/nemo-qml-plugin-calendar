@@ -116,7 +116,7 @@ private slots:
     void excludedNotebooksChangedSlot(const QStringList &excludedNotebooks);
     void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);
     void dataLoadedSlot(const QList<CalendarData::Range> &ranges,
-                        const QStringList &uidList,
+                        const QStringList &instanceList,
                         const QMultiHash<QString, CalendarData::Event> &events,
                         const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                         const QHash<QDate, QStringList> &dailyOccurrences,
@@ -180,8 +180,7 @@ private:
     // A list of non-overlapping loaded ranges sorted by range start date
     QList<CalendarData::Range > mLoadedRanges;
 
-    // A list of event UIDs that have been processed by CalendarWorker, any events that
-    // match the UIDs have been loaded
+    // A list of event instance identifiers that have been processed by CalendarWorker
     QStringList mLoadedQueries;
 };
 
