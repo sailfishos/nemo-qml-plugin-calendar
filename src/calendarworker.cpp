@@ -49,6 +49,7 @@
 #include <KCalendarCore/Recurrence>
 #include <KCalendarCore/RecurrenceRule>
 #include <KCalendarCore/MemoryCalendar>
+#include <KCalendarCore/OccurrenceIterator>
 
 // libaccounts-qt
 #include <Accounts/Manager>
@@ -715,30 +716,29 @@ void CalendarWorker::setNotebookColor(const QString &notebookUid, const QString 
 QHash<QString, CalendarData::EventOccurrence>
 CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
 {
-    mKCal::ExtendedCalendar::ExpandedIncidenceList events;
-    foreach (CalendarData::Range range, ranges) {
-        // mkcal fails to consider all day event end time inclusivity on this, add -1 days to start date
-        mKCal::ExtendedCalendar::ExpandedIncidenceList newEvents =
-                mCalendar->rawExpandedEvents(range.first.addDays(-1), range.second,
-                                             false, false, QTimeZone::systemTimeZone());
-        events = events << newEvents;
-    }
-
-    QStringList excluded = excludedNotebooks();
+    const QStringList excluded = excludedNotebooks();
     QHash<QString, CalendarData::EventOccurrence> filtered;
-
-    for (int kk = 0; kk < events.count(); ++kk) {
-        // Filter out excluded notebooks
-        if (excluded.contains(mCalendar->notebook(events.at(kk).second)))
-            continue;
-
-        mKCal::ExtendedCalendar::ExpandedIncidence exp = events.at(kk);
-        CalendarData::EventOccurrence occurrence;
-        occurrence.eventUid = exp.second->uid();
-        occurrence.recurrenceId = exp.second->recurrenceId();
-        occurrence.startTime = exp.first.dtStart;
-        occurrence.endTime = exp.first.dtEnd;
-        filtered.insert(occurrence.getId(), occurrence);
+    foreach (CalendarData::Range range, ranges) {
+        KCalendarCore::OccurrenceIterator it(*mCalendar, QDateTime(range.first.addDays(-1)),
+                                             QDateTime(range.second.addDays(1)).addSecs(-1));
+        while (it.hasNext()) {
+            it.next();
+            if (mCalendar->isVisible(it.incidence())
+                && it.incidence()->type() == KCalendarCore::IncidenceBase::TypeEvent
+                && !excluded.contains(mCalendar->notebook(it.incidence()))) {
+                const QDateTime sdt = it.occurrenceStartDate();
+                const KCalendarCore::Duration elapsed
+                    (it.incidence()->dateTime(KCalendarCore::Incidence::RoleDisplayStart),
+                     it.incidence()->dateTime(KCalendarCore::Incidence::RoleDisplayEnd),
+                     KCalendarCore::Duration::Seconds);
+                CalendarData::EventOccurrence occurrence;
+                occurrence.eventUid = it.incidence()->uid();
+                occurrence.recurrenceId = it.incidence()->recurrenceId();
+                occurrence.startTime = sdt;
+                occurrence.endTime = elapsed.end(sdt);
+                filtered.insert(occurrence.getId(), occurrence);
+            }
+        }
     }
 
     return filtered;
