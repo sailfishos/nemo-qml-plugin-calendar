@@ -138,7 +138,7 @@ void tst_CalendarEvent::modSetters()
     QDateTime recurEnd = QDateTime::currentDateTime().addDays(100);
     eventMod->setRecurEndDate(recurEnd);
     QCOMPARE(recurEndSpy.count(), 1);
-    QCOMPARE(eventMod->recurEndDate(), QDateTime(recurEnd.date())); // day precision
+    QCOMPARE(eventMod->recurEndDate(), QDate(recurEnd.date()).startOfDay()); // day precision
 
     QSignalSpy reminderSpy(eventMod, SIGNAL(reminderChanged()));
     QVERIFY(eventMod->reminder() < 0); // default is ReminderNone == negative reminder.
@@ -187,7 +187,7 @@ void tst_CalendarEvent::testSave()
 
     QDateTime recurEnd = endTime.addDays(100);
     eventMod->setRecurEndDate(recurEnd);
-    QCOMPARE(eventMod->recurEndDate(), QDateTime(recurEnd.date()));
+    QCOMPARE(eventMod->recurEndDate(), QDate(recurEnd.date()).startOfDay());
 
     int reminder = 0; // at the time of the event
     eventMod->setReminder(reminder);
@@ -234,7 +234,7 @@ void tst_CalendarEvent::testSave()
     QCOMPARE(eventB->displayLabel(), displayLabel);
     QCOMPARE(eventB->location(), location);
     QCOMPARE(eventB->recur(), recur);
-    QCOMPARE(eventB->recurEndDate(), QDateTime(recurEnd.date()));
+    QCOMPARE(eventB->recurEndDate(), QDate(recurEnd.date()).startOfDay());
     QCOMPARE(eventB->reminder(), reminder);
 
     calendarApi->remove(uid);

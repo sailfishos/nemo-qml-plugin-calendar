@@ -119,7 +119,7 @@ CalendarEvent::Recur CalendarEvent::recur() const
 
 QDateTime CalendarEvent::recurEndDate() const
 {
-    return QDateTime(mManager->getEvent(mUniqueId, mRecurrenceId).recurEndDate);
+    return QDate(mManager->getEvent(mUniqueId, mRecurrenceId).recurEndDate).startOfDay();
 }
 
 bool CalendarEvent::hasRecurEndDate() const

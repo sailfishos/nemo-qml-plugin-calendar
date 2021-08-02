@@ -153,8 +153,8 @@ private:
     CalendarWorker *mCalendarWorker;
     QMultiHash<QString, CalendarData::Event> mEvents;
     QMultiHash<QString, CalendarEvent *> mEventObjects;
-    QHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
-    QHash<QDate, QStringList> mEventOccurrenceForDates;
+    QMultiHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
+    QMultiHash<QDate, QStringList> mEventOccurrenceForDates;
     QList<CalendarAgendaModel *> mAgendaRefreshList;
     QList<CalendarEventQuery *> mQueryRefreshList;
     QHash<CalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.

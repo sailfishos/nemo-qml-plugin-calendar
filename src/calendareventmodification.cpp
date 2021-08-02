@@ -157,7 +157,7 @@ void CalendarEventModification::setRecur(CalendarEvent::Recur recur)
 
 QDateTime CalendarEventModification::recurEndDate() const
 {
-    return QDateTime(m_event.recurEndDate);
+    return QDate(m_event.recurEndDate).startOfDay();
 }
 
 bool CalendarEventModification::hasRecurEndDate() const

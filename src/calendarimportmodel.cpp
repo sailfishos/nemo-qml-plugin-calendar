@@ -192,22 +192,6 @@ QHash<int, QByteArray> CalendarImportModel::roleNames() const
     return roleNames;
 }
 
-static bool incidenceLessThan(const KCalendarCore::Incidence::Ptr e1,
-                              const KCalendarCore::Incidence::Ptr e2)
-{
-    if (e1->dtStart() == e2->dtStart()) {
-        int cmp = QString::compare(e1->summary(),
-                                   e2->summary(),
-                                   Qt::CaseInsensitive);
-        if (cmp == 0)
-            return QString::compare(e1->uid(), e2->uid()) < 0;
-        else
-            return cmp < 0;
-    } else {
-        return e1->dtStart() < e2->dtStart();
-    }
-}
-
 void CalendarImportModel::reload()
 {
     if (!mFileName.isEmpty() || !mIcsRawData.isEmpty()) {
@@ -243,7 +227,7 @@ bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArr
             mEventList.append(incidence.staticCast<KCalendarCore::Event>());
     }
     if (!mEventList.isEmpty())
-        qSort(mEventList.begin(), mEventList.end(), incidenceLessThan);
+        std::sort(mEventList.begin(), mEventList.end());
 
     endResetModel();
     emit countChanged();

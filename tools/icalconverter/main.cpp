@@ -442,9 +442,9 @@ namespace CalendarImportExport {
         storage->open();
         storage->load();
         QTextStream qStdout(stdout);
-        qStdout << "List of known notebooks on device:" << endl;
+        qStdout << "List of known notebooks on device:" << Qt::endl;
         Q_FOREACH (mKCal::Notebook::Ptr notebook, storage->notebooks()) {
-            qStdout << "- " << notebook->uid() << ": " << notebook->name() << endl;
+            qStdout << "- " << notebook->uid() << ": " << notebook->name() << Qt::endl;
         }
         storage->close();
     }

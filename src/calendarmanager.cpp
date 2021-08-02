@@ -347,11 +347,6 @@ bool CalendarManager::isRangeLoaded(const CalendarData::Range &r, QList<Calendar
     return false;
 }
 
-static bool range_lessThan(CalendarData::Range lhs, CalendarData::Range rhs)
-{
-    return lhs.first < rhs.first;
-}
-
 QList<CalendarData::Range> CalendarManager::addRanges(const QList<CalendarData::Range> &oldRanges,
                                                       const QList<CalendarData::Range> &newRanges)
 {
@@ -362,7 +357,7 @@ QList<CalendarData::Range> CalendarManager::addRanges(const QList<CalendarData::
     QList<CalendarData::Range> sortedRanges;
     sortedRanges.append(oldRanges);
     sortedRanges.append(newRanges);
-    qSort(sortedRanges.begin(), sortedRanges.end(), range_lessThan);
+    std::sort(sortedRanges.begin(), sortedRanges.end());
 
     // combine
     QList<CalendarData::Range> combinedRanges;
