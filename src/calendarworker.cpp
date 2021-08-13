@@ -776,12 +776,14 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     foreach (const CalendarData::Range &range, ranges)
         mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
 
-    // Note: omitting recurrence ids since loadRecurringIncidences() loads them anyway
     foreach (const QString &uid, uidList)
-        mStorage->load(uid);
+        mStorage->loadSeries(uid);
 
-    // Load all recurring incidences, we have no other way to detect if they occur within a range
-    mStorage->loadRecurringIncidences();
+    if (!ranges.isEmpty()) {
+        // Load all recurring incidences,
+        // we have no other way to detect if they occur within a range
+        mStorage->loadRecurringIncidences();
+    }
 
     if (reset)
         mSentEvents.clear();
