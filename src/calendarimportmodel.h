@@ -35,8 +35,8 @@
 
 #include <QAbstractListModel>
 
-// kcalendarcore
 #include <KCalendarCore/Calendar>
+#include <extendedstorage.h>
 
 class CalendarImportModel : public QAbstractListModel
 {
@@ -44,6 +44,7 @@ class CalendarImportModel : public QAbstractListModel
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QString fileName READ fileName WRITE setFileName NOTIFY fileNameChanged)
     Q_PROPERTY(QString icsString READ icsString WRITE setIcsString NOTIFY icsStringChanged)
+    Q_PROPERTY(bool hasDuplicates READ hasDuplicates NOTIFY hasDuplicatesChanged)
     Q_PROPERTY(bool error READ error NOTIFY errorChanged)
 
 public:
@@ -55,6 +56,7 @@ public:
         AllDayRole,
         LocationRole,
         UidRole,
+        DuplicateRole,
     };
 
     explicit CalendarImportModel(QObject *parent = 0);
@@ -68,6 +70,8 @@ public:
     QString icsString() const;
     void setIcsString(const QString &icsData);
 
+    bool hasDuplicates() const;
+
     bool error() const;
 
     virtual int rowCount(const QModelIndex &index) const;
@@ -80,6 +84,7 @@ signals:
     void countChanged();
     void fileNameChanged();
     void icsStringChanged();
+    void hasDuplicatesChanged();
     bool errorChanged();
 
 public slots:
@@ -89,13 +94,14 @@ protected:
     virtual QHash<int, QByteArray> roleNames() const;
 
 private:
-    void reload();
     bool importToMemory(const QString &fileName, const QByteArray &icsData);
     void setError(bool error);
 
     QString mFileName;
     QByteArray mIcsRawData;
     KCalendarCore::Event::List mEventList;
+    mKCal::ExtendedStorage::Ptr mStorage;
+    QSet<QString> mDuplicates;
     bool mError;
 };
 
