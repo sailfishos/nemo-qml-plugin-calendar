@@ -179,22 +179,6 @@ QHash<int, QByteArray> CalendarImportModel::roleNames() const
     return roleNames;
 }
 
-static bool incidenceLessThan(const KCalendarCore::Incidence::Ptr e1,
-                              const KCalendarCore::Incidence::Ptr e2)
-{
-    if (e1->dtStart() == e2->dtStart()) {
-        int cmp = QString::compare(e1->summary(),
-                                   e2->summary(),
-                                   Qt::CaseInsensitive);
-        if (cmp == 0)
-            return QString::compare(e1->uid(), e2->uid()) < 0;
-        else
-            return cmp < 0;
-    } else {
-        return e1->dtStart() < e2->dtStart();
-    }
-}
-
 void CalendarImportModel::reload()
 {
     if (!mFileName.isEmpty() || !mIcsRawData.isEmpty()) {
@@ -211,29 +195,22 @@ void CalendarImportModel::reload()
 
 bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArray &icsData)
 {
-    if (!mEventList.isEmpty())
-        mEventList.clear();
-
     bool success = false;
 
-    beginResetModel();
     KCalendarCore::MemoryCalendar::Ptr cal(new KCalendarCore::MemoryCalendar(QTimeZone::systemTimeZone()));
     if (!fileName.isEmpty()) {
         success = CalendarUtils::importFromFile(fileName, cal);
     } else {
         success = CalendarUtils::importFromIcsRawData(icsData, cal);
     }
-    KCalendarCore::Incidence::List incidenceList = cal->incidences();
-    for (int i = 0; i < incidenceList.size(); i++) {
-        KCalendarCore::Incidence::Ptr incidence = incidenceList.at(i);
-        if (incidence->type() == KCalendarCore::IncidenceBase::TypeEvent)
-            mEventList.append(incidence.staticCast<KCalendarCore::Event>());
-    }
-    if (!mEventList.isEmpty())
-        qSort(mEventList.begin(), mEventList.end(), incidenceLessThan);
 
+    beginResetModel();
+    if (!mEventList.isEmpty())
+        mEventList.clear();
+    mEventList = cal->events(KCalendarCore::EventSortStartDate);
     endResetModel();
     emit countChanged();
+
     return success;
 }
 
