@@ -83,7 +83,7 @@ signals:
     bool errorChanged();
 
 public slots:
-    bool importToNotebook(const QString &notebookUid = QString());
+    bool importToNotebook(const QString &notebookUid = QString()) const;
 
 protected:
     virtual QHash<int, QByteArray> roleNames() const;

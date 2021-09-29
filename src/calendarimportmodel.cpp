@@ -139,7 +139,7 @@ QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
     }
 }
 
-bool CalendarImportModel::importToNotebook(const QString &notebookUid)
+bool CalendarImportModel::importToNotebook(const QString &notebookUid) const
 {
     mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
     mKCal::ExtendedStorage::Ptr storage = calendar->defaultStorage(calendar);
@@ -148,19 +148,6 @@ bool CalendarImportModel::importToNotebook(const QString &notebookUid)
     if (!storage->open()) {
         qWarning() << "Unable to open calendar DB";
         return false;
-    }
-
-    if (!notebookUid.isEmpty()) {
-        if (! (storage->defaultNotebook() && storage->defaultNotebook()->uid() == notebookUid)) {
-            mKCal::Notebook::Ptr notebook = storage->notebook(notebookUid);
-            if (notebook) {
-                // TODO: should we change default notebook back if we change it?
-                storage->setDefaultNotebook(notebook);
-            } else {
-                qWarning() << "Invalid notebook UID" << notebookUid;
-                return false;
-            }
-        }
     }
 
     if (!mFileName.isEmpty()) {
