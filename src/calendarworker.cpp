@@ -741,6 +741,7 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
                 occurrence.recurrenceId = it.incidence()->recurrenceId();
                 occurrence.startTime = sdt;
                 occurrence.endTime = elapsed.end(sdt);
+                occurrence.eventAllDay = it.incidence()->allDay();
                 filtered.insert(occurrence.getId(), occurrence);
             }
         }
@@ -751,7 +752,6 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
 
 QHash<QDate, QStringList>
 CalendarWorker::dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
-                                      const QMultiHash<QString, QDateTime> &allDay,
                                       const QList<CalendarData::EventOccurrence> &occurrences)
 {
     QHash<QDate, QStringList> occurrenceHash;
@@ -762,9 +762,9 @@ CalendarWorker::dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
                 // On all day events the end time is inclusive, otherwise not
                 if ((eo.startTime.date() < start
                      && (eo.endTime.date() > start
-                         || (eo.endTime.date() == start && (allDay.contains(eo.eventUid, eo.recurrenceId)
+                         || (eo.endTime.date() == start && (eo.eventAllDay
                                                             || eo.endTime.time() > QTime(0, 0)))))
-                        || (eo.startTime.date() >= start && eo.startTime.date() <= start)) {
+                    || eo.startTime.date() == start) {
                     occurrenceHash[start].append(eo.getId());
                 }
             }
@@ -794,7 +794,6 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
         mSentEvents.clear();
 
     QMultiHash<QString, CalendarData::Event> events;
-    QMultiHash<QString, QDateTime> allDay;
     bool orphansDeleted = false;
 
     const KCalendarCore::Event::List list = mCalendar->rawEvents();
@@ -836,8 +835,6 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
                 // Ensures that events can also be retrieved by instanceIdentifier
                 events.insert(id, event);
             }
-            if (event.allDay)
-                allDay.insert(event.uniqueId, event.recurrenceId);
         }
     }
 
@@ -846,7 +843,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     }
 
     QHash<QString, CalendarData::EventOccurrence> occurrences = eventOccurrences(ranges);
-    QHash<QDate, QStringList> dailyOccurrences = dailyEventOccurrences(ranges, allDay, occurrences.values());
+    QHash<QDate, QStringList> dailyOccurrences = dailyEventOccurrences(ranges, occurrences.values());
 
     emit dataLoaded(ranges, instanceList, events, occurrences, dailyOccurrences, reset);
 }
