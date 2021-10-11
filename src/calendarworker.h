@@ -132,7 +132,6 @@ private:
                                           mKCal::Notebook::Ptr notebook = mKCal::Notebook::Ptr()) const;
     QHash<QString, CalendarData::EventOccurrence> eventOccurrences(const QList<CalendarData::Range> &ranges) const;
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
-                                                    const QMultiHash<QString, QDateTime> &allDay,
                                                     const QList<CalendarData::EventOccurrence> &occurrences);
 
     Accounts::Manager *mAccountManager;

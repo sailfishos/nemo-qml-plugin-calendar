@@ -36,6 +36,7 @@
 #include <QDebug>
 #include <QSettings>
 #include <QBitArray>
+#include <QTimeZone>
 
 // mkcal
 #include <notebook.h>
@@ -736,6 +737,7 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
                 occurrence.recurrenceId = it.incidence()->recurrenceId();
                 occurrence.startTime = sdt;
                 occurrence.endTime = elapsed.end(sdt);
+                occurrence.eventAllDay = it.incidence()->allDay();
                 filtered.insert(occurrence.getId(), occurrence);
             }
         }
@@ -746,7 +748,6 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
 
 QHash<QDate, QStringList>
 CalendarWorker::dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
-                                      const QMultiHash<QString, QDateTime> &allDay,
                                       const QList<CalendarData::EventOccurrence> &occurrences)
 {
     QHash<QDate, QStringList> occurrenceHash;
@@ -754,12 +755,11 @@ CalendarWorker::dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
         QDate start = range.first;
         while (start <= range.second) {
             foreach (const CalendarData::EventOccurrence &eo, occurrences) {
+                QTimeZone tz = QTimeZone::systemTimeZone();
                 // On all day events the end time is inclusive, otherwise not
-                if ((eo.startTime.date() < start
-                     && (eo.endTime.date() > start
-                         || (eo.endTime.date() == start && (allDay.contains(eo.eventUid, eo.recurrenceId)
-                                                            || eo.endTime.time() > QTime(0, 0)))))
-                        || (eo.startTime.date() >= start && eo.startTime.date() <= start)) {
+                const bool isAllDay = eo.eventAllDay;
+                if ((isAllDay && eo.startTime.date() <= start && eo.endTime.date() > start) ||
+                   (!isAllDay && eo.startTime.toTimeZone(tz).date() <= start && eo.endTime.toTimeZone(tz).date() >= start)) {
                     occurrenceHash[start].append(eo.getId());
                 }
             }
@@ -789,7 +789,6 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
         mSentEvents.clear();
 
     QMultiHash<QString, CalendarData::Event> events;
-    QMultiHash<QString, QDateTime> allDay;
     bool orphansDeleted = false;
 
     const KCalendarCore::Event::List list = mCalendar->rawEvents();
@@ -826,8 +825,6 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
             CalendarData::Event event = createEventStruct(e, notebook);
             mSentEvents.insert(event.uniqueId, event.recurrenceId);
             events.insert(event.uniqueId, event);
-            if (event.allDay)
-                allDay.insert(event.uniqueId, event.recurrenceId);
         }
     }
 
@@ -836,7 +833,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     }
 
     QHash<QString, CalendarData::EventOccurrence> occurrences = eventOccurrences(ranges);
-    QHash<QDate, QStringList> dailyOccurrences = dailyEventOccurrences(ranges, allDay, occurrences.values());
+    QHash<QDate, QStringList> dailyOccurrences = dailyEventOccurrences(ranges, occurrences.values());
 
     emit dataLoaded(ranges, uidList, events, occurrences, dailyOccurrences, reset);
 }
