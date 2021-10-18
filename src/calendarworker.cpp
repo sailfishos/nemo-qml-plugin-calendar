@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2014 - 2019 Jolla Ltd.
- * Copyright (c) 2019 - 2020 Open Mobile Platform LLC.
+ * Copyright (c) 2019 - 2021 Open Mobile Platform LLC.
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -166,13 +166,18 @@ bool CalendarWorker::sendResponse(const CalendarData::Event &eventData, const Ca
     const QString &ownerEmail = mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
                                                                  : QString();
 
-    // TODO: should we save this change in DB?
     const KCalendarCore::Attendee origAttendee = event->attendeeByMail(ownerEmail);
     KCalendarCore::Attendee updated = origAttendee;
     updated.setStatus(CalendarUtils::convertResponse(response));
     updateAttendee(event, origAttendee, updated);
 
-    return mKCal::ServiceHandler::instance().sendResponse(event, eventData.description, mCalendar, mStorage);
+    bool sent = mKCal::ServiceHandler::instance().sendResponse(event, eventData.description, mCalendar, mStorage);
+
+    if (!sent)
+        updateAttendee(event, updated, origAttendee);
+
+    save();
+    return sent;
 }
 
 QString CalendarWorker::convertEventToICalendar(const QString &uid, const QString &prodId) const
