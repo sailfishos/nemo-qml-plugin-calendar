@@ -49,6 +49,7 @@ struct EventOccurrence {
     QDateTime recurrenceId;
     QDateTime startTime;
     QDateTime endTime;
+    bool eventAllDay;
 
     QString getId() const
     {

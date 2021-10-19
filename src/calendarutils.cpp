@@ -275,6 +275,7 @@ CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCo
         occurrence.recurrenceId = event->recurrenceId();
         occurrence.startTime = dtStart;
         occurrence.endTime = dtEnd;
+        occurrence.eventAllDay = event->allDay();
     }
 
     return occurrence;
