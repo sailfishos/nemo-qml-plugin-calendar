@@ -10,7 +10,7 @@ BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Gui)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Concurrent)
-BuildRequires:  pkgconfig(libmkcal-qt5)
+BuildRequires:  pkgconfig(libmkcal-qt5) >= 0.5.39
 BuildRequires:  pkgconfig(KF5CalendarCore)
 BuildRequires:  pkgconfig(accounts-qt5)
 

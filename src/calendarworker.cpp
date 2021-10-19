@@ -775,14 +775,14 @@ CalendarWorker::dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
 }
 
 void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
-                              const QStringList &uidList,
+                              const QStringList &instanceList,
                               bool reset)
 {
     foreach (const CalendarData::Range &range, ranges)
         mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
 
-    foreach (const QString &uid, uidList)
-        mStorage->loadSeries(uid);
+    foreach (const QString &id, instanceList)
+        mStorage->loadIncidenceInstance(id);
 
     if (!ranges.isEmpty()) {
         // Load all recurring incidences,
@@ -831,6 +831,11 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
             CalendarData::Event event = createEventStruct(e, notebook);
             mSentEvents.insert(event.uniqueId, event.recurrenceId);
             events.insert(event.uniqueId, event);
+            const QString id = e->instanceIdentifier();
+            if (id != event.uniqueId) {
+                // Ensures that events can also be retrieved by instanceIdentifier
+                events.insert(id, event);
+            }
             if (event.allDay)
                 allDay.insert(event.uniqueId, event.recurrenceId);
         }
@@ -843,7 +848,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     QHash<QString, CalendarData::EventOccurrence> occurrences = eventOccurrences(ranges);
     QHash<QDate, QStringList> dailyOccurrences = dailyEventOccurrences(ranges, allDay, occurrences.values());
 
-    emit dataLoaded(ranges, uidList, events, occurrences, dailyOccurrences, reset);
+    emit dataLoaded(ranges, instanceList, events, occurrences, dailyOccurrences, reset);
 }
 
 CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event::Ptr &e,

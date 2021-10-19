@@ -46,6 +46,7 @@
 
 class CalendarWorker;
 class CalendarAgendaModel;
+class CalendarEventListModel;
 class CalendarEventOccurrence;
 class CalendarEventQuery;
 class CalendarInvitationQuery;
@@ -78,6 +79,7 @@ public:
     QString convertEventToICalendarSync(const QString &uid, const QString &prodId);
 
     // Event
+    CalendarData::Event getEvent(const QString& instanceIdentifier, bool *loaded = nullptr) const;
     CalendarData::Event getEvent(const QString& uid, const QDateTime &recurrenceId);
     bool sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response);
 
@@ -94,6 +96,10 @@ public:
     // AgendaModel
     void cancelAgendaRefresh(CalendarAgendaModel *model);
     void scheduleAgendaRefresh(CalendarAgendaModel *model);
+
+    // EventListModel
+    void cancelEventListRefresh(CalendarEventListModel *model);
+    void scheduleEventListRefresh(CalendarEventListModel *model);
 
     // EventQuery
     void scheduleEventQueryRefresh(CalendarEventQuery *query);
@@ -116,7 +122,7 @@ private slots:
     void excludedNotebooksChangedSlot(const QStringList &excludedNotebooks);
     void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);
     void dataLoadedSlot(const QList<CalendarData::Range> &ranges,
-                        const QStringList &uidList,
+                        const QStringList &instanceList,
                         const QMultiHash<QString, CalendarData::Event> &events,
                         const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                         const QHash<QDate, QStringList> &dailyOccurrences,
@@ -156,6 +162,7 @@ private:
     QHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
     QHash<QDate, QStringList> mEventOccurrenceForDates;
     QList<CalendarAgendaModel *> mAgendaRefreshList;
+    QList<CalendarEventListModel *> mEventListRefreshList;
     QList<CalendarEventQuery *> mQueryRefreshList;
     QHash<CalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
     QStringList mExcludedNotebooks;
@@ -180,8 +187,7 @@ private:
     // A list of non-overlapping loaded ranges sorted by range start date
     QList<CalendarData::Range > mLoadedRanges;
 
-    // A list of event UIDs that have been processed by CalendarWorker, any events that
-    // match the UIDs have been loaded
+    // A list of event instance identifiers that have been processed by CalendarWorker
     QStringList mLoadedQueries;
 };
 

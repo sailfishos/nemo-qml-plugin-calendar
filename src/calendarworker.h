@@ -81,7 +81,7 @@ public slots:
     void setDefaultNotebook(const QString &notebookUid);
 
     void loadData(const QList<CalendarData::Range> &ranges,
-                  const QStringList &uidList, bool reset);
+                  const QStringList &instanceList, bool reset);
 
     CalendarData::EventOccurrence getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                     const QDateTime &startTime) const;
@@ -99,7 +99,7 @@ signals:
     void notebooksChanged(const QList<CalendarData::Notebook> &notebooks);
 
     void dataLoaded(const QList<CalendarData::Range> &ranges,
-                    const QStringList &uidList,
+                    const QStringList &instanceList,
                     const QMultiHash<QString, CalendarData::Event> &events,
                     const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                     const QHash<QDate, QStringList> &dailyOccurrences,

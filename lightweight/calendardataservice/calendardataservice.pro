@@ -13,6 +13,7 @@ HEADERS += \
     calendardataserviceadaptor.h \
     ../common/eventdata.h \
     ../../src/calendaragendamodel.h \
+    ../../src/calendareventlistmodel.h \
     ../../src/calendarmanager.h \
     ../../src/calendarworker.h \
     ../../src/calendareventoccurrence.h \
@@ -27,6 +28,7 @@ SOURCES += \
     calendardataserviceadaptor.cpp \
     ../common/eventdata.cpp \
     ../../src/calendaragendamodel.cpp \
+    ../../src/calendareventlistmodel.cpp \
     ../../src/calendarmanager.cpp \
     ../../src/calendarworker.cpp \
     ../../src/calendareventoccurrence.cpp \
