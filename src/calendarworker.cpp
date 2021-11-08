@@ -759,12 +759,9 @@ CalendarWorker::dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
         QDate start = range.first;
         while (start <= range.second) {
             foreach (const CalendarData::EventOccurrence &eo, occurrences) {
-                // On all day events the end time is inclusive, otherwise not
-                if ((eo.startTime.date() < start
-                     && (eo.endTime.date() > start
-                         || (eo.endTime.date() == start && (eo.eventAllDay
-                                                            || eo.endTime.time() > QTime(0, 0)))))
-                    || eo.startTime.date() == start) {
+                const QDateTime startDt(start);
+                if ((eo.eventAllDay && eo.startTime.date() <= start && eo.endTime.date() >= start)
+                    || (!eo.eventAllDay && eo.startTime < startDt.addDays(1) && eo.endTime >= startDt)) {                                        
                     occurrenceHash[start].append(eo.getId());
                 }
             }
