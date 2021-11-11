@@ -17,7 +17,7 @@ qmldir.files += qmldir plugins.qmltypes
 qmldir.path +=  $$target.path
 INSTALLS += qmldir
 
-qmltypes.commands = qmlplugindump -nonrelocatable org.nemomobile.calendar 1.0 > $$PWD/plugins.qmltypes
+qmltypes.commands = qmlplugindump -noinstantiate -nonrelocatable org.nemomobile.calendar 1.0 > $$PWD/plugins.qmltypes
 QMAKE_EXTRA_TARGETS += qmltypes
 
 CONFIG += link_pkgconfig
