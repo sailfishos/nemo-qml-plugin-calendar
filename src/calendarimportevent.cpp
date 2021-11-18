@@ -202,9 +202,5 @@ QObject *CalendarImportEvent::nextOccurrence()
     if (!mEvent)
         return 0;
 
-    CalendarData::EventOccurrence eo = CalendarUtils::getNextOccurrence(mEvent);
-    return new CalendarEventOccurrence(eo.eventUid,
-                                       eo.recurrenceId,
-                                       eo.startTime,
-                                       eo.endTime);
+    return new CalendarEventOccurrence(CalendarUtils::getNextOccurrence(mEvent));
 }

@@ -42,7 +42,20 @@ CalendarEventOccurrence::CalendarEventOccurrence(const QString &eventUid,
                                                  const QDateTime &startTime,
                                                  const QDateTime &endTime,
                                                  QObject *parent)
-    : QObject(parent), mEventUid(eventUid), mRecurrenceId(recurrenceId), mStartTime(startTime), mEndTime(endTime)
+: QObject(parent), mEventUid(eventUid), mRecurrenceId(recurrenceId), mStartTime(startTime), mEndTime(endTime)
+{
+    connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
+            this, SLOT(eventUidChanged(QString,QString)));
+}
+
+CalendarEventOccurrence::CalendarEventOccurrence(const CalendarData::EventOccurrence &occurrence,
+                                                 QObject *parent)
+    : QObject(parent)
+    , mEventUid(occurrence.eventUid)
+    , mRecurrenceId(occurrence.recurrenceId)
+    , mStartTime(occurrence.startTime)
+    , mEndTime(occurrence.endTime)
+    , mDisplayLabel(occurrence.displayLabel)
 {
     connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
             this, SLOT(eventUidChanged(QString,QString)));
@@ -101,4 +114,14 @@ QDateTime CalendarEventOccurrence::endTimeInTz() const
 {
     const CalendarEvent *event = eventObject();
     return event ? toEventDateTime(mEndTime, event->endTimeSpec(), event->endTimeZone()) : mEndTime;
+}
+
+QString CalendarEventOccurrence::displayLabel() const
+{
+    if (mDisplayLabel.isEmpty()) {
+        const CalendarEvent *event = eventObject();
+        return event ? event->displayLabel() : QString();
+    } else {
+        return mDisplayLabel;
+    }
 }

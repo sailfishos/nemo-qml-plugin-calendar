@@ -742,6 +742,11 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
                 occurrence.startTime = sdt;
                 occurrence.endTime = elapsed.end(sdt);
                 occurrence.eventAllDay = it.incidence()->allDay();
+                // This UID is hard-coded in contactsd/plugin/birthday/cdbirthdaycalendar.cpp
+                if (mNotebooks.value(mCalendar->notebook(it.incidence())).uid
+                    == QString::fromLatin1("b1376da7-5555-1111-2222-227549c4e570")) {
+                    occurrence.displayLabel = QString::fromLatin1("%1 (%2)").arg(it.incidence()->summary()).arg(it.incidence()->dtStart().daysTo(sdt) / 365);
+                }
                 filtered.insert(occurrence.getId(), occurrence);
             }
         }
@@ -1029,7 +1034,7 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &u
                                                                 const QDateTime &start) const
 {
     KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-    return CalendarUtils::getNextOccurrence(event, start);
+    return CalendarUtils::getNextOccurrence(event, start, mCalendar->notebook(event));
 }
 
 QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &uid, const QDateTime &recurrenceId)

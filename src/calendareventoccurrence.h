@@ -36,6 +36,8 @@
 #include <QObject>
 #include <QDateTime>
 
+#include "calendardata.h"
+
 class CalendarEvent;
 
 class CalendarEventOccurrence : public QObject
@@ -47,6 +49,7 @@ class CalendarEventOccurrence : public QObject
     // startTimeInTz and endTimeInTz are given in event startTime / endTime timezone
     Q_PROPERTY(QDateTime startTimeInTz READ startTimeInTz CONSTANT)
     Q_PROPERTY(QDateTime endTimeInTz READ endTimeInTz CONSTANT)
+    Q_PROPERTY(QString displayLabel READ displayLabel CONSTANT)
     Q_PROPERTY(CalendarEvent *event READ eventObject CONSTANT)
 
 public:
@@ -55,12 +58,15 @@ public:
                             const QDateTime &startTime,
                             const QDateTime &endTime,
                             QObject *parent = 0);
+    CalendarEventOccurrence(const CalendarData::EventOccurrence &occurrence,
+                            QObject *parent = 0);
     ~CalendarEventOccurrence();
 
     QDateTime startTime() const;
     QDateTime endTime() const;
     QDateTime startTimeInTz() const;
     QDateTime endTimeInTz() const;
+    QString displayLabel() const;
     CalendarEvent *eventObject() const;
 
 private slots:
@@ -71,6 +77,7 @@ private:
     QDateTime mRecurrenceId;
     QDateTime mStartTime;
     QDateTime mEndTime;
+    QString mDisplayLabel;
 };
 
 #endif // CALENDAREVENTOCCURRENCE_H

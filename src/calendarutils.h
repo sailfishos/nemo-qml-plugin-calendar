@@ -52,7 +52,8 @@ QDateTime getReminderDateTime(const KCalendarCore::Event::Ptr &event);
 QList<CalendarData::Attendee> getEventAttendees(const KCalendarCore::Event::Ptr &event);
 QList<QObject*> convertAttendeeList(const QList<CalendarData::Attendee> &list);
 CalendarData::EventOccurrence getNextOccurrence(const KCalendarCore::Event::Ptr &event,
-                                                const QDateTime &start = QDateTime::currentDateTime());
+                                                const QDateTime &start = QDateTime::currentDateTime(),
+                                                const QString &notebookId = QString());
 bool importFromFile(const QString &fileName, KCalendarCore::Calendar::Ptr calendar);
 bool importFromIcsRawData(const QByteArray &icsData, KCalendarCore::Calendar::Ptr calendar);
 CalendarEvent::Response convertPartStat(KCalendarCore::Attendee::PartStat status);
