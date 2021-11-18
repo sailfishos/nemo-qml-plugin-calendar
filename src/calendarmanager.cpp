@@ -809,7 +809,10 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
     mLoadedRanges = addRanges(mLoadedRanges, ranges);
     mLoadedQueries.append(instanceList);
     mEvents = mEvents.unite(events);
-    mEventOccurrences = mEventOccurrences.unite(occurrences);
+    // Use mEventOccurrences.insert(occurrences) from Qt5.15,
+    // .unite() is deprecated and broken, it is duplicating keys.
+    for (const CalendarData::EventOccurrence &eo: occurrences)
+        mEventOccurrences.insert(eo.getId(), eo);
     mEventOccurrenceForDates = mEventOccurrenceForDates.unite(dailyOccurrences);
     mLoadPending = false;
 
