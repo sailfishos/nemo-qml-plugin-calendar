@@ -244,7 +244,8 @@ QList<QObject *> CalendarUtils::convertAttendeeList(const QList<CalendarData::At
 }
 
 CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCore::Event::Ptr &event,
-                                                               const QDateTime &start)
+                                                               const QDateTime &start,
+                                                               const QString &notebookId)
 {
     const QTimeZone systemTimeZone = QTimeZone::systemTimeZone();
 
@@ -276,6 +277,10 @@ CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCo
         occurrence.startTime = dtStart;
         occurrence.endTime = dtEnd;
         occurrence.eventAllDay = event->allDay();
+        // This UID is hard-coded in contactsd/plugin/birthday/cdbirthdaycalendar.cpp
+        if (notebookId == QString::fromLatin1("b1376da7-5555-1111-2222-227549c4e570")) {
+            occurrence.displayLabel = QString::fromLatin1("%1 (%2)").arg(event->summary()).arg(event->dtStart().daysTo(dtStart) / 365);
+        }
     }
 
     return occurrence;
