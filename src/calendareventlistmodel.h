@@ -48,7 +48,8 @@ class CalendarEventListModel : public QAbstractListModel, public QQmlParserStatu
 public:
     enum EventListRoles {
         EventObjectRole = Qt::UserRole,
-        OccurrenceObjectRole
+        OccurrenceObjectRole,
+        IdentifierRole
     };
     Q_ENUM(EventListRoles)
 
@@ -86,6 +87,7 @@ private:
     QStringList mIdentifiers;
     QStringList mMissingItems;
     QList<CalendarEventOccurrence*> mEvents;
+    QStringList mEventIdentifiers; // contains a subset of mIdentifiers corresponding to events in mEvents
 };
 
 #endif // CALENDAREVENTLISTMODEL_H

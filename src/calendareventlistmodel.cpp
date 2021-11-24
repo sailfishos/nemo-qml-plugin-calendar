@@ -57,6 +57,7 @@ QHash<int, QByteArray> CalendarEventListModel::roleNames() const
     QHash<int,QByteArray> roleNames;
     roleNames[EventObjectRole] = "event";
     roleNames[OccurrenceObjectRole] = "occurrence";
+    roleNames[IdentifierRole] = "identifier";
     return roleNames;
 }
 
@@ -111,6 +112,7 @@ void CalendarEventListModel::doRefresh()
     beginResetModel();
     qDeleteAll(mEvents);
     mEvents.clear();
+    mEventIdentifiers.clear();
     mMissingItems.clear();
 
     for (const QString &id : mIdentifiers) {
@@ -118,6 +120,7 @@ void CalendarEventListModel::doRefresh()
         CalendarData::Event event = CalendarManager::instance()->getEvent(id, &loaded);
         if (event.isValid()) {
             mEvents.append(new CalendarEventOccurrence(event.uniqueId, event.recurrenceId, event.startTime, event.endTime, this));
+            mEventIdentifiers.append(id);
         } else if (loaded) {
             mMissingItems.append(id);
         }
@@ -141,9 +144,10 @@ QVariant CalendarEventListModel::data(const QModelIndex &index, int role) const
     switch (role) {
     case EventObjectRole:
         return QVariant::fromValue<QObject *>(mEvents.at(index.row())->eventObject());
-    case OccurrenceObjectRole: {
+    case OccurrenceObjectRole:
         return QVariant::fromValue<QObject *>(mEvents.at(index.row()));
-    }
+    case IdentifierRole:
+        return QVariant::fromValue<QString>(mEventIdentifiers.at(index.row()));
     default:
         qWarning() << "CalendarEventListModel: Unknown role asked";
         return QVariant();
