@@ -182,6 +182,11 @@ CalendarEvent::SyncFailure CalendarEvent::syncFailure() const
     return mManager->getEvent(mUniqueId, mRecurrenceId).syncFailure;
 }
 
+CalendarEvent::SyncFailureResolution CalendarEvent::syncFailureResolution() const
+{
+    return mManager->getEvent(mUniqueId, mRecurrenceId).syncFailureResolution;
+}
+
 CalendarEvent::Response CalendarEvent::ownerStatus() const
 {
     return mManager->getEvent(mUniqueId, mRecurrenceId).ownerStatus;

@@ -289,3 +289,17 @@ CalendarEventModification::replaceOccurrence(CalendarEventOccurrence *occurrence
     return CalendarManager::instance()->replaceOccurrence(m_event, occurrence, m_attendeesSet,
                                                           m_requiredAttendees, m_optionalAttendees);
 }
+
+CalendarEvent::SyncFailureResolution CalendarEventModification::syncFailureResolution() const
+{
+    return m_event.syncFailureResolution;
+}
+
+void CalendarEventModification::setSyncFailureResolution(CalendarEvent::SyncFailureResolution resolution)
+{
+    if (m_event.syncFailureResolution != resolution) {
+        m_event.syncFailureResolution = resolution;
+        emit syncFailureResolutionChanged();
+    }
+}
+
