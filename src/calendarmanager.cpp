@@ -124,11 +124,16 @@ QList<CalendarData::Notebook> CalendarManager::notebooks()
 
 QString CalendarManager::defaultNotebook() const
 {
+    QString result;
     foreach (const CalendarData::Notebook &notebook, mNotebooks) {
+        if (notebook.excluded)
+            continue;
         if (notebook.isDefault)
             return notebook.uid;
+        if (result.isEmpty())
+            result = notebook.uid;
     }
-    return QString();
+    return result;
 }
 
 void CalendarManager::setDefaultNotebook(const QString &notebookUid)
