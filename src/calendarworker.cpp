@@ -296,6 +296,7 @@ void CalendarWorker::setEventData(KCalendarCore::Event::Ptr &event, const Calend
     event->setLocation(eventData.location);
     setReminder(event, eventData.reminder, eventData.reminderDateTime);
     setRecurrence(event, eventData.recur, eventData.recurWeeklyDays);
+    setStatus(event, eventData.status);
 
     if (eventData.recur != CalendarEvent::RecurOnce) {
         event->recurrence()->setEndDate(eventData.recurEndDate);
@@ -461,6 +462,30 @@ bool CalendarWorker::setReminder(KCalendarCore::Event::Ptr &event, int seconds, 
     }
 
     return true;
+}
+
+bool CalendarWorker::setStatus(KCalendarCore::Event::Ptr &event, CalendarEvent::Status status)
+{
+    if (!event)
+        return false;
+
+    switch (status) {
+    case CalendarEvent::StatusNone:
+        event->setStatus(KCalendarCore::Incidence::StatusNone);
+        return true;
+    case CalendarEvent::StatusTentative:
+        event->setStatus(KCalendarCore::Incidence::StatusTentative);
+        return true;
+    case CalendarEvent::StatusConfirmed:
+        event->setStatus(KCalendarCore::Incidence::StatusConfirmed);
+        return true;
+    case CalendarEvent::StatusCancelled:
+        event->setStatus(KCalendarCore::Incidence::StatusCanceled);
+        return true;
+    default:
+        qWarning() << "unknown status value" << status;
+    }
+    return false;
 }
 
 bool CalendarWorker::needSendCancellation(KCalendarCore::Event::Ptr &event) const
@@ -865,6 +890,7 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
     event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
     event.recur = CalendarUtils::convertRecurrence(e);
     event.recurWeeklyDays = CalendarUtils::convertDayPositions(e);
+    event.status = CalendarUtils::convertStatus(e);
     const QString &syncFailure = e->customProperty("VOLATILE", "SYNC-FAILURE");
     if (syncFailure.compare("upload", Qt::CaseInsensitive) == 0) {
         event.syncFailure = CalendarEvent::UploadFailure;

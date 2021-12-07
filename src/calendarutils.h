@@ -47,6 +47,7 @@ namespace CalendarUtils {
 CalendarEvent::Recur convertRecurrence(const KCalendarCore::Event::Ptr &event);
 CalendarEvent::Days convertDayPositions(const KCalendarCore::Event::Ptr &event);
 CalendarEvent::Secrecy convertSecrecy(const KCalendarCore::Event::Ptr &event);
+CalendarEvent::Status convertStatus(const KCalendarCore::Event::Ptr &event);
 int getReminder(const KCalendarCore::Event::Ptr &event);
 QDateTime getReminderDateTime(const KCalendarCore::Event::Ptr &event);
 QList<CalendarData::Attendee> getEventAttendees(const KCalendarCore::Event::Ptr &event);
