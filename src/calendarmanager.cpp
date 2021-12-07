@@ -416,15 +416,14 @@ void CalendarManager::updateAgendaModel(CalendarAgendaModel *model)
                 qWarning() << "no event for occurrence";
                 continue;
             }
-            QDate start = model->startDate();
-            QDate end = model->endDate();
 
+            const QDateTime startDt(model->startDate()); // To be replaced later by start.startOfDay()
+            const QDateTime endDt(model->endDate()); // To be replaced later by start.startOfDay()
             // on all day events the end time is inclusive, otherwise not
-            if ((eo.startTime.date() < start
-                 && (eo.endTime.date() > start
-                     || (eo.endTime.date() == start && (event->allDay()
-                                                        || eo.endTime.time() > QTime(0, 0)))))
-                    || (eo.startTime.date() >= start && eo.startTime.date() <= end)) {
+            if ((eo.eventAllDay && eo.startTime.date() <= model->endDate()
+                 && eo.endTime.date() >= model->startDate())
+                || (!eo.eventAllDay && eo.startTime < endDt.addDays(1)
+                    && eo.endTime >= startDt)) {
                 filtered.append(new CalendarEventOccurrence(eo.eventUid, eo.recurrenceId,
                                                             eo.startTime, eo.endTime));
             }
@@ -810,7 +809,10 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
     mLoadedRanges = addRanges(mLoadedRanges, ranges);
     mLoadedQueries.append(instanceList);
     mEvents = mEvents.unite(events);
-    mEventOccurrences = mEventOccurrences.unite(occurrences);
+    // Use mEventOccurrences.insert(occurrences) from Qt5.15,
+    // .unite() is deprecated and broken, it is duplicating keys.
+    for (const CalendarData::EventOccurrence &eo: occurrences)
+        mEventOccurrences.insert(eo.getId(), eo);
     mEventOccurrenceForDates = mEventOccurrenceForDates.unite(dailyOccurrences);
     mLoadPending = false;
 
