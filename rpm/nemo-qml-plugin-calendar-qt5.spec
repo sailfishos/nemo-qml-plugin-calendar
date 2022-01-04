@@ -57,6 +57,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
+%license LICENSE.BSD
 %{_libdir}/qt5/qml/org/nemomobile/calendar/libnemocalendar.so
 %{_libdir}/qt5/qml/org/nemomobile/calendar/plugins.qmltypes
 %{_libdir}/qt5/qml/org/nemomobile/calendar/qmldir
