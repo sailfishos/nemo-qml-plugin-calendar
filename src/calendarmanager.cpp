@@ -657,7 +657,7 @@ void CalendarManager::findMatchingEventFinished(const QString &invitationFile, c
 
 void CalendarManager::storageModifiedSlot(const QString &info)
 {
-    Q_UNUSED(info)
+    Q_UNUSED(info);
     mResetPending = true;
     emit storageModified();
 }
@@ -813,7 +813,9 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
     // .unite() is deprecated and broken, it is duplicating keys.
     for (const CalendarData::EventOccurrence &eo: occurrences)
         mEventOccurrences.insert(eo.getId(), eo);
-    mEventOccurrenceForDates = mEventOccurrenceForDates.unite(dailyOccurrences);
+    for (QHash<QDate, QStringList>::ConstIterator it = dailyOccurrences.constBegin();
+         it != dailyOccurrences.constEnd(); ++it)
+        mEventOccurrenceForDates.insert(it.key(), it.value());
     mLoadPending = false;
 
     foreach (const CalendarData::Event &oldEvent, oldEvents) {
