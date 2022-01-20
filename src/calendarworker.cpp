@@ -73,7 +73,7 @@ namespace {
 }
 
 CalendarWorker::CalendarWorker()
-    : QObject(0), mAccountManager(0)
+    : QObject(0), mAccountManager(0), mHasRecurringEvents(false)
 {
 }
 
@@ -723,7 +723,7 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
 {
     const QStringList excluded = excludedNotebooks();
     QHash<QString, CalendarData::EventOccurrence> filtered;
-    foreach (CalendarData::Range range, ranges) {
+    for (const CalendarData::Range range : ranges) {
         KCalendarCore::OccurrenceIterator it(*mCalendar, QDateTime(range.first.addDays(-1)),
                                              QDateTime(range.second.addDays(1)).addSecs(-1));
         while (it.hasNext()) {
@@ -752,23 +752,20 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
 
 QHash<QDate, QStringList>
 CalendarWorker::dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
-                                      const QList<CalendarData::EventOccurrence> &occurrences)
+                                      const QList<CalendarData::EventOccurrence> &occurrences) const
 {
     QHash<QDate, QStringList> occurrenceHash;
-    foreach (const CalendarData::Range &range, ranges) {
-        QDate start = range.first;
-        while (start <= range.second) {
-            foreach (const CalendarData::EventOccurrence &eo, occurrences) {
-                const QDateTime startDt(start); // To be replaced later by start.startOfDay()
-                // On all day events the end time is inclusive, otherwise not
-                if ((eo.eventAllDay && eo.startTime.date() <= start
-                     && eo.endTime.date() >= start)
-                    || (!eo.eventAllDay && eo.startTime < startDt.addDays(1)
-                        && eo.endTime >= startDt)) {
-                    occurrenceHash[start].append(eo.getId());
-                }
+    for (const CalendarData::EventOccurrence &eo : occurrences) {
+        // On all day events the end time is inclusive, otherwise not
+        const QDate st = eo.eventAllDay ? eo.startTime.date() : eo.startTime.toLocalTime().date();
+        const QDate ed = eo.eventAllDay ? eo.endTime.date() : eo.endTime.toLocalTime().addSecs(-1).date();
+
+        for (const CalendarData::Range &range: ranges) {
+            const QDate s = st < range.first ? range.first : st;
+            const QDate e = ed > range.second ? range.second : ed;
+            for (QDate date = s; date <= e; date = date.addDays(1)) {
+                occurrenceHash[date].append(eo.getId());
             }
-            start = start.addDays(1);
         }
     }
     return occurrenceHash;
@@ -778,16 +775,20 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
                               const QStringList &instanceList,
                               bool reset)
 {
+    if (reset)
+        mHasRecurringEvents = false;
+
     foreach (const CalendarData::Range &range, ranges)
         mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
 
     foreach (const QString &id, instanceList)
         mStorage->loadIncidenceInstance(id);
 
-    if (!ranges.isEmpty()) {
+    if (!ranges.isEmpty() && !mHasRecurringEvents) {
         // Load all recurring incidences,
         // we have no other way to detect if they occur within a range
         mStorage->loadRecurringIncidences();
+        mHasRecurringEvents = true;
     }
 
     if (reset)

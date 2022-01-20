@@ -132,7 +132,7 @@ private:
                                           mKCal::Notebook::Ptr notebook = mKCal::Notebook::Ptr()) const;
     QHash<QString, CalendarData::EventOccurrence> eventOccurrences(const QList<CalendarData::Range> &ranges) const;
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
-                                                    const QList<CalendarData::EventOccurrence> &occurrences);
+                                                    const QList<CalendarData::EventOccurrence> &occurrences) const;
 
     Accounts::Manager *mAccountManager;
 
@@ -148,6 +148,8 @@ private:
 
     // Tracks which events have been already passed to manager. Maps Uid -> RecurrenceId
     QMultiHash<QString, QDateTime> mSentEvents;
+
+    bool mHasRecurringEvents;
 };
 
 #endif // CALENDARWORKER_H
