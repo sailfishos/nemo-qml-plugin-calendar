@@ -862,6 +862,9 @@ void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent
     if (newEvent.secrecy != oldEvent.secrecy)
         emit eventObject->secrecyChanged();
 
+    if (newEvent.status != oldEvent.status)
+        emit eventObject->statusChanged();
+
     if (newEvent.recur != oldEvent.recur)
         emit eventObject->recurChanged();
 

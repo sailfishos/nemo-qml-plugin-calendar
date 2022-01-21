@@ -132,6 +132,21 @@ CalendarEvent::Secrecy CalendarUtils::convertSecrecy(const KCalendarCore::Event:
     }
 }
 
+CalendarEvent::Status CalendarUtils::convertStatus(const KCalendarCore::Event::Ptr &event)
+{
+    switch (event->status()) {
+    case KCalendarCore::Incidence::StatusTentative:
+        return CalendarEvent::StatusTentative;
+    case KCalendarCore::Incidence::StatusConfirmed:
+        return CalendarEvent::StatusConfirmed;
+    case KCalendarCore::Incidence::StatusCanceled:
+        return CalendarEvent::StatusCancelled;
+    case KCalendarCore::Incidence::StatusNone:
+    default:
+        return CalendarEvent::StatusNone;
+    }
+}
+
 int CalendarUtils::getReminder(const KCalendarCore::Event::Ptr &event)
 {
     KCalendarCore::Alarm::List alarms = event->alarms();
