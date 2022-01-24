@@ -16,7 +16,7 @@ struct EventData {
     QString displayLabel;
     QString description;
     QString location;
-
+    bool cancelled;
 };
 Q_DECLARE_METATYPE(EventData)
 
