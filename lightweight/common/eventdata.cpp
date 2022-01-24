@@ -12,7 +12,8 @@ QDBusArgument &operator<<(QDBusArgument &argument, const EventData &eventData)
              << eventData.color
              << eventData.displayLabel
              << eventData.description
-             << eventData.location;
+             << eventData.location
+             << eventData.cancelled;
     argument.endStructure();
     return argument;
 }
@@ -29,7 +30,8 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, EventData &eventD
              >> eventData.color
              >> eventData.displayLabel
              >> eventData.description
-             >> eventData.location;
+             >> eventData.location
+             >> eventData.cancelled;
     argument.endStructure();
     return argument;
 }

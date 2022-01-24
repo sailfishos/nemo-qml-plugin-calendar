@@ -245,6 +245,8 @@ QVariant CalendarEventsModel::data(const QModelIndex &index, int role) const
         return eventData.uniqueId;
     case ColorRole:
         return QColor(eventData.color);
+    case CancelledRole:
+        return eventData.cancelled;
     default:
         return QVariant();
     }
@@ -366,6 +368,7 @@ QHash<int, QByteArray> CalendarEventsModel::roleNames() const
     roleNames[CalendarUidRole] = "calendarUid";
     roleNames[UidRole] = "uid";
     roleNames[ColorRole] = "color";
+    roleNames[CancelledRole] = "cancelled";
 
     return roleNames;
 }

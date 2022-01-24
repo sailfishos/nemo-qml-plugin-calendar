@@ -82,7 +82,8 @@ public:
         LocationRole,
         CalendarUidRole,
         UidRole,
-        ColorRole
+        ColorRole,
+        CancelledRole
     };
 
     explicit CalendarEventsModel(QObject *parent = 0);
