@@ -108,7 +108,10 @@ void CalendarEventModification::setStartTime(const QDateTime &startTime, Qt::Tim
 {
     QDateTime newStartTimeInTz = startTime;
     updateTime(&newStartTimeInTz, spec, timezone);
-    if (m_event.startTime != newStartTimeInTz) {
+    if (m_event.startTime != newStartTimeInTz
+        || m_event.startTime.timeSpec() != newStartTimeInTz.timeSpec()
+        || (m_event.startTime.timeSpec() == Qt::TimeZone
+            && m_event.startTime.timeZone() != newStartTimeInTz.timeZone())) {
         m_event.startTime = newStartTimeInTz;
         emit startTimeChanged();
     }
@@ -123,7 +126,10 @@ void CalendarEventModification::setEndTime(const QDateTime &endTime, Qt::TimeSpe
 {
     QDateTime newEndTimeInTz = endTime;
     updateTime(&newEndTimeInTz, spec, timezone);
-    if (m_event.endTime != newEndTimeInTz) {
+    if (m_event.endTime != newEndTimeInTz
+        || m_event.endTime.timeSpec() != newEndTimeInTz.timeSpec()
+        || (m_event.endTime.timeSpec() == Qt::TimeZone
+            && m_event.endTime.timeZone() != newEndTimeInTz.timeZone())) {
         m_event.endTime = newEndTimeInTz;
         emit endTimeChanged();
     }
