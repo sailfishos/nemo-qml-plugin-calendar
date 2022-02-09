@@ -131,7 +131,10 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
         // We're deleting an occurrence from a recurring event.
         // No incidence is deleted from the database in that case,
         // only the base incidence is modified by adding an exDate.
-        event->recurrence()->addExDateTime(dateTime);
+        if (dateTime.timeSpec() == Qt::LocalTime && event->dtStart().timeSpec() != Qt::LocalTime)
+            event->recurrence()->addExDateTime(dateTime.toTimeZone(event->dtStart().timeZone()));
+        else
+            event->recurrence()->addExDateTime(dateTime);
         event->setRevision(event->revision() + 1);
     } else {
         mCalendar->deleteEvent(event);

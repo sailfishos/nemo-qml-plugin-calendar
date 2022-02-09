@@ -320,12 +320,17 @@ void tst_CalendarEvent::testRecurrenceException()
     CalendarEventModification *event = calendarApi->createNewEvent();
     QVERIFY(event != 0);
 
+    // Define event and exception as if device is in Vietnam,
+    // then test reread from French time zone.
+    const QByteArray TZenv(qgetenv("TZ"));
+    qputenv("TZ", "Asia/Ho_Chi_Minh");
+
     // main event
     event->setDisplayLabel("Recurring event");
-    QDateTime startTime = QDateTime(QDate(2014, 6, 7), QTime(12, 00));
+    QDateTime startTime = QDateTime(QDate(2014, 6, 7), QTime(12, 00), QTimeZone("Asia/Ho_Chi_Minh"));
     QDateTime endTime = startTime.addSecs(60 * 60);
-    event->setStartTime(startTime, Qt::LocalTime);
-    event->setEndTime(endTime, Qt::LocalTime);
+    event->setStartTime(startTime, Qt::TimeZone, "Asia/Ho_Chi_Minh");
+    event->setEndTime(endTime, Qt::TimeZone, "Asia/Ho_Chi_Minh");
     CalendarEvent::Recur recur = CalendarEvent::RecurWeekly;
     event->setRecur(recur);
     QString uid;
@@ -356,8 +361,8 @@ void tst_CalendarEvent::testRecurrenceException()
     CalendarEventModification *recurrenceException = calendarApi->createModification(savedEvent);
     QVERIFY(recurrenceException != 0);
     QDateTime modifiedSecond = secondStart.addSecs(10*60); // 12:10
-    recurrenceException->setStartTime(modifiedSecond, Qt::LocalTime);
-    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::LocalTime);
+    recurrenceException->setStartTime(modifiedSecond, Qt::TimeZone, "Asia/Ho_Chi_Minh");
+    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
     recurrenceException->setDisplayLabel("Modified recurring event instance");
     CalendarChangeInformation *info
             = recurrenceException->replaceOccurrence(static_cast<CalendarEventOccurrence*>(query.occurrence()));
@@ -367,11 +372,17 @@ void tst_CalendarEvent::testRecurrenceException()
     QCOMPARE(doneSpy.count(), 1);
     QVERIFY(!info->recurrenceId().isEmpty());
 
+    // Delete fourth occurrence
+    const QDateTime fourth = startTime.addDays(21).toLocalTime();
+    calendarApi->remove(savedEvent->uniqueId(), QString(), fourth);
     QTest::qWait(1000); // allow saved data to be reloaded
+
+    // Test and do actions in another time zone
+    qputenv("TZ", "Europe/Paris");
 
     // check the occurrences are correct
     CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(),
-                                                                                                 startTime.addDays(-1));
+                                                                                         startTime.addDays(-1));
     QVERIFY(occurrence);
     // first
     QCOMPARE(occurrence->startTime(), startTime);
@@ -384,6 +395,10 @@ void tst_CalendarEvent::testRecurrenceException()
                                                                 startTime.addDays(1));
     QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), modifiedSecond);
+    // fourth has been deleted
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(15));
+    QVERIFY(occurrence);
+    QCOMPARE(occurrence->startTime(), startTime.addDays(28));
     delete recurrenceException;
     recurrenceException = 0;
 
@@ -399,8 +414,8 @@ void tst_CalendarEvent::testRecurrenceException()
     QVERIFY(recurrenceException != 0);
 
     modifiedSecond = modifiedSecond.addSecs(20*60); // 12:30
-    recurrenceException->setStartTime(modifiedSecond, Qt::LocalTime);
-    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::LocalTime);
+    recurrenceException->setStartTime(modifiedSecond, Qt::TimeZone, "Asia/Ho_Chi_Minh");
+    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
     QString modifiedLabel("Modified recurring event instance, ver 2");
     recurrenceException->setDisplayLabel(modifiedLabel);
     recurrenceException->save();
@@ -425,8 +440,8 @@ void tst_CalendarEvent::testRecurrenceException()
     CalendarEventModification *mod = calendarApi->createModification(savedEvent);
     QVERIFY(mod != 0);
     QDateTime modifiedStart = startTime.addSecs(40*60); // 12:40
-    mod->setStartTime(modifiedStart, Qt::LocalTime);
-    mod->setEndTime(modifiedStart.addSecs(40*60), Qt::LocalTime);
+    mod->setStartTime(modifiedStart, Qt::TimeZone, "Asia/Ho_Chi_Minh");
+    mod->setEndTime(modifiedStart.addSecs(40*60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
     mod->save();
     QTest::qWait(1000);
 
@@ -472,6 +487,12 @@ void tst_CalendarEvent::testRecurrenceException()
     delete info;
     delete recurrenceException;
     delete mod;
+
+    if (TZenv.isEmpty()) {
+        qunsetenv("TZ");
+    } else {
+        qputenv("TZ", TZenv);
+    }
 }
 
 // saves event and tries to watch for new uid
