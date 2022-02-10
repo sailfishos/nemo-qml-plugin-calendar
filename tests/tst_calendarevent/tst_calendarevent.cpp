@@ -224,8 +224,8 @@ void tst_CalendarEvent::testSave()
 
     QCOMPARE(eventB->endTime().timeSpec(), Qt::LocalTime);
     QCOMPARE(eventB->startTime().timeSpec(), Qt::LocalTime);
-    QCOMPARE(eventB->endTimeSpec(), Qt::TimeZone);
-    QCOMPARE(eventB->startTimeSpec(), Qt::TimeZone);
+    QCOMPARE(eventB->endTimeSpec(), endTime.timeSpec());
+    QCOMPARE(eventB->startTimeSpec(), startTime.timeSpec());
     QCOMPARE(eventB->endTimeZone().toUtf8(), endTime.timeZone().id());
     QCOMPARE(eventB->startTimeZone().toUtf8(), startTime.timeZone().id());
 
@@ -299,12 +299,9 @@ void tst_CalendarEvent::testTimeZone()
 
     QCOMPARE(eventB->endTime().timeSpec(), Qt::LocalTime);
     QCOMPARE(eventB->startTime().timeSpec(), Qt::LocalTime);
-    if (spec == Qt::UTC) {
-        QCOMPARE(eventB->endTimeSpec(), spec);
-        QCOMPARE(eventB->startTimeSpec(), spec);
-    } else {
-        QCOMPARE(eventB->endTimeSpec(), Qt::TimeZone);
-        QCOMPARE(eventB->startTimeSpec(), Qt::TimeZone);
+    QCOMPARE(eventB->endTimeSpec(), spec);
+    QCOMPARE(eventB->startTimeSpec(), spec);
+    if (spec != Qt::UTC) {
         QCOMPARE(eventB->endTimeZone().toUtf8(), endTime.timeZone().id());
         QCOMPARE(eventB->startTimeZone().toUtf8(), startTime.timeZone().id());
     }
