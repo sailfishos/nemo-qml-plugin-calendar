@@ -80,8 +80,13 @@ void tst_CalendarEvent::initTestCase()
 
     // Ensure a default notebook exists for saving new events
     CalendarManager *manager = CalendarManager::instance();
-    // Need to wait for the notebooks to be loaded from worker;
-    QTest::qWait(1000);
+    if (manager->notebooks().isEmpty()) {
+        // Here there is a race condition, because we cannot install
+        // the signal before the notebooks are read in the thread.
+        // In case it happens, we just let the init listener timeout.
+        QSignalSpy init(manager, &CalendarManager::notebooksChanged);
+        init.wait();
+    }
     if (manager->defaultNotebook().isEmpty()) {
         manager->setDefaultNotebook(manager->notebooks().value(0).uid);
     }
@@ -206,14 +211,10 @@ void tst_CalendarEvent::testSave()
     mSavedEvents.insert(uid);
 
     CalendarEventQuery query;
+    QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
     query.setUniqueId(uid);
+    QVERIFY(eventSpy.wait());
 
-    for (int i = 0; i < 30; i++) {
-        if (query.event())
-            break;
-
-        QTest::qWait(100);
-    }
     CalendarEvent *eventB = (CalendarEvent*) query.event();
     QVERIFY(eventB != 0);
 
@@ -237,7 +238,9 @@ void tst_CalendarEvent::testSave()
     QCOMPARE(eventB->recurEndDate(), QDateTime(recurEnd.date()));
     QCOMPARE(eventB->reminder(), reminder);
 
-    calendarApi->remove(uid);
+    eventB->deleteEvent();
+    QVERIFY(eventSpy.wait());
+    QVERIFY(!query.event());
     mSavedEvents.remove(uid);
 
     delete eventMod;
@@ -283,14 +286,10 @@ void tst_CalendarEvent::testTimeZone()
     mSavedEvents.insert(uid);
 
     CalendarEventQuery query;
+    QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
     query.setUniqueId(uid);
+    QVERIFY(eventSpy.wait());
 
-    for (int i = 0; i < 30; i++) {
-        if (query.event())
-            break;
-
-        QTest::qWait(100);
-    }
     CalendarEvent *eventB = (CalendarEvent*) query.event();
     QVERIFY(eventB != 0);
 
@@ -306,7 +305,9 @@ void tst_CalendarEvent::testTimeZone()
         QCOMPARE(eventB->startTimeZone().toUtf8(), startTime.timeZone().id());
     }
 
-    calendarApi->remove(uid);
+    eventB->deleteEvent();
+    QVERIFY(eventSpy.wait());
+    QVERIFY(!query.event());
     mSavedEvents.remove(uid);
 
     delete eventMod;
@@ -340,19 +341,17 @@ void tst_CalendarEvent::testRecurrenceException()
 
     // need event and occurrence to replace....
     CalendarEventQuery query;
+    QSignalSpy updated(&query, &CalendarEventQuery::eventChanged);
     query.setUniqueId(uid);
     QDateTime secondStart = startTime.addDays(7);
     query.setStartTime(secondStart);
+    QVERIFY(updated.wait());
 
-    for (int i = 0; i < 30; i++) {
-        if (query.event())
-            break;
-
-        QTest::qWait(100);
-    }
     CalendarEvent *savedEvent = (CalendarEvent*) query.event();
     QVERIFY(savedEvent);
     QVERIFY(query.occurrence());
+
+    QSignalSpy dataUpdated(CalendarManager::instance(), &CalendarManager::dataUpdated);
 
     // adjust second occurrence a bit
     CalendarEventModification *recurrenceException = calendarApi->createModification(savedEvent);
@@ -368,11 +367,12 @@ void tst_CalendarEvent::testRecurrenceException()
     doneSpy.wait();
     QCOMPARE(doneSpy.count(), 1);
     QVERIFY(!info->recurrenceId().isEmpty());
+    QVERIFY(dataUpdated.wait());
 
     // Delete fourth occurrence
     const QDateTime fourth = startTime.addDays(21).toLocalTime();
     calendarApi->remove(savedEvent->uniqueId(), QString(), fourth);
-    QTest::qWait(1000); // allow saved data to be reloaded
+    QVERIFY(dataUpdated.wait());
 
     // Test and do actions in another time zone
     qputenv("TZ", "Europe/Paris");
@@ -416,7 +416,7 @@ void tst_CalendarEvent::testRecurrenceException()
     QString modifiedLabel("Modified recurring event instance, ver 2");
     recurrenceException->setDisplayLabel(modifiedLabel);
     recurrenceException->save();
-    QTest::qWait(1000); // allow saved data to be reloaded
+    QVERIFY(dataUpdated.wait()); // allow saved data to be reloaded
 
     // check the occurrences are correct
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(-1));
@@ -440,7 +440,7 @@ void tst_CalendarEvent::testRecurrenceException()
     mod->setStartTime(modifiedStart, Qt::TimeZone, "Asia/Ho_Chi_Minh");
     mod->setEndTime(modifiedStart.addSecs(40*60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
     mod->save();
-    QTest::qWait(1000);
+    QVERIFY(dataUpdated.wait());
 
     // and check
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(-1));
@@ -456,9 +456,10 @@ void tst_CalendarEvent::testRecurrenceException()
     // at least the recurrence exception should be found at second occurrence date. for now we allow also newly
     // appeared occurrence from main event
     CalendarAgendaModel agendaModel;
+    QSignalSpy populated(&agendaModel, &CalendarAgendaModel::updated);
     agendaModel.setStartDate(startTime.addDays(7).date());
     agendaModel.setEndDate(agendaModel.startDate());
-    QTest::qWait(2000);
+    QVERIFY(populated.wait());
 
     bool modificationFound = false;
     for (int i = 0; i < agendaModel.count(); ++i) {
@@ -496,11 +497,13 @@ void tst_CalendarEvent::testRecurrenceException()
 bool tst_CalendarEvent::saveEvent(CalendarEventModification *eventMod, QString *uid)
 {
     CalendarAgendaModel agendaModel;
+    QSignalSpy updated(&agendaModel, &CalendarAgendaModel::updated);
     agendaModel.setStartDate(eventMod->startTime().toLocalTime().date());
     agendaModel.setEndDate(eventMod->endTime().toLocalTime().date());
-
-    // Wait for the agendaModel to get updated, no way to determine when that happens, so just wait
-    QTest::qWait(2000);
+    if (!updated.wait()) {
+        qWarning() << "saveEvent() - agenda not ready";
+        return false;
+    }
 
     int count = agendaModel.count();
     QSignalSpy countSpy(&agendaModel, SIGNAL(countChanged()));
@@ -513,11 +516,9 @@ bool tst_CalendarEvent::saveEvent(CalendarEventModification *eventMod, QString *
         eventMod->setCalendarUid(CalendarManager::instance()->defaultNotebook());
     }
     eventMod->save();
-    for (int i = 0; i < 30; i++) {
-        if (agendaModel.count() > count)
-            break;
-
-        QTest::qWait(100);
+    if (!countSpy.wait()) {
+        qWarning() << "saveEvent() - no save event";
+        return false;
     }
 
     if (agendaModel.count() != count + 1
@@ -603,20 +604,18 @@ void tst_CalendarEvent::testRecurrence()
     mSavedEvents.insert(uid);
 
     CalendarEventQuery query;
+    QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
     query.setUniqueId(uid);
+    QVERIFY(eventSpy.wait());
 
-    for (int i = 0; i < 30; i++) {
-        if (query.event())
-            break;
-
-        QTest::qWait(100);
-    }
     CalendarEvent *event = (CalendarEvent*)query.event();
     QVERIFY(event);
 
     QCOMPARE(event->recur(), recurType);
 
-    calendarApi->removeAll(uid);
+    event->deleteEvent();
+    QVERIFY(eventSpy.wait());
+    QVERIFY(!query.event());
     mSavedEvents.remove(uid);
 }
 
@@ -644,32 +643,29 @@ void tst_CalendarEvent::testRecurWeeklyDays()
     mSavedEvents.insert(uid);
 
     CalendarEventQuery query;
+    QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
     query.setUniqueId(uid);
+    QVERIFY(eventSpy.wait());
 
-    for (int i = 0; i < 30; i++) {
-        if (query.event())
-            break;
-
-        QTest::qWait(100);
-    }
     CalendarEvent *event = (CalendarEvent*)query.event();
     QVERIFY(event);
 
     QCOMPARE(event->recur(), CalendarEvent::RecurWeeklyByDays);
     QCOMPARE(event->recurWeeklyDays(), days);
 
-    calendarApi->removeAll(uid);
+    event->deleteEvent();
+    QVERIFY(eventSpy.wait());
+    QVERIFY(!query.event());
     mSavedEvents.remove(uid);
 }
 
 void tst_CalendarEvent::cleanupTestCase()
 {
-    foreach (const QString &uid, mSavedEvents) {
+    QSignalSpy modified(CalendarManager::instance(), &CalendarManager::storageModified);
+    foreach (const QString &uid, mSavedEvents)
         calendarApi->removeAll(uid);
-        // make sure worker thread has time to complete removal before being destroyed.
-        // TODO: finish method invocation queue before quitting?
-        QTest::qWait(1000);
-    }
+    if (!mSavedEvents.isEmpty())
+        QVERIFY(modified.wait());
 }
 
 #include "tst_calendarevent.moc"
