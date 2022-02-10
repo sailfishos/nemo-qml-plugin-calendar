@@ -18,7 +18,6 @@ HEADERS += \
     ../../src/calendarworker.h \
     ../../src/calendareventoccurrence.h \
     ../../src/calendarevent.h \
-    ../../src/calendarchangeinformation.h \
     ../../src/calendareventquery.h \
     ../../src/calendarinvitationquery.h \
     ../../src/calendarutils.h
@@ -33,7 +32,6 @@ SOURCES += \
     ../../src/calendarworker.cpp \
     ../../src/calendareventoccurrence.cpp \
     ../../src/calendarevent.cpp \
-    ../../src/calendarchangeinformation.cpp \
     ../../src/calendareventquery.cpp \
     ../../src/calendarinvitationquery.cpp \
     ../../src/calendarutils.cpp \

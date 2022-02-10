@@ -41,7 +41,6 @@
 #include "calendareventoccurrence.h"
 #include "calendareventquery.h"
 #include "calendarinvitationquery.h"
-#include "calendarchangeinformation.h"
 
 // kcalendarcore
 #include <KCalendarCore/CalFormat>
@@ -78,11 +77,6 @@ CalendarManager::CalendarManager()
 
     connect(mCalendarWorker, &CalendarWorker::dataLoaded,
             this, &CalendarManager::dataLoadedSlot);
-
-    connect(mCalendarWorker, &CalendarWorker::occurrenceExceptionFailed,
-            this, &CalendarManager::occurrenceExceptionFailedSlot);
-    connect(mCalendarWorker, &CalendarWorker::occurrenceExceptionCreated,
-            this, &CalendarManager::occurrenceExceptionCreatedSlot);
 
     connect(mCalendarWorker, &CalendarWorker::findMatchingEventFinished,
             this, &CalendarManager::findMatchingEventFinished);
@@ -171,35 +165,18 @@ void CalendarManager::saveModification(CalendarData::Event eventData, bool updat
                               Q_ARG(QList<CalendarData::EmailContact>, optional));
 }
 
-// caller owns returned object
-CalendarChangeInformation *
-CalendarManager::replaceOccurrence(CalendarData::Event eventData, CalendarEventOccurrence *occurrence,
-                                   bool updateAttendees,
-                                   const QList<CalendarData::EmailContact> &required,
-                                   const QList<CalendarData::EmailContact> &optional)
+CalendarData::Event CalendarManager::dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const
 {
-    if (!occurrence) {
-        qWarning() << Q_FUNC_INFO << "no occurrence given";
-        return nullptr;
-    }
-
-    if (eventData.uniqueId.isEmpty()) {
-        qWarning("NemocalendarManager::replaceOccurrence() - empty uid given");
-        return nullptr;
-    }
-
-    // save request information for signal handling
-    CalendarChangeInformation *changes = new CalendarChangeInformation;
-    OccurrenceData changeData = { eventData, occurrence->startTime(), changes };
-    mPendingOccurrenceExceptions.append(changeData);
-
-    QMetaObject::invokeMethod(mCalendarWorker, "replaceOccurrence", Qt::QueuedConnection,
-                              Q_ARG(CalendarData::Event, eventData),
-                              Q_ARG(QDateTime, occurrence->startTime()),
-                              Q_ARG(bool, updateAttendees),
-                              Q_ARG(QList<CalendarData::EmailContact>, required),
-                              Q_ARG(QList<CalendarData::EmailContact>, optional));
-    return changes;
+    CalendarData::Event event;
+    // Worker method is not calling any storage method that could block.
+    // The only blocking possibility here would be to obtain the worker thread
+    // availability.
+    QMetaObject::invokeMethod(mCalendarWorker, "dissociateSingleOccurrence",
+                              Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(CalendarData::Event, event),
+                              Q_ARG(QString, eventUid),
+                              Q_ARG(QDateTime, recurrenceId));
+    return event;
 }
 
 QStringList CalendarManager::excludedNotebooks()
@@ -520,37 +497,6 @@ void CalendarManager::timeout()
         || !mQueryRefreshList.isEmpty()
         || !mEventListRefreshList.isEmpty() || mResetPending)
         doAgendaAndQueryRefresh();
-}
-
-void CalendarManager::occurrenceExceptionFailedSlot(const CalendarData::Event &data, const QDateTime &occurrence)
-{
-    for (int i = 0; i < mPendingOccurrenceExceptions.length(); ++i) {
-        const OccurrenceData &item = mPendingOccurrenceExceptions.at(i);
-        if (item.event == data && item.occurrenceTime == occurrence) {
-            if (item.changeObject) {
-                item.changeObject->setInformation(QString(), QDateTime());
-            }
-            mPendingOccurrenceExceptions.removeAt(i);
-            break;
-        }
-    }
-}
-
-void CalendarManager::occurrenceExceptionCreatedSlot(const CalendarData::Event &data, const QDateTime &occurrence,
-                                                     const QDateTime &newRecurrenceId)
-{
-    for (int i = 0; i < mPendingOccurrenceExceptions.length(); ++i) {
-        const OccurrenceData &item = mPendingOccurrenceExceptions.at(i);
-        if (item.event == data && item.occurrenceTime == occurrence) {
-            if (item.changeObject) {
-                item.changeObject->setInformation(data.uniqueId, newRecurrenceId);
-            }
-
-            mPendingOccurrenceExceptions.removeAt(i);
-            break;
-        }
-    }
-
 }
 
 void CalendarManager::deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &time)

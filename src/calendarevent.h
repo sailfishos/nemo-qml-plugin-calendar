@@ -202,6 +202,7 @@ protected:
 };
 
 class CalendarManager;
+class CalendarEventOccurrence;
 class CalendarStoredEvent : public CalendarEvent
 {
     Q_OBJECT
@@ -210,6 +211,7 @@ public:
     CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data);
     ~CalendarStoredEvent();
 
+    CalendarData::Event dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const;
     void setEvent(const CalendarData::Event *event);
     QString color() const;
 

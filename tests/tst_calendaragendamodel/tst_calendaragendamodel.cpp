@@ -34,6 +34,7 @@
 
 #include "calendaragendamodel.h"
 #include "calendareventmodification.h"
+#include "calendareventoccurrence.h"
 
 #include "plugin.cpp"
 
