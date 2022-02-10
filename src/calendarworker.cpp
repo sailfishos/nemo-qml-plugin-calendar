@@ -1059,7 +1059,15 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &u
                                                                 const QDateTime &start) const
 {
     KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-    return CalendarUtils::getNextOccurrence(event, start);
+    if (!event) {
+        qWarning() << "Failed to get next occurrence, event not found. UID = " << uid << recurrenceId;
+        return CalendarData::EventOccurrence();
+    }
+    if (event->recurs() && !mStorage->loadSeries(uid)) {
+        qWarning() << "Failed to load series of event. UID = " << uid << recurrenceId;
+        return CalendarData::EventOccurrence();
+    }
+    return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event) : KCalendarCore::Incidence::List());
 }
 
 QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &uid, const QDateTime &recurrenceId)

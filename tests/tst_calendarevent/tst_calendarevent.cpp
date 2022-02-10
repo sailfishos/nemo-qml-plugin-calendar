@@ -453,8 +453,9 @@ void tst_CalendarEvent::testRecurrenceException()
     QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), modifiedSecond);
 
-    // at least the recurrence exception should be found at second occurrence date. for now we allow also newly
-    // appeared occurrence from main event
+    // The recurrence exception is not listed at second occurrence date anymore.
+    // This is because its recurrenceId is not at an occurrence of the parent
+    // and KCalendarCore::OccurrenceIterator is not returning it.
     CalendarAgendaModel agendaModel;
     QSignalSpy populated(&agendaModel, &CalendarAgendaModel::updated);
     agendaModel.setStartDate(startTime.addDays(7).date());
@@ -471,10 +472,12 @@ void tst_CalendarEvent::testRecurrenceException()
             break;
         }
     }
-    QVERIFY(modificationFound);
+    QVERIFY(!modificationFound);
 
     // ensure all gone, this emits two warning for not finding the two occurrences.
+    QSignalSpy modified(CalendarManager::instance(), &CalendarManager::storageModified);
     calendarApi->removeAll(uid);
+    QVERIFY(modified.wait());
     mSavedEvents.remove(uid);
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(-1));
     QVERIFY(!occurrence->startTime().isValid());

@@ -259,38 +259,46 @@ QList<QObject *> CalendarUtils::convertAttendeeList(const QList<CalendarData::At
 }
 
 CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCore::Event::Ptr &event,
-                                                               const QDateTime &start)
+                                                               const QDateTime &start,
+                                                               const KCalendarCore::Incidence::List &exceptions)
 {
     const QTimeZone systemTimeZone = QTimeZone::systemTimeZone();
 
     CalendarData::EventOccurrence occurrence;
     if (event) {
-        QDateTime dtStart = event->dtStart().toTimeZone(systemTimeZone);
-        QDateTime dtEnd = event->dtEnd().toTimeZone(systemTimeZone);
-
-        if (!start.isNull() && event->recurs()) {
-            const QDateTime startTime = start.toTimeZone(systemTimeZone);
-            KCalendarCore::Recurrence *recurrence = event->recurrence();
-            if (recurrence->recursAt(startTime)) {
-                dtStart = startTime;
-                dtEnd = KCalendarCore::Duration(event->dtStart(), event->dtEnd()).end(startTime).toTimeZone(systemTimeZone);
-            } else {
-                QDateTime match = recurrence->getNextDateTime(startTime);
-                if (match.isNull())
-                    match = recurrence->getPreviousDateTime(startTime);
-
-                if (!match.isNull()) {
-                    dtStart = match.toTimeZone(systemTimeZone);
-                    dtEnd = KCalendarCore::Duration(event->dtStart(), event->dtEnd()).end(match).toTimeZone(systemTimeZone);
-                }
-            }
-        }
-
         occurrence.eventUid = event->uid();
         occurrence.recurrenceId = event->recurrenceId();
-        occurrence.startTime = dtStart;
-        occurrence.endTime = dtEnd;
         occurrence.eventAllDay = event->allDay();
+        occurrence.startTime = event->dtStart().toTimeZone(systemTimeZone);
+        occurrence.endTime = event->dtEnd().toTimeZone(systemTimeZone);
+
+        if (!start.isNull() && event->recurs()) {
+            KCalendarCore::Recurrence *recurrence = event->recurrence();
+            QSet<QDateTime> recurrenceIds;
+            for (const KCalendarCore::Incidence::Ptr &exception : exceptions)
+                recurrenceIds.insert(exception->recurrenceId());
+            const KCalendarCore::Duration period(event->dtStart(), event->dtEnd());
+
+            QDateTime match;
+            if (recurrence->recursAt(start) && !recurrenceIds.contains(start))
+                match = start;
+            if (match.isNull()) {
+                match = start;
+                do {
+                    match = recurrence->getNextDateTime(match);
+                } while (match.isValid() && recurrenceIds.contains(match));
+            }
+            if (match.isNull()) {
+                match = start;
+                do {
+                    match = recurrence->getPreviousDateTime(match);
+                } while (match.isValid() && recurrenceIds.contains(match));
+            }
+            if (match.isValid()) {
+                occurrence.startTime = match.toTimeZone(systemTimeZone);
+                occurrence.endTime = period.end(match).toTimeZone(systemTimeZone);
+            }
+        }
     }
 
     return occurrence;
