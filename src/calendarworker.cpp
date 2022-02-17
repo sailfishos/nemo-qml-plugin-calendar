@@ -131,7 +131,10 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
         // We're deleting an occurrence from a recurring event.
         // No incidence is deleted from the database in that case,
         // only the base incidence is modified by adding an exDate.
-        event->recurrence()->addExDateTime(dateTime);
+        if (dateTime.timeSpec() == Qt::LocalTime && event->dtStart().timeSpec() != Qt::LocalTime)
+            event->recurrence()->addExDateTime(dateTime.toTimeZone(event->dtStart().timeZone()));
+        else
+            event->recurrence()->addExDateTime(dateTime);
         event->setRevision(event->revision() + 1);
     } else {
         mCalendar->deleteEvent(event);
@@ -1056,7 +1059,15 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &u
                                                                 const QDateTime &start) const
 {
     KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-    return CalendarUtils::getNextOccurrence(event, start);
+    if (!event) {
+        qWarning() << "Failed to get next occurrence, event not found. UID = " << uid << recurrenceId;
+        return CalendarData::EventOccurrence();
+    }
+    if (event->recurs() && !mStorage->loadSeries(uid)) {
+        qWarning() << "Failed to load series of event. UID = " << uid << recurrenceId;
+        return CalendarData::EventOccurrence();
+    }
+    return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event) : KCalendarCore::Incidence::List());
 }
 
 QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &uid, const QDateTime &recurrenceId)
