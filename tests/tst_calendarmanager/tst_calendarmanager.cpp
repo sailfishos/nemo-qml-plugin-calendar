@@ -16,6 +16,7 @@ class tst_CalendarManager : public QObject
     Q_OBJECT
 
 private slots:
+    void cleanup();
     void test_isRangeLoaded_data();
     void test_isRangeLoaded();
     void test_addRanges_data();
@@ -26,12 +27,18 @@ private slots:
 private:
     mKCal::Notebook::Ptr createNotebook();
 
-    CalendarManager mManager;
+    CalendarManager *mManager = nullptr;
     mKCal::ExtendedCalendar::Ptr mCalendar;
     mKCal::ExtendedStorage::Ptr mStorage;
     QList<mKCal::Notebook::Ptr> mAddedNotebooks;
     QString mDefaultNotebook;
 };
+
+void tst_CalendarManager::cleanup()
+{
+    delete mManager;
+    mManager = nullptr;
+}
 
 void tst_CalendarManager::test_isRangeLoaded_data()
 {
@@ -327,9 +334,10 @@ void tst_CalendarManager::test_isRangeLoaded()
     QFETCH(bool, loaded);
     QFETCH(QList<CalendarData::Range>, correctNewRanges);
 
-    mManager.mLoadedRanges = loadedRanges;
+    mManager = new CalendarManager;
+    mManager->mLoadedRanges = loadedRanges;
     QList<CalendarData::Range> newRanges;
-    bool result = mManager.isRangeLoaded(testRange, &newRanges);
+    bool result = mManager->isRangeLoaded(testRange, &newRanges);
 
     QCOMPARE(result, loaded);
     QCOMPARE(newRanges.count(), correctNewRanges.count());
@@ -507,7 +515,9 @@ void tst_CalendarManager::test_addRanges()
     QFETCH(QList<CalendarData::Range>, oldRanges);
     QFETCH(QList<CalendarData::Range>, newRanges);
     QFETCH(QList<CalendarData::Range>, combinedRanges);
-    QList<CalendarData::Range> result = mManager.addRanges(oldRanges, newRanges);
+
+    mManager = new CalendarManager;
+    QList<CalendarData::Range> result = mManager->addRanges(oldRanges, newRanges);
     QVERIFY(result == combinedRanges);
 }
 
@@ -526,9 +536,8 @@ mKCal::Notebook::Ptr tst_CalendarManager::createNotebook()
 
 void tst_CalendarManager::test_notebookApi()
 {
-    CalendarManager *manager = CalendarManager::instance();
-    QSignalSpy notebookSpy(manager, SIGNAL(notebooksChanged(QList<CalendarData::Notebook>)));
-    QSignalSpy defaultNotebookSpy(manager, SIGNAL(defaultNotebookChanged(QString)));
+    mManager = new CalendarManager;
+    QSignalSpy notebookSpy(mManager, SIGNAL(notebooksChanged(QList<CalendarData::Notebook>)));
 
     // Wait for the manager to open the calendar database, etc
     for (int i = 0; i < 30; i++) {
@@ -538,9 +547,8 @@ void tst_CalendarManager::test_notebookApi()
         QTest::qWait(100);
     }
     QCOMPARE(notebookSpy.count(), 1);
-    QCOMPARE(defaultNotebookSpy.count(), 1);
-    int notebookCount = manager->notebooks().count();
-    mDefaultNotebook = manager->defaultNotebook();
+    int notebookCount = mManager->notebooks().count();
+    mDefaultNotebook = mManager->defaultNotebook();
 
     mCalendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
     mStorage = mCalendar->defaultStorage(mCalendar);
@@ -556,7 +564,7 @@ void tst_CalendarManager::test_notebookApi()
         QTest::qWait(100);
     }
     QCOMPARE(notebookSpy.count(), 2);
-    QCOMPARE(manager->notebooks().count(), notebookCount + 1);
+    QCOMPARE(mManager->notebooks().count(), notebookCount + 1);
 
     mAddedNotebooks << createNotebook();
     QVERIFY(mStorage->addNotebook(mAddedNotebooks.last()));
@@ -568,46 +576,51 @@ void tst_CalendarManager::test_notebookApi()
         QTest::qWait(100);
     }
     QCOMPARE(notebookSpy.count(), 3);
-    QCOMPARE(manager->notebooks().count(), notebookCount + 2);
+    QCOMPARE(mManager->notebooks().count(), notebookCount + 2);
 
     QStringList uidList;
-    foreach (const CalendarData::Notebook &notebook, manager->notebooks())
+    foreach (const CalendarData::Notebook &notebook, mManager->notebooks())
         uidList << notebook.uid;
 
     foreach (const mKCal::Notebook::Ptr &notebookPtr, mAddedNotebooks)
         QVERIFY(uidList.contains(notebookPtr->uid()));
 
-    manager->setDefaultNotebook(mAddedNotebooks.first()->uid());
+    QSignalSpy defaultNotebookSpy(mManager, SIGNAL(defaultNotebookChanged(QString)));
+    mManager->setDefaultNotebook(mAddedNotebooks.first()->uid());
     for (int i = 0; i < 30; i++) {
         if (notebookSpy.count() > 3)
             break;
 
         QTest::qWait(100);
     }
-    QCOMPARE(manager->defaultNotebook(), mAddedNotebooks.first()->uid());
-    QCOMPARE(defaultNotebookSpy.count(), 2);
+    QCOMPARE(mManager->defaultNotebook(), mAddedNotebooks.first()->uid());
+    QCOMPARE(defaultNotebookSpy.count(), 1);
 
-    manager->setDefaultNotebook(mAddedNotebooks.last()->uid());
+    mManager->setDefaultNotebook(mAddedNotebooks.last()->uid());
     for (int i = 0; i < 30; i++) {
         if (notebookSpy.count() > 4)
             break;
 
         QTest::qWait(100);
     }
-    QCOMPARE(manager->defaultNotebook(), mAddedNotebooks.last()->uid());
-    QCOMPARE(defaultNotebookSpy.count(), 3);
+    QCOMPARE(mManager->defaultNotebook(), mAddedNotebooks.last()->uid());
+    QCOMPARE(defaultNotebookSpy.count(), 2);
 }
 
 void tst_CalendarManager::cleanupTestCase()
 {
-    CalendarManager::instance()->setDefaultNotebook(mDefaultNotebook);
-    delete CalendarManager::instance();
-    foreach (const mKCal::Notebook::Ptr &notebookPtr, mAddedNotebooks)
-        mStorage->deleteNotebook(notebookPtr);
+    mManager = new CalendarManager;
+    mManager->setDefaultNotebook(mDefaultNotebook);
+    delete mManager;
+    mManager = nullptr;
 
-    mStorage->save();
-    mStorage->close();
-    mStorage.clear();
+    if (mStorage) {
+        foreach (const mKCal::Notebook::Ptr &notebookPtr, mAddedNotebooks)
+            mStorage->deleteNotebook(notebookPtr);
+        mStorage->save();
+        mStorage->close();
+        mStorage.clear();
+    }
     mCalendar.clear();
 }
 
