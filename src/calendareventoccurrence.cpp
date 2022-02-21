@@ -62,7 +62,7 @@ QDateTime CalendarEventOccurrence::endTime() const
     return mEndTime;
 }
 
-CalendarEvent *CalendarEventOccurrence::eventObject() const
+CalendarStoredEvent *CalendarEventOccurrence::eventObject() const
 {
     return CalendarManager::instance()->eventObject(mEventUid, mRecurrenceId);
 }

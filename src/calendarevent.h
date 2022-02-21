@@ -36,7 +36,9 @@
 #include <QObject>
 #include <QDateTime>
 
-class CalendarManager;
+namespace CalendarData {
+    struct Event;
+}
 
 class CalendarEvent : public QObject
 {
@@ -62,7 +64,6 @@ class CalendarEvent : public QObject
     Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime NOTIFY reminderDateTimeChanged)
     Q_PROPERTY(QString uniqueId READ uniqueId NOTIFY uniqueIdChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
-    Q_PROPERTY(QString color READ color NOTIFY colorChanged)
     Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
@@ -140,13 +141,14 @@ public:
     };
     Q_ENUM(Status)
 
-    CalendarEvent(CalendarManager *manager, const QString &uid, const QDateTime &recurrenceId);
+    CalendarEvent(const CalendarData::Event *data, QObject *parent);
+    CalendarEvent(const CalendarEvent *other, QObject *parent);
     ~CalendarEvent();
 
     QString displayLabel() const;
     QString description() const;
-    QDateTime startTime() const;
-    QDateTime endTime() const;
+    virtual QDateTime startTime() const;
+    virtual QDateTime endTime() const;
     Qt::TimeSpec startTimeSpec() const;
     Qt::TimeSpec endTimeSpec() const;
     QString startTimeZone() const;
@@ -159,8 +161,7 @@ public:
     int reminder() const;
     QDateTime reminderDateTime() const;
     QString uniqueId() const;
-    QString color() const;
-    bool readOnly() const;
+    virtual bool readOnly() const;
     QString calendarUid() const;
     QString location() const;
     QDateTime recurrenceId() const;
@@ -169,17 +170,9 @@ public:
     Status status() const;
     SyncFailure syncFailure() const;
     SyncFailureResolution syncFailureResolution() const;
-    Response ownerStatus() const;
-    bool rsvp() const;
+    virtual Response ownerStatus() const;
+    virtual bool rsvp() const;
     bool externalInvitation() const;
-
-    Q_INVOKABLE bool sendResponse(int response);
-    Q_INVOKABLE QString iCalendar(const QString &prodId = QString()) const;
-    Q_INVOKABLE void deleteEvent();
-
-private slots:
-    void notebookColorChanged(QString notebookUid);
-    void eventUidChanged(QString oldUid, QString newUid);
 
 signals:
     void displayLabelChanged();
@@ -191,7 +184,6 @@ signals:
     void reminderChanged();
     void reminderDateTimeChanged();
     void uniqueIdChanged();
-    void colorChanged();
     void calendarUidChanged();
     void locationChanged();
     void recurEndDateChanged();
@@ -205,10 +197,35 @@ signals:
     void rsvpChanged();
     void externalInvitationChanged();
 
+protected:
+    CalendarData::Event *mData;
+};
+
+class CalendarManager;
+class CalendarStoredEvent : public CalendarEvent
+{
+    Q_OBJECT
+    Q_PROPERTY(QString color READ color NOTIFY colorChanged)
+public:
+    CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data);
+    ~CalendarStoredEvent();
+
+    void setEvent(const CalendarData::Event *event);
+    QString color() const;
+
+    Q_INVOKABLE bool sendResponse(int response);
+    Q_INVOKABLE QString iCalendar(const QString &prodId = QString()) const;
+    Q_INVOKABLE void deleteEvent();
+
+signals:
+    void colorChanged();
+
+private slots:
+    void notebookColorChanged(QString notebookUid);
+    void eventUidChanged(QString oldUid, QString newUid);
+
 private:
     CalendarManager *mManager;
-    QString mUniqueId;
-    QDateTime mRecurrenceId;
 };
 
 #endif // CALENDAREVENT_H

@@ -31,7 +31,6 @@
  */
 
 #include "calendarutils.h"
-
 #include "calendareventquery.h"
 
 // kcalendarcore
@@ -46,36 +45,233 @@
 #include <QUrl>
 #include <QString>
 #include <QBitArray>
-#include <QByteArray>
-#include <QtDebug>
+#include <QDebug>
 
-CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalendarCore::Event::Ptr &event)
+CalendarData::Event::Event(const KCalendarCore::Event &event)
+    : displayLabel(event.summary())
+    , description(event.description())
+    , startTime(event.dtStart())
+    , endTime(event.dtEnd())
+    , allDay(event.allDay())
+    , uniqueId(event.uid())
+    , recurrenceId(event.recurrenceId())
+    , location(event.location())
 {
-    if (!event->recurs())
+    switch (event.secrecy()) {
+    case KCalendarCore::Incidence::SecrecyPrivate:
+        secrecy = CalendarEvent::SecrecyPrivate;
+        break;
+    case KCalendarCore::Incidence::SecrecyConfidential:
+        secrecy = CalendarEvent::SecrecyConfidential;
+        break;
+    default:
+        break;
+    }
+    switch (event.status()) {
+    case KCalendarCore::Incidence::StatusTentative:
+        status = CalendarEvent::StatusTentative;
+        break;
+    case KCalendarCore::Incidence::StatusConfirmed:
+        status = CalendarEvent::StatusConfirmed;
+        break;
+    case KCalendarCore::Incidence::StatusCanceled:
+        status = CalendarEvent::StatusCancelled;
+        break;
+    default:
+        break;
+    }
+    const QString &failure = event.customProperty("VOLATILE", "SYNC-FAILURE");
+    if (failure.compare("upload", Qt::CaseInsensitive) == 0) {
+        syncFailure = CalendarEvent::UploadFailure;
+    } else if (failure.compare("update", Qt::CaseInsensitive) == 0) {
+        syncFailure = CalendarEvent::UpdateFailure;
+    } else if (failure.compare("delete", Qt::CaseInsensitive) == 0) {
+        syncFailure = CalendarEvent::DeleteFailure;
+    }
+    const QString &syncResolution = event.customProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION");
+    if (syncResolution.compare("keep-out-of-sync", Qt::CaseInsensitive) == 0) {
+        syncFailureResolution = CalendarEvent::KeepOutOfSync;
+    } else if (syncResolution.compare("server-reset", Qt::CaseInsensitive) == 0) {
+        syncFailureResolution = CalendarEvent::PullServerData;
+    } else if (syncResolution.compare("device-reset", Qt::CaseInsensitive) == 0) {
+        syncFailureResolution = CalendarEvent::PushDeviceData;
+    } else if (!syncResolution.isEmpty()) {
+        qWarning() << "unsupported sync failure resolution" << syncResolution;
+    }
+    recur = fromKRecurrence(event);
+    recurWeeklyDays = fromKDayPositions(event);
+    KCalendarCore::RecurrenceRule *defaultRule = event.recurrence()->defaultRRule();
+    if (defaultRule) {
+        recurEndDate = defaultRule->endDt().date();
+    }
+    reminder = fromKReminder(event);
+    reminderDateTime = fromKReminderDateTime(event);
+}
+
+void CalendarData::Event::toKCalendarCore(KCalendarCore::Event::Ptr &event) const
+{
+    event->setDescription(description);
+    event->setSummary(displayLabel);
+    event->setDtStart(startTime);
+    event->setDtEnd(endTime);
+    event->setAllDay(allDay);
+    event->setLocation(location);
+    toKReminder(*event);
+    toKRecurrence(*event);
+    switch (status) {
+    case CalendarEvent::StatusNone:
+        event->setStatus(KCalendarCore::Incidence::StatusNone);
+        break;
+    case CalendarEvent::StatusTentative:
+        event->setStatus(KCalendarCore::Incidence::StatusTentative);
+        break;
+    case CalendarEvent::StatusConfirmed:
+        event->setStatus(KCalendarCore::Incidence::StatusConfirmed);
+        break;
+    case CalendarEvent::StatusCancelled:
+        event->setStatus(KCalendarCore::Incidence::StatusCanceled);
+        break;
+    default:
+        qWarning() << "unknown status value" << status;
+    }
+
+    if (recur != CalendarEvent::RecurOnce) {
+        event->recurrence()->setEndDate(recurEndDate);
+        if (!recurEndDate.isValid()) {
+            // Recurrence/RecurrenceRule don't have separate method to clear the end date, and currently
+            // setting invalid date doesn't make the duration() indicate recurring infinitely.
+            event->recurrence()->setDuration(-1);
+        }
+    }
+    if (syncFailureResolution == CalendarEvent::RetrySync) {
+        event->removeCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION");
+    } else if (syncFailureResolution == CalendarEvent::KeepOutOfSync) {
+        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "keep-out-of-sync");
+    } else if (syncFailureResolution == CalendarEvent::PushDeviceData) {
+        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "device-reset");
+    } else if (syncFailureResolution == CalendarEvent::PullServerData) {
+        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "server-reset");
+    } else {
+        qWarning() << "No support for sync failure resolution" << syncFailureResolution;
+    }
+}
+
+void CalendarData::Event::toKReminder(KCalendarCore::Event &event) const
+{
+    if (fromKReminder(event) == reminder
+        && fromKReminderDateTime(event) == reminderDateTime)
+        return;
+
+    KCalendarCore::Alarm::List alarms = event.alarms();
+    for (int ii = 0; ii < alarms.count(); ++ii) {
+        if (alarms.at(ii)->type() == KCalendarCore::Alarm::Procedure)
+            continue;
+        event.removeAlarm(alarms.at(ii));
+    }
+
+    // negative reminder seconds means "no reminder", so only
+    // deal with positive (or zero = at time of event) reminders.
+    if (reminder >= 0) {
+        KCalendarCore::Alarm::Ptr alarm = event.newAlarm();
+        alarm->setEnabled(true);
+        // backend stores as "offset to dtStart", i.e negative if reminder before event.
+        alarm->setStartOffset(-1 * reminder);
+        alarm->setType(KCalendarCore::Alarm::Display);
+    } else if (reminderDateTime.isValid()) {
+        KCalendarCore::Alarm::Ptr alarm = event.newAlarm();
+        alarm->setEnabled(true);
+        alarm->setTime(reminderDateTime);
+        alarm->setType(KCalendarCore::Alarm::Display);
+    }
+}
+
+void CalendarData::Event::toKRecurrence(KCalendarCore::Event &event) const
+{
+    CalendarEvent::Recur oldRecur = fromKRecurrence(event);
+
+    if (recur == CalendarEvent::RecurOnce)
+        event.recurrence()->clear();
+
+    if (oldRecur != recur
+        || recur == CalendarEvent::RecurMonthlyByDayOfWeek
+        || recur == CalendarEvent::RecurMonthlyByLastDayOfWeek
+        || recur == CalendarEvent::RecurWeeklyByDays) {
+        switch (recur) {
+        case CalendarEvent::RecurOnce:
+            break;
+        case CalendarEvent::RecurDaily:
+            event.recurrence()->setDaily(1);
+            break;
+        case CalendarEvent::RecurWeekly:
+            event.recurrence()->setWeekly(1);
+            break;
+        case CalendarEvent::RecurBiweekly:
+            event.recurrence()->setWeekly(2);
+            break;
+        case CalendarEvent::RecurWeeklyByDays: {
+            QBitArray rDays(7);
+            rDays.setBit(0, recurWeeklyDays & CalendarEvent::Monday);
+            rDays.setBit(1, recurWeeklyDays & CalendarEvent::Tuesday);
+            rDays.setBit(2, recurWeeklyDays & CalendarEvent::Wednesday);
+            rDays.setBit(3, recurWeeklyDays & CalendarEvent::Thursday);
+            rDays.setBit(4, recurWeeklyDays & CalendarEvent::Friday);
+            rDays.setBit(5, recurWeeklyDays & CalendarEvent::Saturday);
+            rDays.setBit(6, recurWeeklyDays & CalendarEvent::Sunday);
+            event.recurrence()->setWeekly(1, rDays);
+            break;
+        }
+        case CalendarEvent::RecurMonthly:
+            event.recurrence()->setMonthly(1);
+            break;
+        case CalendarEvent::RecurMonthlyByDayOfWeek: {
+            event.recurrence()->setMonthly(1);
+            const QDate at(event.dtStart().date());
+            event.recurrence()->addMonthlyPos((at.day() - 1) / 7 + 1, at.dayOfWeek());
+            break;
+        }
+        case CalendarEvent::RecurMonthlyByLastDayOfWeek: {
+            event.recurrence()->setMonthly(1);
+            const QDate at(event.dtStart().date());
+            event.recurrence()->addMonthlyPos(-1, at.dayOfWeek());
+            break;
+        }
+        case CalendarEvent::RecurYearly:
+            event.recurrence()->setYearly(1);
+            break;
+        case CalendarEvent::RecurCustom:
+            // Unable to handle the recurrence rules, keep the existing ones.
+            break;
+        }
+    }
+}
+
+CalendarEvent::Recur CalendarData::Event::fromKRecurrence(const KCalendarCore::Event &event) const
+{
+    if (!event.recurs())
         return CalendarEvent::RecurOnce;
 
-    if (event->recurrence()->rRules().count() != 1)
+    if (event.recurrence()->rRules().count() != 1)
         return CalendarEvent::RecurCustom;
 
-    ushort rt = event->recurrence()->recurrenceType();
-    int freq = event->recurrence()->frequency();
+    ushort rt = event.recurrence()->recurrenceType();
+    int freq = event.recurrence()->frequency();
 
     if (rt == KCalendarCore::Recurrence::rDaily && freq == 1) {
         return CalendarEvent::RecurDaily;
     } else if (rt == KCalendarCore::Recurrence::rWeekly && freq == 1) {
-        if (event->recurrence()->days().count(true) == 0) {
+        if (event.recurrence()->days().count(true) == 0) {
             return CalendarEvent::RecurWeekly;
         } else {
             return CalendarEvent::RecurWeeklyByDays;
         }
-    } else if (rt == KCalendarCore::Recurrence::rWeekly && freq == 2 && event->recurrence()->days().count(true) == 0) {
+    } else if (rt == KCalendarCore::Recurrence::rWeekly && freq == 2 && event.recurrence()->days().count(true) == 0) {
         return CalendarEvent::RecurBiweekly;
     } else if (rt == KCalendarCore::Recurrence::rMonthlyDay && freq == 1) {
         return CalendarEvent::RecurMonthly;
     } else if (rt == KCalendarCore::Recurrence::rMonthlyPos && freq == 1) {
-        const QList<KCalendarCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
+        const QList<KCalendarCore::RecurrenceRule::WDayPos> monthPositions = event.recurrence()->monthPositions();
         if (monthPositions.length() == 1
-            && monthPositions.first().day() == event->dtStart().date().dayOfWeek()) {
+            && monthPositions.first().day() == event.dtStart().date().dayOfWeek()) {
             if (monthPositions.first().pos() > 0) {
                 return CalendarEvent::RecurMonthlyByDayOfWeek;
             } else if (monthPositions.first().pos() == -1) {
@@ -89,16 +285,16 @@ CalendarEvent::Recur CalendarUtils::convertRecurrence(const KCalendarCore::Event
     return CalendarEvent::RecurCustom;
 }
 
-CalendarEvent::Days CalendarUtils::convertDayPositions(const KCalendarCore::Event::Ptr &event)
+CalendarEvent::Days CalendarData::Event::fromKDayPositions(const KCalendarCore::Event &event) const
 {
-    if (!event->recurs())
+    if (!event.recurs())
         return CalendarEvent::NoDays;
 
-    if (event->recurrence()->rRules().count() != 1)
+    if (event.recurrence()->rRules().count() != 1)
         return CalendarEvent::NoDays;
 
-    if (event->recurrence()->recurrenceType() != KCalendarCore::Recurrence::rWeekly
-        || event->recurrence()->frequency() != 1)
+    if (event.recurrence()->recurrenceType() != KCalendarCore::Recurrence::rWeekly
+        || event.recurrence()->frequency() != 1)
         return CalendarEvent::NoDays;
 
     const CalendarEvent::Day week[7] = {CalendarEvent::Monday,
@@ -109,7 +305,7 @@ CalendarEvent::Days CalendarUtils::convertDayPositions(const KCalendarCore::Even
                                         CalendarEvent::Saturday,
                                         CalendarEvent::Sunday};
 
-    const QList<KCalendarCore::RecurrenceRule::WDayPos> monthPositions = event->recurrence()->monthPositions();
+    const QList<KCalendarCore::RecurrenceRule::WDayPos> monthPositions = event.recurrence()->monthPositions();
     CalendarEvent::Days days = CalendarEvent::NoDays;
     for (QList<KCalendarCore::RecurrenceRule::WDayPos>::ConstIterator it = monthPositions.constBegin();
          it != monthPositions.constEnd(); ++it) {
@@ -118,38 +314,9 @@ CalendarEvent::Days CalendarUtils::convertDayPositions(const KCalendarCore::Even
     return days;
 }
 
-CalendarEvent::Secrecy CalendarUtils::convertSecrecy(const KCalendarCore::Event::Ptr &event)
+int CalendarData::Event::fromKReminder(const KCalendarCore::Event &event) const
 {
-    KCalendarCore::Incidence::Secrecy s = event->secrecy();
-    switch (s) {
-    case KCalendarCore::Incidence::SecrecyPrivate:
-        return CalendarEvent::SecrecyPrivate;
-    case KCalendarCore::Incidence::SecrecyConfidential:
-        return CalendarEvent::SecrecyConfidential;
-    case KCalendarCore::Incidence::SecrecyPublic:
-    default:
-        return CalendarEvent::SecrecyPublic;
-    }
-}
-
-CalendarEvent::Status CalendarUtils::convertStatus(const KCalendarCore::Event::Ptr &event)
-{
-    switch (event->status()) {
-    case KCalendarCore::Incidence::StatusTentative:
-        return CalendarEvent::StatusTentative;
-    case KCalendarCore::Incidence::StatusConfirmed:
-        return CalendarEvent::StatusConfirmed;
-    case KCalendarCore::Incidence::StatusCanceled:
-        return CalendarEvent::StatusCancelled;
-    case KCalendarCore::Incidence::StatusNone:
-    default:
-        return CalendarEvent::StatusNone;
-    }
-}
-
-int CalendarUtils::getReminder(const KCalendarCore::Event::Ptr &event)
-{
-    KCalendarCore::Alarm::List alarms = event->alarms();
+    KCalendarCore::Alarm::List alarms = event.alarms();
 
     KCalendarCore::Alarm::Ptr alarm;
 
@@ -171,9 +338,9 @@ int CalendarUtils::getReminder(const KCalendarCore::Event::Ptr &event)
     return seconds;
 }
 
-QDateTime CalendarUtils::getReminderDateTime(const KCalendarCore::Event::Ptr &event)
+QDateTime CalendarData::Event::fromKReminderDateTime(const KCalendarCore::Event &event) const
 {
-    for (const KCalendarCore::Alarm::Ptr &alarm : event->alarms()) {
+    for (const KCalendarCore::Alarm::Ptr &alarm : event.alarms()) {
         if (alarm && alarm->type() == KCalendarCore::Alarm::Display && alarm->hasTime()) {
             return alarm->time();
         }

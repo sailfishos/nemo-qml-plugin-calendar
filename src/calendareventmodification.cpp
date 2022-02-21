@@ -55,129 +55,95 @@ void updateTime(QDateTime *dt, Qt::TimeSpec spec, const QString &timeZone)
 
 }
 
-CalendarEventModification::CalendarEventModification(CalendarData::Event data, QObject *parent)
-    : QObject(parent), m_event(data), m_attendeesSet(false)
+CalendarEventModification::CalendarEventModification(const CalendarStoredEvent *source, QObject *parent)
+    : CalendarEvent(source, parent)
 {
 }
 
 CalendarEventModification::CalendarEventModification(QObject *parent)
-    : QObject(parent), m_attendeesSet(false)
+    : CalendarEvent((CalendarData::Event*)0, parent)
 {
-    m_event.recur = CalendarEvent::RecurOnce;
-    m_event.reminder = -1; // ReminderNone
-    m_event.allDay = false;
-    m_event.readOnly = false;
 }
 
 CalendarEventModification::~CalendarEventModification()
 {
 }
 
-QString CalendarEventModification::displayLabel() const
+QDateTime CalendarEventModification::startTime() const
 {
-    return m_event.displayLabel;
+    return mData->startTime;
+}
+
+QDateTime CalendarEventModification::endTime() const
+{
+    return mData->endTime;
 }
 
 void CalendarEventModification::setDisplayLabel(const QString &displayLabel)
 {
-    if (m_event.displayLabel != displayLabel) {
-        m_event.displayLabel = displayLabel;
+    if (mData->displayLabel != displayLabel) {
+        mData->displayLabel = displayLabel;
         emit displayLabelChanged();
     }
 }
 
-QString CalendarEventModification::description() const
-{
-    return m_event.description;
-}
-
 void CalendarEventModification::setDescription(const QString &description)
 {
-    if (m_event.description != description) {
-        m_event.description = description;
+    if (mData->description != description) {
+        mData->description = description;
         emit descriptionChanged();
     }
-}
-
-QDateTime CalendarEventModification::startTime() const
-{
-    return m_event.startTime;
 }
 
 void CalendarEventModification::setStartTime(const QDateTime &startTime, Qt::TimeSpec spec, const QString &timezone)
 {
     QDateTime newStartTimeInTz = startTime;
     updateTime(&newStartTimeInTz, spec, timezone);
-    if (m_event.startTime != newStartTimeInTz
-        || m_event.startTime.timeSpec() != newStartTimeInTz.timeSpec()
-        || (m_event.startTime.timeSpec() == Qt::TimeZone
-            && m_event.startTime.timeZone() != newStartTimeInTz.timeZone())) {
-        m_event.startTime = newStartTimeInTz;
+    if (mData->startTime != newStartTimeInTz
+        || mData->startTime.timeSpec() != newStartTimeInTz.timeSpec()
+        || (mData->startTime.timeSpec() == Qt::TimeZone
+            && mData->startTime.timeZone() != newStartTimeInTz.timeZone())) {
+        mData->startTime = newStartTimeInTz;
         emit startTimeChanged();
     }
-}
-
-QDateTime CalendarEventModification::endTime() const
-{
-    return m_event.endTime;
 }
 
 void CalendarEventModification::setEndTime(const QDateTime &endTime, Qt::TimeSpec spec, const QString &timezone)
 {
     QDateTime newEndTimeInTz = endTime;
     updateTime(&newEndTimeInTz, spec, timezone);
-    if (m_event.endTime != newEndTimeInTz
-        || m_event.endTime.timeSpec() != newEndTimeInTz.timeSpec()
-        || (m_event.endTime.timeSpec() == Qt::TimeZone
-            && m_event.endTime.timeZone() != newEndTimeInTz.timeZone())) {
-        m_event.endTime = newEndTimeInTz;
+    if (mData->endTime != newEndTimeInTz
+        || mData->endTime.timeSpec() != newEndTimeInTz.timeSpec()
+        || (mData->endTime.timeSpec() == Qt::TimeZone
+            && mData->endTime.timeZone() != newEndTimeInTz.timeZone())) {
+        mData->endTime = newEndTimeInTz;
         emit endTimeChanged();
     }
 }
 
-bool CalendarEventModification::allDay() const
-{
-    return m_event.allDay;
-}
-
 void CalendarEventModification::setAllDay(bool allDay)
 {
-    if (m_event.allDay != allDay) {
-        m_event.allDay = allDay;
+    if (mData->allDay != allDay) {
+        mData->allDay = allDay;
         emit allDayChanged();
     }
 }
 
-CalendarEvent::Recur CalendarEventModification::recur() const
-{
-    return m_event.recur;
-}
-
 void CalendarEventModification::setRecur(CalendarEvent::Recur recur)
 {
-    if (m_event.recur != recur) {
-        m_event.recur = recur;
+    if (mData->recur != recur) {
+        mData->recur = recur;
         emit recurChanged();
     }
 }
 
-QDateTime CalendarEventModification::recurEndDate() const
-{
-    return QDateTime(m_event.recurEndDate);
-}
-
-bool CalendarEventModification::hasRecurEndDate() const
-{
-    return m_event.recurEndDate.isValid();
-}
-
 void CalendarEventModification::setRecurEndDate(const QDateTime &dateTime)
 {
-    bool wasValid = m_event.recurEndDate.isValid();
+    bool wasValid = mData->recurEndDate.isValid();
     QDate date = dateTime.date();
 
-    if (m_event.recurEndDate != date) {
-        m_event.recurEndDate = date;
+    if (mData->recurEndDate != date) {
+        mData->recurEndDate = date;
         emit recurEndDateChanged();
 
         if (date.isValid() != wasValid) {
@@ -191,76 +157,42 @@ void CalendarEventModification::unsetRecurEndDate()
     setRecurEndDate(QDateTime());
 }
 
-CalendarEvent::Days CalendarEventModification::recurWeeklyDays() const
-{
-    return m_event.recurWeeklyDays;
-}
-
 void CalendarEventModification::setRecurWeeklyDays(CalendarEvent::Days days)
 {
-    if (m_event.recurWeeklyDays != days) {
-        m_event.recurWeeklyDays = days;
+    if (mData->recurWeeklyDays != days) {
+        mData->recurWeeklyDays = days;
         emit recurWeeklyDaysChanged();
     }
 }
 
-QString CalendarEventModification::recurrenceIdString() const
-{
-    if (m_event.recurrenceId.isValid()) {
-        return CalendarUtils::recurrenceIdToString(m_event.recurrenceId);
-    } else {
-        return QString();
-    }
-}
-
-int CalendarEventModification::reminder() const
-{
-    return m_event.reminder;
-}
-
 void CalendarEventModification::setReminder(int seconds)
 {
-    if (seconds != m_event.reminder) {
-        m_event.reminder = seconds;
+    if (seconds != mData->reminder) {
+        mData->reminder = seconds;
         emit reminderChanged();
     }
 }
 
-QDateTime CalendarEventModification::reminderDateTime() const
-{
-    return m_event.reminderDateTime;
-}
-
 void CalendarEventModification::setReminderDateTime(const QDateTime &dateTime)
 {
-    if (dateTime != m_event.reminderDateTime) {
-        m_event.reminderDateTime = dateTime;
+    if (dateTime != mData->reminderDateTime) {
+        mData->reminderDateTime = dateTime;
         emit reminderDateTimeChanged();
     }
 }
 
-QString CalendarEventModification::location() const
-{
-    return m_event.location;
-}
-
 void CalendarEventModification::setLocation(const QString &newLocation)
 {
-    if (newLocation != m_event.location) {
-        m_event.location = newLocation;
+    if (newLocation != mData->location) {
+        mData->location = newLocation;
         emit locationChanged();
     }
 }
 
-QString CalendarEventModification::calendarUid() const
-{
-    return m_event.calendarUid;
-}
-
 void CalendarEventModification::setCalendarUid(const QString &uid)
 {
-    if (m_event.calendarUid != uid) {
-        m_event.calendarUid = uid;
+    if (mData->calendarUid != uid) {
+        mData->calendarUid = uid;
         emit calendarUidChanged();
     }
 }
@@ -279,26 +211,26 @@ void CalendarEventModification::setAttendees(CalendarContactModel *required, Cal
 
 void CalendarEventModification::save()
 {
-    CalendarManager::instance()->saveModification(m_event, m_attendeesSet,
+    CalendarManager::instance()->saveModification(*mData, m_attendeesSet,
                                                   m_requiredAttendees, m_optionalAttendees);
 }
 
 CalendarChangeInformation *
 CalendarEventModification::replaceOccurrence(CalendarEventOccurrence *occurrence)
 {
-    return CalendarManager::instance()->replaceOccurrence(m_event, occurrence, m_attendeesSet,
+    return CalendarManager::instance()->replaceOccurrence(*mData, occurrence, m_attendeesSet,
                                                           m_requiredAttendees, m_optionalAttendees);
 }
 
 CalendarEvent::SyncFailureResolution CalendarEventModification::syncFailureResolution() const
 {
-    return m_event.syncFailureResolution;
+    return mData->syncFailureResolution;
 }
 
 void CalendarEventModification::setSyncFailureResolution(CalendarEvent::SyncFailureResolution resolution)
 {
-    if (m_event.syncFailureResolution != resolution) {
-        m_event.syncFailureResolution = resolution;
+    if (mData->syncFailureResolution != resolution) {
+        mData->syncFailureResolution = resolution;
         emit syncFailureResolutionChanged();
     }
 }
