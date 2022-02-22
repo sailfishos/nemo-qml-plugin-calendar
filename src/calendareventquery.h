@@ -74,6 +74,13 @@ public:
     {
     }
 
+    bool operator==(const Person &other) const
+    {
+        return m_name == other.m_name && m_email == other.m_email && m_isOrganizer == other.m_isOrganizer
+            && m_participationRole == other.m_participationRole
+            && m_participationStatus == other.m_participationStatus;
+    }
+
     QString name() const { return m_name; }
     QString email() const { return m_email; }
     bool isOrganizer() const { return m_isOrganizer; }
