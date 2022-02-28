@@ -58,6 +58,7 @@ class CalendarEventModification : public QObject
     Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime WRITE setReminderDateTime NOTIFY reminderDateTimeChanged)
     Q_PROPERTY(QString location READ location WRITE setLocation NOTIFY locationChanged)
     Q_PROPERTY(QString calendarUid READ calendarUid WRITE setCalendarUid NOTIFY calendarUidChanged)
+    Q_PROPERTY(CalendarEvent::SyncFailureResolution syncFailureResolution READ syncFailureResolution WRITE setSyncFailureResolution NOTIFY syncFailureResolutionChanged)
 
 public:
     CalendarEventModification(CalendarData::Event data, QObject *parent = 0);
@@ -104,6 +105,9 @@ public:
     QString calendarUid() const;
     void setCalendarUid(const QString &uid);
 
+    CalendarEvent::SyncFailureResolution syncFailureResolution() const;
+    void setSyncFailureResolution(CalendarEvent::SyncFailureResolution resolution);
+
     Q_INVOKABLE void setAttendees(CalendarContactModel *required, CalendarContactModel *optional);
 
     Q_INVOKABLE void save();
@@ -123,6 +127,7 @@ signals:
     void recurEndDateChanged();
     void hasRecurEndDateChanged();
     void calendarUidChanged();
+    void syncFailureResolutionChanged();
 
 private:
     CalendarData::Event m_event;

@@ -69,6 +69,7 @@ class CalendarEvent : public QObject
     Q_PROPERTY(CalendarEvent::Secrecy secrecy READ secrecy NOTIFY secrecyChanged)
     Q_PROPERTY(CalendarEvent::Status status READ status NOTIFY statusChanged)
     Q_PROPERTY(CalendarEvent::SyncFailure syncFailure READ syncFailure NOTIFY syncFailureChanged)
+    Q_PROPERTY(CalendarEvent::SyncFailureResolution syncFailureResolution READ syncFailureResolution NOTIFY syncFailureResolutionChanged)
     Q_PROPERTY(CalendarEvent::Response ownerStatus READ ownerStatus NOTIFY ownerStatusChanged)
     Q_PROPERTY(bool rsvp READ rsvp NOTIFY rsvpChanged)
     Q_PROPERTY(bool externalInvitation READ externalInvitation NOTIFY externalInvitationChanged)
@@ -116,11 +117,20 @@ public:
 
     enum SyncFailure {
         NoSyncFailure,
+        CreationFailure,
         UploadFailure,
         UpdateFailure,
         DeleteFailure
     };
     Q_ENUM(SyncFailure)
+
+    enum SyncFailureResolution {
+        RetrySync,
+        KeepOutOfSync,
+        PushDeviceData,
+        PullServerData
+    };
+    Q_ENUM(SyncFailureResolution)
 
     enum Status {
         StatusNone,
@@ -158,6 +168,7 @@ public:
     Secrecy secrecy() const;
     Status status() const;
     SyncFailure syncFailure() const;
+    SyncFailureResolution syncFailureResolution() const;
     Response ownerStatus() const;
     bool rsvp() const;
     bool externalInvitation() const;
@@ -189,6 +200,7 @@ signals:
     void secrecyChanged();
     void statusChanged();
     void syncFailureChanged();
+    void syncFailureResolutionChanged();
     void ownerStatusChanged();
     void rsvpChanged();
     void externalInvitationChanged();

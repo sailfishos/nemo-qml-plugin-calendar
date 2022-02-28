@@ -309,6 +309,18 @@ void CalendarWorker::setEventData(KCalendarCore::Event::Ptr &event, const Calend
             event->recurrence()->setDuration(-1);
         }
     }
+
+    if (eventData.syncFailureResolution == CalendarEvent::RetrySync) {
+        event->removeCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION");
+    } else if (eventData.syncFailureResolution == CalendarEvent::KeepOutOfSync) {
+        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "keep-out-of-sync");
+    } else if (eventData.syncFailureResolution == CalendarEvent::PushDeviceData) {
+        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "device-reset");
+    } else if (eventData.syncFailureResolution == CalendarEvent::PullServerData) {
+        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "server-reset");
+    } else {
+        qWarning() << "No support for sync failure resolution" << eventData.syncFailureResolution;
+    }
 }
 
 void CalendarWorker::replaceOccurrence(const CalendarData::Event &eventData, const QDateTime &startTime,
@@ -897,10 +909,22 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
     const QString &syncFailure = e->customProperty("VOLATILE", "SYNC-FAILURE");
     if (syncFailure.compare("upload", Qt::CaseInsensitive) == 0) {
         event.syncFailure = CalendarEvent::UploadFailure;
+    } else if (syncFailure.compare("upload-new", Qt::CaseInsensitive) == 0) {
+        event.syncFailure = CalendarEvent::CreationFailure;
     } else if (syncFailure.compare("update", Qt::CaseInsensitive) == 0) {
         event.syncFailure = CalendarEvent::UpdateFailure;
     } else if (syncFailure.compare("delete", Qt::CaseInsensitive) == 0) {
         event.syncFailure = CalendarEvent::DeleteFailure;
+    }
+    const QString &syncResolution = e->customProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION");
+    if (syncResolution.compare("keep-out-of-sync", Qt::CaseInsensitive) == 0) {
+        event.syncFailureResolution = CalendarEvent::KeepOutOfSync;
+    } else if (syncResolution.compare("server-reset", Qt::CaseInsensitive) == 0) {
+        event.syncFailureResolution = CalendarEvent::PullServerData;
+    } else if (syncResolution.compare("device-reset", Qt::CaseInsensitive) == 0) {
+        event.syncFailureResolution = CalendarEvent::PushDeviceData;
+    } else if (!syncResolution.isEmpty()) {
+        qWarning() << "unsupported sync failure resolution" << syncResolution;
     }
     bool externalInvitation = false;
     const QString &calendarOwnerEmail = getNotebookAddress(e);

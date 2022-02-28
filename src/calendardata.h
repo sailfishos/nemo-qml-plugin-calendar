@@ -79,6 +79,7 @@ struct Event {
     CalendarEvent::Response ownerStatus = CalendarEvent::ResponseUnspecified;
     CalendarEvent::Status status = CalendarEvent::StatusNone;
     CalendarEvent::SyncFailure syncFailure = CalendarEvent::NoSyncFailure;
+    CalendarEvent::SyncFailureResolution syncFailureResolution = CalendarEvent::RetrySync;
 
     bool operator==(const Event& other) const
     {
