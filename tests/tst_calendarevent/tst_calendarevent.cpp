@@ -41,6 +41,10 @@
 #include "calendareventquery.h"
 #include "calendaragendamodel.h"
 #include "calendarmanager.h"
+#include "calendarworker.h"
+#include "test_plugin/test_plugin.h"
+
+#include <servicehandler.h>
 
 #include "plugin.cpp"
 
@@ -62,6 +66,7 @@ private slots:
     void testRecurrence_data();
     void testRecurrence();
     void testRecurWeeklyDays();
+    void testAttendees();
 
 private:
     bool saveEvent(CalendarEventModification *eventMod, QString *uid);
@@ -77,6 +82,10 @@ void tst_CalendarEvent::initTestCase()
     NemoCalendarPlugin* plugin = new NemoCalendarPlugin();
     plugin->initializeEngine(engine, "foobar");
     calendarApi = new CalendarApi(this);
+
+    // Use test plugins, instead of mKCal ones.
+    if (qgetenv("MKCAL_PLUGIN_DIR").isEmpty())
+        qputenv("MKCAL_PLUGIN_DIR", "plugins");
 
     // Ensure a default notebook exists for saving new events
     CalendarManager *manager = CalendarManager::instance();
@@ -660,6 +669,157 @@ void tst_CalendarEvent::testRecurWeeklyDays()
     QVERIFY(eventSpy.wait());
     QVERIFY(!query.event());
     mSavedEvents.remove(uid);
+}
+
+void tst_CalendarEvent::testAttendees()
+{
+    // Ensure that service handler for invitation is using the test plugin.
+    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
+    mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(cal);
+    QVERIFY(storage->open());
+    const QString defaultNotebookUid = CalendarManager::instance()->defaultNotebook();
+    QVERIFY(!defaultNotebookUid.isEmpty());
+    mKCal::Notebook::Ptr defaultNotebook = storage->notebook(defaultNotebookUid);
+    QVERIFY(defaultNotebook);
+    defaultNotebook->setPluginName(QString::fromLatin1("TestInvitationPlugin"));
+    defaultNotebook->setCustomProperty("TEST_EMAIL", QString::fromLatin1("alice@example.org"));
+    QVERIFY(storage->updateNotebook(defaultNotebook));
+
+    TestInvitationPlugin *plugin = static_cast<TestInvitationPlugin*>(mKCal::ServiceHandler::instance().service(defaultNotebook->pluginName()));
+    QVERIFY(plugin);
+
+    CalendarEventModification *eventMod = calendarApi->createNewEvent();
+    QVERIFY(eventMod != 0);
+
+    eventMod->setStartTime(QDateTime::currentDateTime(), Qt::LocalTime);
+    eventMod->setEndTime(eventMod->startTime().addSecs(600), Qt::LocalTime);
+    const QString initialDescr = QString::fromLatin1("Test attendees");
+    eventMod->setDisplayLabel(initialDescr);
+    CalendarContactModel required, optional;
+    const QString alice = QString::fromLatin1("Alice");
+    const QString bob = QString::fromLatin1("Bob");
+    const QString carl = QString::fromLatin1("Carl");
+    const QString aliceEmail = QString::fromLatin1("alice@example.org");
+    const QString bobEmail = QString::fromLatin1("bob@example.org");
+    const QString carlEmail = QString::fromLatin1("carl@example.org");
+    required.append(alice, aliceEmail);
+    required.append(bob, bobEmail);
+    optional.append(carl, carlEmail);
+    eventMod->setAttendees(&required, &optional);
+    Person Alice(alice, aliceEmail, true, Person::ChairParticipant, Person::UnknownParticipation);
+    Person Bob(bob, bobEmail, false, Person::RequiredParticipant, Person::UnknownParticipation);
+    Person Carl(carl, carlEmail, false, Person::OptionalParticipant, Person::UnknownParticipation);
+
+    QString uid;
+    bool ok = saveEvent(eventMod, &uid);
+    if (!ok) {
+        QFAIL("Failed to fetch new event uid");
+    }
+    QVERIFY(!uid.isEmpty());
+    mSavedEvents.insert(uid);
+    delete eventMod;
+
+    // Check that the sendInvitation() service as received the right data.
+    const KCalendarCore::Incidence::Ptr sentInvitation = plugin->sentInvitation();
+    QVERIFY(sentInvitation);
+    QCOMPARE(sentInvitation->uid(), uid);
+    const KCalendarCore::Attendee::List sentAttendees = sentInvitation->attendees();
+    QCOMPARE(sentAttendees.count(), 3);
+    KCalendarCore::Attendee attAlice(alice, aliceEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attBob(bob, bobEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attCarl(carl, carlEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::OptParticipant);
+    QVERIFY(sentAttendees.contains(attAlice));
+    QVERIFY(sentAttendees.contains(attBob));
+    QVERIFY(sentAttendees.contains(attCarl));
+
+    // Check that saved event locally is presenting the right data.
+    CalendarEventQuery query;
+    QSignalSpy eventSpy(&query, &CalendarEventQuery::attendeesChanged);
+    query.setUniqueId(uid);
+    QVERIFY(eventSpy.wait());
+
+    QList<QObject*> attendees = query.attendees();
+    QCOMPARE(attendees.count(), 3);
+    QCOMPARE(*qobject_cast<Person*>(attendees[0]), Alice);
+    QCOMPARE(*qobject_cast<Person*>(attendees[1]), Bob);
+    QCOMPARE(*qobject_cast<Person*>(attendees[2]), Carl);
+    qDeleteAll(attendees);
+
+    // Simulate adding neither optional nor required participants by external means.
+    QVERIFY(storage->load(uid));
+    KCalendarCore::Incidence::Ptr incidence = cal->incidence(uid);
+    QVERIFY(incidence);
+    const QString dude = QString::fromLatin1("Dude");
+    const QString dudeEmail = QString::fromLatin1("dude@example.org");
+    Person Dude(dude, dudeEmail, false, Person::NonParticipant, Person::AcceptedParticipation);
+    KCalendarCore::Attendee attDude(dude, dudeEmail, false,
+                                    KCalendarCore::Attendee::Accepted,
+                                    KCalendarCore::Attendee::NonParticipant);
+    incidence->addAttendee(attDude);
+    QVERIFY(storage->save());
+
+    QVERIFY(eventSpy.wait());
+    attendees = query.attendees();
+    QCOMPARE(attendees.count(), 4);
+    QCOMPARE(*qobject_cast<Person*>(attendees[0]), Alice);
+    QCOMPARE(*qobject_cast<Person*>(attendees[1]), Bob);
+    QCOMPARE(*qobject_cast<Person*>(attendees[2]), Carl);
+    QCOMPARE(*qobject_cast<Person*>(attendees[3]), Dude);
+    qDeleteAll(attendees);
+
+    // Do a local modification, by removing participants and adding new.
+    eventMod = calendarApi->createModification(qobject_cast<CalendarEvent*>(query.event()));
+    QVERIFY(eventMod);
+    required.remove(1); // Remove Bob
+    optional.remove(0); // Remove Carl
+    const QString emily = QString::fromLatin1("Emily");
+    const QString emilyEmail = QString::fromLatin1("emily@example.org");
+    Person Emily(emily, emilyEmail, false, Person::RequiredParticipant, Person::UnknownParticipation);
+    const QString fanny = QString::fromLatin1("Fanny");
+    const QString fannyEmail = QString::fromLatin1("fanny@example.org");
+    Person Fanny(fanny, fannyEmail, false, Person::OptionalParticipant, Person::UnknownParticipation);
+    required.prepend(emily, emilyEmail);
+    optional.append(fanny, fannyEmail);
+    eventMod->setAttendees(&required, &optional);
+    const QString updatedDescr = QString::fromLatin1("Updated description");
+    eventMod->setDescription(updatedDescr);
+    eventMod->save();
+    delete eventMod;
+
+    QVERIFY(eventSpy.wait());
+    attendees = query.attendees();
+    QCOMPARE(attendees.count(), 4);
+    QCOMPARE(*qobject_cast<Person*>(attendees[0]), Alice);
+    QCOMPARE(*qobject_cast<Person*>(attendees[1]), Dude);
+    QCOMPARE(*qobject_cast<Person*>(attendees[2]), Emily);
+    QCOMPARE(*qobject_cast<Person*>(attendees[3]), Fanny);
+    qDeleteAll(attendees);
+
+    // Check that the updateInvitation() service as received the right data.
+    const KCalendarCore::Incidence::List updatedInvitations = plugin->updatedInvitations();
+    QCOMPARE(updatedInvitations.count(), 2);
+    // For the cancelled participants.
+    const KCalendarCore::Incidence::Ptr cancelled = updatedInvitations[0];
+    QVERIFY(cancelled);
+    QCOMPARE(cancelled->description(), updatedDescr);
+    QCOMPARE(cancelled->status(), KCalendarCore::Incidence::StatusCanceled);
+    const KCalendarCore::Attendee::List cancelledAttendees = cancelled->attendees();
+    QCOMPARE(cancelledAttendees.count(), 2);
+    QVERIFY(cancelledAttendees.contains(attBob));
+    QVERIFY(cancelledAttendees.contains(attCarl));
+    // For the updated participants.
+    const KCalendarCore::Incidence::Ptr updated = updatedInvitations[1];
+    QVERIFY(updated);
+    QCOMPARE(updated->description(), updatedDescr);
+    QCOMPARE(updated->status(), KCalendarCore::Incidence::StatusNone);
+    const KCalendarCore::Attendee::List updatedAttendees = updated->attendees();
+    QCOMPARE(updatedAttendees.count(), 4);
+    QVERIFY(updatedAttendees.contains(attAlice));
+    QVERIFY(updatedAttendees.contains(attDude));
+    KCalendarCore::Attendee attEmily(emily, emilyEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attFanny(fanny, fannyEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::OptParticipant);
+    QVERIFY(updatedAttendees.contains(attEmily));
+    QVERIFY(updatedAttendees.contains(attFanny));
 }
 
 void tst_CalendarEvent::cleanupTestCase()

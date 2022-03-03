@@ -1,4 +1,4 @@
-include(../common.pri)
-
-TARGET = tst_calendarevent
-SOURCES += tst_calendarevent.cpp
+TEMPLATE = subdirs
+SUBDIRS = \
+    test_plugin \
+    tst_calendareventbin.pro
