@@ -112,7 +112,7 @@ public:
     QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId, bool *resultValid);
 
 private slots:
-    void storageModifiedSlot(const QString &info);
+    void storageModifiedSlot();
     void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
     void excludedNotebooksChangedSlot(const QStringList &excludedNotebooks);
     void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);

@@ -601,9 +601,8 @@ void CalendarManager::findMatchingEventFinished(const QString &invitationFile, c
     }
 }
 
-void CalendarManager::storageModifiedSlot(const QString &info)
+void CalendarManager::storageModifiedSlot()
 {
-    Q_UNUSED(info);
     mResetPending = true;
     emit storageModified();
 }

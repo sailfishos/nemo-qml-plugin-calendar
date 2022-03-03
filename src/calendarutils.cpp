@@ -356,30 +356,34 @@ QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalendarCo
     QList<CalendarData::Attendee> result;
     const KCalendarCore::Person calOrganizer = event->organizer();
 
-    CalendarData::Attendee organizer;
-    if (!calOrganizer.email().isEmpty()) {
+    const KCalendarCore::Attendee::List attendees = event->attendees();
+    CalendarData::Attendee attendee;
+    for (const KCalendarCore::Attendee &calAttendee : attendees) {
+        attendee.name = calAttendee.name();
+        attendee.email = calAttendee.email();
+        attendee.isOrganizer = (attendee.email == calOrganizer.email());
+        if (attendee.isOrganizer) {
+            // If organizer is in the attendee list, we prioritize the
+            // details from the attendee structure.
+            attendee.participationRole = KCalendarCore::Attendee::Chair;
+            result.prepend(attendee);
+        } else {
+            attendee.status = calAttendee.status();
+            attendee.participationRole = calAttendee.role();
+            result.append(attendee);
+        }
+    }
+
+    if (result.isEmpty() || !result.first().isOrganizer) {
+        // We always prepend the organizer in the list returned to QML.
+        // If it was not present in the attendee list, we create one attendee
+        // from the data in the ::Person structure.
+        CalendarData::Attendee organizer;
         organizer.isOrganizer = true;
         organizer.name = calOrganizer.name();
         organizer.email = calOrganizer.email();
         organizer.participationRole = KCalendarCore::Attendee::Chair;
-        result.append(organizer);
-    }
-
-    const KCalendarCore::Attendee::List attendees = event->attendees();
-    CalendarData::Attendee attendee;
-    attendee.isOrganizer = false;
-
-    for (const KCalendarCore::Attendee &calAttendee : attendees) {
-        attendee.name = calAttendee.name();
-        attendee.email = calAttendee.email();
-        if (attendee.name == organizer.name && attendee.email == organizer.email) {
-            // avoid duplicate info
-            continue;
-        }
-
-        attendee.status = calAttendee.status();
-        attendee.participationRole = calAttendee.role();
-        result.append(attendee);
+        result.prepend(organizer);
     }
 
     return result;
