@@ -118,7 +118,8 @@ public:
     void registerTypes(const char *uri)
     {
         Q_ASSERT(uri == QLatin1String("org.nemomobile.calendar"));
-        qmlRegisterUncreatableType<CalendarEvent>(uri, 1, 0, "CalendarEvent", "Create CalendarEvent instances through a model");
+        qmlRegisterUncreatableType<CalendarEvent>(uri, 1, 0, "CalendarEvent", "CalendarEvent is a base class");
+        qmlRegisterUncreatableType<CalendarStoredEvent>(uri, 1, 0, "CalendarStoredEvent", "Create CalendarEvent instances through a model");
         qmlRegisterUncreatableType<CalendarEventModification>(uri, 1, 0, "CalendarEventModification",
                                                                   "Create CalendarEventModification instances through Calendar API");
         qmlRegisterUncreatableType<CalendarChangeInformation>(uri, 1, 0, "CalendarChangeInformation",

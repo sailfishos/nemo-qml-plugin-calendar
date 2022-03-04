@@ -38,7 +38,7 @@
 #include <QDateTime>
 
 // KCalendarCore
-#include <KCalendarCore/Attendee>
+#include <KCalendarCore/Event>
 
 #include "calendarevent.h"
 
@@ -66,20 +66,25 @@ struct Event {
     bool readOnly = false;
     bool rsvp = false;
     bool externalInvitation = false;
-    CalendarEvent::Recur recur;
+    CalendarEvent::Recur recur = CalendarEvent::RecurOnce;
     QDate recurEndDate;
     CalendarEvent::Days recurWeeklyDays;
-    int reminder; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
+    int reminder = -1; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
     QDateTime reminderDateTime; // Valid when reminder is at a given date and time.
     QString uniqueId;
     QDateTime recurrenceId;
     QString location;
-    CalendarEvent::Secrecy secrecy;
+    CalendarEvent::Secrecy secrecy = CalendarEvent::SecrecyPublic;
     QString calendarUid;
     CalendarEvent::Response ownerStatus = CalendarEvent::ResponseUnspecified;
     CalendarEvent::Status status = CalendarEvent::StatusNone;
     CalendarEvent::SyncFailure syncFailure = CalendarEvent::NoSyncFailure;
     CalendarEvent::SyncFailureResolution syncFailureResolution = CalendarEvent::RetrySync;
+
+    Event() {}
+    Event(const KCalendarCore::Event &event);
+
+    void toKCalendarCore(KCalendarCore::Event::Ptr &event) const;
 
     bool operator==(const Event& other) const
     {
@@ -90,6 +95,14 @@ struct Event {
     {
         return !uniqueId.isEmpty();
     }
+
+private:
+    int fromKReminder(const KCalendarCore::Event &event) const;
+    QDateTime fromKReminderDateTime(const KCalendarCore::Event &event) const;
+    void toKReminder(KCalendarCore::Event &event) const;
+    CalendarEvent::Days fromKDayPositions(const KCalendarCore::Event &event) const;
+    CalendarEvent::Recur fromKRecurrence(const KCalendarCore::Event &event) const;
+    void toKRecurrence(KCalendarCore::Event &event) const;
 };
 
 struct Notebook {

@@ -34,92 +34,19 @@
 
 #include "calendareventoccurrence.h"
 #include "calendarutils.h"
-#include "calendarmanager.h"
 
-#include <QDebug>
-
-CalendarImportEvent::CalendarImportEvent(KCalendarCore::Event::Ptr event)
-    : QObject(),
-      mEvent(event),
-      mColor("#ffffff")
+CalendarImportEvent::CalendarImportEvent(const KCalendarCore::Event::Ptr &event)
+    : CalendarEvent((CalendarData::Event*)0, nullptr)
+    , mColor("#ffffff")
 {
-}
-
-QString CalendarImportEvent::displayLabel() const
-{
-    if (!mEvent)
-        return QString();
-
-    return mEvent->summary();
-}
-
-QString CalendarImportEvent::description() const
-{
-    if (!mEvent)
-        return QString();
-
-    return mEvent->description();
-}
-
-QDateTime CalendarImportEvent::startTime() const
-{
-    if (!mEvent)
-        return QDateTime();
-
-    return mEvent->dtStart();
-}
-
-QDateTime CalendarImportEvent::endTime() const
-{
-    if (!mEvent)
-        return QDateTime();
-
-    return mEvent->dtEnd();
-}
-
-bool CalendarImportEvent::allDay() const
-{
-    if (!mEvent)
-        return false;
-
-    return mEvent->allDay();
-}
-
-CalendarEvent::Recur CalendarImportEvent::recur()
-{
-    if (!mEvent)
-        return CalendarEvent::RecurOnce;
-
-    return CalendarUtils::convertRecurrence(mEvent);
-}
-
-CalendarEvent::Days CalendarImportEvent::recurWeeklyDays()
-{
-    if (!mEvent)
-        return CalendarEvent::NoDays;
-
-    return CalendarUtils::convertDayPositions(mEvent);
-}
-
-int CalendarImportEvent::reminder() const
-{
-    // note: returns seconds before event, so 15 minutes before = 900.
-    //       zero value means "reminder at time of the event".
-    //       negative value means "no reminder".
-    return CalendarUtils::getReminder(mEvent);
-}
-
-QDateTime CalendarImportEvent::reminderDateTime() const
-{
-    return mEvent ? CalendarUtils::getReminderDateTime(mEvent) : QDateTime();
-}
-
-QString CalendarImportEvent::uniqueId() const
-{
-    if (!mEvent)
-        return QString();
-
-    return mEvent->uid();
+    if (event) {
+        *mData = CalendarData::Event(*event);
+        mOrganizer = event->organizer().fullName();
+        mOrganizerEmail = event->organizer().email();
+        mAttendees = CalendarUtils::getEventAttendees(event);
+        mOccurrence = CalendarUtils::getNextOccurrence(event);
+    }
+    mData->readOnly = true;
 }
 
 QString CalendarImportEvent::color() const
@@ -127,49 +54,19 @@ QString CalendarImportEvent::color() const
     return mColor;
 }
 
-bool CalendarImportEvent::readOnly() const
-{
-    return true;
-}
-
-QString CalendarImportEvent::location() const
-{
-    if (!mEvent)
-        return QString();
-
-    return mEvent->location();
-}
-
 QList<QObject *> CalendarImportEvent::attendees() const
 {
-    if (!mEvent)
-        return QList<QObject *>();
-
-    return CalendarUtils::convertAttendeeList(CalendarUtils::getEventAttendees(mEvent));
-}
-
-CalendarEvent::Secrecy CalendarImportEvent::secrecy() const
-{
-    if (!mEvent)
-        return CalendarEvent::SecrecyPublic;
-
-    return CalendarUtils::convertSecrecy(mEvent);
+    return CalendarUtils::convertAttendeeList(mAttendees);
 }
 
 QString CalendarImportEvent::organizer() const
 {
-    if (!mEvent)
-        return QString();
-
-    return mEvent->organizer().fullName();
+    return mOrganizer;
 }
 
 QString CalendarImportEvent::organizerEmail() const
 {
-    if (!mEvent)
-        return QString();
-
-    return mEvent->organizer().email();
+    return mOrganizerEmail;
 }
 
 void CalendarImportEvent::setColor(const QString &color)
@@ -199,12 +96,8 @@ bool CalendarImportEvent::sendResponse(int response)
 
 QObject *CalendarImportEvent::nextOccurrence()
 {
-    if (!mEvent)
-        return 0;
-
-    CalendarData::EventOccurrence eo = CalendarUtils::getNextOccurrence(mEvent);
-    return new CalendarEventOccurrence(eo.eventUid,
-                                       eo.recurrenceId,
-                                       eo.startTime,
-                                       eo.endTime);
+    return new CalendarEventOccurrence(mOccurrence.eventUid,
+                                       mOccurrence.recurrenceId,
+                                       mOccurrence.startTime,
+                                       mOccurrence.endTime);
 }

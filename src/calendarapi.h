@@ -39,7 +39,7 @@
 
 class QJSEngine;
 class QQmlEngine;
-class CalendarEvent;
+class CalendarStoredEvent;
 class CalendarEventModification;
 
 class CalendarApi : public QObject
@@ -52,7 +52,7 @@ public:
     CalendarApi(QObject *parent = 0);
 
     Q_INVOKABLE CalendarEventModification *createNewEvent();
-    Q_INVOKABLE CalendarEventModification *createModification(CalendarEvent *sourceEvent);
+    Q_INVOKABLE CalendarEventModification *createModification(CalendarStoredEvent *sourceEvent);
 
     Q_INVOKABLE void remove(const QString &uid, const QString &recurrenceId = QString(),
                             const QDateTime &time = QDateTime());

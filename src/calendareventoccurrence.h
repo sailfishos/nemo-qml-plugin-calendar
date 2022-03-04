@@ -36,7 +36,7 @@
 #include <QObject>
 #include <QDateTime>
 
-class CalendarEvent;
+class CalendarStoredEvent;
 
 class CalendarEventOccurrence : public QObject
 {
@@ -47,7 +47,7 @@ class CalendarEventOccurrence : public QObject
     // startTimeInTz and endTimeInTz are given in event startTime / endTime timezone
     Q_PROPERTY(QDateTime startTimeInTz READ startTimeInTz CONSTANT)
     Q_PROPERTY(QDateTime endTimeInTz READ endTimeInTz CONSTANT)
-    Q_PROPERTY(CalendarEvent *event READ eventObject CONSTANT)
+    Q_PROPERTY(CalendarStoredEvent *event READ eventObject CONSTANT)
 
 public:
     CalendarEventOccurrence(const QString &eventUid,
@@ -61,7 +61,7 @@ public:
     QDateTime endTime() const;
     QDateTime startTimeInTz() const;
     QDateTime endTimeInTz() const;
-    CalendarEvent *eventObject() const;
+    CalendarStoredEvent *eventObject() const;
 
 private slots:
     void eventUidChanged(QString oldUid, QString newUid);

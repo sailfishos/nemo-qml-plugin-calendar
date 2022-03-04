@@ -38,52 +38,25 @@
 // KCalendarCore
 #include <KCalendarCore/Event>
 
+#include "calendardata.h"
 #include "calendarevent.h"
 
-class CalendarImportEvent : public QObject
+class CalendarImportEvent : public CalendarEvent
 {
     Q_OBJECT
-    Q_PROPERTY(QString displayLabel READ displayLabel CONSTANT)
-    Q_PROPERTY(QString description READ description CONSTANT)
-    Q_PROPERTY(QDateTime startTime READ startTime CONSTANT)
-    Q_PROPERTY(QDateTime endTime READ endTime CONSTANT)
-    Q_PROPERTY(bool allDay READ allDay CONSTANT)
-    Q_PROPERTY(CalendarEvent::Recur recur READ recur CONSTANT)
-    Q_PROPERTY(CalendarEvent::Days recurWeeklyDays READ recurWeeklyDays CONSTANT)
-    Q_PROPERTY(int reminder READ reminder CONSTANT)
-    Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime CONSTANT)
-    Q_PROPERTY(QString uniqueId READ uniqueId CONSTANT)
     Q_PROPERTY(QString color READ color WRITE setColor NOTIFY colorChanged)
-    Q_PROPERTY(QString location READ location CONSTANT)
     Q_PROPERTY(QList<QObject*> attendees READ attendees CONSTANT)
     Q_PROPERTY(QString organizer READ organizer CONSTANT)
     Q_PROPERTY(QString organizerEmail READ organizerEmail CONSTANT)
-    Q_PROPERTY(CalendarEvent::Secrecy secrecy READ secrecy CONSTANT)
-    Q_PROPERTY(CalendarEvent::Response ownerStatus READ ownerStatus CONSTANT)
-    Q_PROPERTY(bool rsvp READ rsvp CONSTANT)
-    Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
 
 public:
-    CalendarImportEvent(KCalendarCore::Event::Ptr event);
+    CalendarImportEvent(const KCalendarCore::Event::Ptr &event);
 
-    QString displayLabel() const;
-    QString description() const;
-    QDateTime startTime() const;
-    QDateTime endTime() const;
-    bool allDay() const;
-    CalendarEvent::Recur recur();
-    CalendarEvent::Days recurWeeklyDays();
-    int reminder() const;
-    QDateTime reminderDateTime() const;
-    QString uniqueId() const;
-    QString color() const;
-    bool readOnly() const;
-    QString location() const;
     QList<QObject*> attendees() const;
-    CalendarEvent::Secrecy secrecy() const;
     QString organizer() const;
     QString organizerEmail() const;
 
+    QString color() const;
     void setColor(const QString &color);
 
     CalendarEvent::Response ownerStatus() const;
@@ -98,7 +71,10 @@ signals:
     void colorChanged();
 
 private:
-    KCalendarCore::Event::Ptr mEvent;
     QString mColor;
+    QString mOrganizer;
+    QString mOrganizerEmail;
+    QList<CalendarData::Attendee> mAttendees;
+    CalendarData::EventOccurrence mOccurrence;
 };
 #endif // CALENDARIMPORTEVENT_H

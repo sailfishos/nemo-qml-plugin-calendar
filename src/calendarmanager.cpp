@@ -137,9 +137,9 @@ void CalendarManager::setDefaultNotebook(const QString &notebookUid)
                               Q_ARG(QString, notebookUid));
 }
 
-CalendarEvent* CalendarManager::eventObject(const QString &eventUid, const QDateTime &recurrenceId)
+CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const QDateTime &recurrenceId)
 {
-    QMultiHash<QString, CalendarEvent *>::iterator it = mEventObjects.find(eventUid);
+    QMultiHash<QString, CalendarStoredEvent *>::iterator it = mEventObjects.find(eventUid);
     while (it != mEventObjects.end() && it.key() == eventUid) {
         if ((*it)->recurrenceId() == recurrenceId) {
             return *it;
@@ -149,7 +149,7 @@ CalendarEvent* CalendarManager::eventObject(const QString &eventUid, const QDate
 
     CalendarData::Event event = getEvent(eventUid, recurrenceId);
     if (event.isValid()) {
-        CalendarEvent *calendarEvent = new CalendarEvent(this, eventUid, recurrenceId);
+        CalendarStoredEvent *calendarEvent = new CalendarStoredEvent(this, &event);
         mEventObjects.insert(eventUid, calendarEvent);
         return calendarEvent;
     }
@@ -157,7 +157,7 @@ CalendarEvent* CalendarManager::eventObject(const QString &eventUid, const QDate
     // TODO: maybe attempt to read event from DB? This situation should not happen.
     qWarning() << Q_FUNC_INFO << "No event with uid" << eventUid << recurrenceId << ", returning empty event";
 
-    return new CalendarEvent(this, QString(), QDateTime());
+    return new CalendarStoredEvent(this, nullptr);
 }
 
 void CalendarManager::saveModification(CalendarData::Event eventData, bool updateAttendees,
@@ -819,20 +819,19 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
     mLoadPending = false;
 
     foreach (const CalendarData::Event &oldEvent, oldEvents) {
-        CalendarData::Event event = getEvent(oldEvent.uniqueId, oldEvent.recurrenceId);
+        const CalendarData::Event &event = getEvent(oldEvent.uniqueId, oldEvent.recurrenceId);
         if (event.isValid())
-            sendEventChangeSignals(event, oldEvent);
+            sendEventChangeSignals(event);
     }
 
     emit dataUpdated();
     mTimer->start();
 }
 
-void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent,
-                                             const CalendarData::Event &oldEvent)
+void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent)
 {
-    CalendarEvent *eventObject = 0;
-    QMultiHash<QString, CalendarEvent *>::iterator it = mEventObjects.find(newEvent.uniqueId);
+    CalendarStoredEvent *eventObject = 0;
+    QMultiHash<QString, CalendarStoredEvent *>::iterator it = mEventObjects.find(newEvent.uniqueId);
     while (it != mEventObjects.end() && it.key() == newEvent.uniqueId) {
         if (it.value()->recurrenceId() == newEvent.recurrenceId) {
             eventObject = it.value();
@@ -844,48 +843,5 @@ void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent
     if (!eventObject)
         return;
 
-    if (newEvent.allDay != oldEvent.allDay)
-        emit eventObject->allDayChanged();
-
-    if (newEvent.displayLabel != oldEvent.displayLabel)
-        emit eventObject->displayLabelChanged();
-
-    if (newEvent.description != oldEvent.description)
-        emit eventObject->descriptionChanged();
-
-    if (newEvent.endTime != oldEvent.endTime)
-        emit eventObject->endTimeChanged();
-
-    if (newEvent.location != oldEvent.location)
-        emit eventObject->locationChanged();
-
-    if (newEvent.secrecy != oldEvent.secrecy)
-        emit eventObject->secrecyChanged();
-
-    if (newEvent.status != oldEvent.status)
-        emit eventObject->statusChanged();
-
-    if (newEvent.recur != oldEvent.recur)
-        emit eventObject->recurChanged();
-
-    if (newEvent.reminder != oldEvent.reminder)
-        emit eventObject->reminderChanged();
-
-    if (newEvent.reminderDateTime != oldEvent.reminderDateTime)
-        emit eventObject->reminderDateTimeChanged();
-
-    if (newEvent.startTime != oldEvent.startTime)
-        emit eventObject->startTimeChanged();
-
-    if (newEvent.rsvp != oldEvent.rsvp)
-        emit eventObject->rsvpChanged();
-
-    if (newEvent.externalInvitation != oldEvent.externalInvitation)
-        emit eventObject->externalInvitationChanged();
-
-    if (newEvent.ownerStatus != oldEvent.ownerStatus)
-        emit eventObject->ownerStatusChanged();
-
-    if (newEvent.syncFailure != oldEvent.syncFailure)
-        emit eventObject->syncFailureChanged();
+    eventObject->setEvent(&newEvent);
 }

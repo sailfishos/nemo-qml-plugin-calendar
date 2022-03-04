@@ -38,28 +38,38 @@
 
 #include "calendarutils.h"
 #include "calendarmanager.h"
+#include "calendardata.h"
 
-CalendarEvent::CalendarEvent(CalendarManager *manager, const QString &uid, const QDateTime &recurrenceId)
-    : QObject(manager), mManager(manager), mUniqueId(uid), mRecurrenceId(recurrenceId)
+CalendarEvent::CalendarEvent(const CalendarData::Event *data, QObject *parent)
+    : QObject(parent), mData(new CalendarData::Event)
 {
-    connect(mManager, SIGNAL(notebookColorChanged(QString)),
-            this, SLOT(notebookColorChanged(QString)));
-    connect(mManager, SIGNAL(eventUidChanged(QString,QString)),
-            this, SLOT(eventUidChanged(QString,QString)));
+    if (data)
+        *mData = *data;
+}
+
+CalendarEvent::CalendarEvent(const CalendarEvent *other, QObject *parent)
+    : QObject(parent), mData(new CalendarData::Event)
+{
+    if (other) {
+        *mData = *other->mData;
+    } else {
+        qWarning("Null source passed to CalendarEvent().");
+    }
 }
 
 CalendarEvent::~CalendarEvent()
 {
+    delete mData;
 }
 
 QString CalendarEvent::displayLabel() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).displayLabel;
+    return mData->displayLabel;
 }
 
 QString CalendarEvent::description() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).description;
+    return mData->description;
 }
 
 QDateTime CalendarEvent::startTime() const
@@ -68,13 +78,13 @@ QDateTime CalendarEvent::startTime() const
     // will be in UTC also and the UI will convert it to local when displaying
     // the time, while in every other case, it set the QDateTime in
     // local zone.
-    const QDateTime dt = mManager->getEvent(mUniqueId, mRecurrenceId).startTime;
+    const QDateTime dt = mData->startTime;
     return QDateTime(dt.date(), dt.time());
 }
 
 QDateTime CalendarEvent::endTime() const
 {
-    const QDateTime dt = mManager->getEvent(mUniqueId, mRecurrenceId).endTime;
+    const QDateTime dt = mData->endTime;
     return QDateTime(dt.date(), dt.time());
 }
 
@@ -89,168 +99,223 @@ static Qt::TimeSpec toTimeSpec(const QDateTime &dt)
 
 Qt::TimeSpec CalendarEvent::startTimeSpec() const
 {
-    return toTimeSpec(mManager->getEvent(mUniqueId, mRecurrenceId).startTime);
+    return toTimeSpec(mData->startTime);
 }
 
 Qt::TimeSpec CalendarEvent::endTimeSpec() const
 {
-    return toTimeSpec(mManager->getEvent(mUniqueId, mRecurrenceId).endTime);
+    return toTimeSpec(mData->endTime);
 }
 
 QString CalendarEvent::startTimeZone() const
 {
-    return QString::fromLatin1(mManager->getEvent(mUniqueId, mRecurrenceId).startTime.timeZone().id());
+    return QString::fromLatin1(mData->startTime.timeZone().id());
 }
 
 QString CalendarEvent::endTimeZone() const
 {
-    return QString::fromLatin1(mManager->getEvent(mUniqueId, mRecurrenceId).endTime.timeZone().id());
+    return QString::fromLatin1(mData->endTime.timeZone().id());
 }
 
 bool CalendarEvent::allDay() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).allDay;
+    return mData->allDay;
 }
 
 CalendarEvent::Recur CalendarEvent::recur() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).recur;
+    return mData->recur;
 }
 
 QDateTime CalendarEvent::recurEndDate() const
 {
-    return QDateTime(mManager->getEvent(mUniqueId, mRecurrenceId).recurEndDate);
+    return QDateTime(mData->recurEndDate);
 }
 
 bool CalendarEvent::hasRecurEndDate() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).recurEndDate.isValid();
+    return mData->recurEndDate.isValid();
 }
 
 CalendarEvent::Days CalendarEvent::recurWeeklyDays() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).recurWeeklyDays;
+    return mData->recurWeeklyDays;
 }
 
 int CalendarEvent::reminder() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).reminder;
+    return mData->reminder;
 }
 
 QDateTime CalendarEvent::reminderDateTime() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).reminderDateTime;
+    return mData->reminderDateTime;
 }
 
 QString CalendarEvent::uniqueId() const
 {
-    return mUniqueId;
-}
-
-QString CalendarEvent::color() const
-{
-    return mManager->getNotebookColor(mManager->getEvent(mUniqueId, mRecurrenceId).calendarUid);
+    return mData->uniqueId;
 }
 
 bool CalendarEvent::readOnly() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).readOnly;
+    return mData->readOnly;
 }
 
 QString CalendarEvent::calendarUid() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).calendarUid;
+    return mData->calendarUid;
 }
 
 QString CalendarEvent::location() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).location;
+    return mData->location;
 }
 
 CalendarEvent::Secrecy CalendarEvent::secrecy() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).secrecy;
+    return mData->secrecy;
 }
 
 CalendarEvent::Status CalendarEvent::status() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).status;
+    return mData->status;
 }
 
 CalendarEvent::SyncFailure CalendarEvent::syncFailure() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).syncFailure;
+    return mData->syncFailure;
 }
 
 CalendarEvent::SyncFailureResolution CalendarEvent::syncFailureResolution() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).syncFailureResolution;
+    return mData->syncFailureResolution;
 }
 
 CalendarEvent::Response CalendarEvent::ownerStatus() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).ownerStatus;
+    return mData->ownerStatus;
 }
 
 bool CalendarEvent::rsvp() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).rsvp;
+    return mData->rsvp;
 }
 
 bool CalendarEvent::externalInvitation() const
 {
-    return mManager->getEvent(mUniqueId, mRecurrenceId).externalInvitation;
-}
-
-bool CalendarEvent::sendResponse(int response)
-{
-    return mManager->sendResponse(mManager->getEvent(mUniqueId, mRecurrenceId), (Response)response);
-}
-
-void CalendarEvent::deleteEvent()
-{
-    mManager->deleteEvent(mUniqueId, mRecurrenceId, QDateTime());
-    mManager->save();
+    return mData->externalInvitation;
 }
 
 QDateTime CalendarEvent::recurrenceId() const
 {
-    return mRecurrenceId;
+    return mData->recurrenceId;
 }
 
 QString CalendarEvent::recurrenceIdString() const
 {
-    if (mRecurrenceId.isValid()) {
-        return CalendarUtils::recurrenceIdToString(mRecurrenceId);
+    if (mData->recurrenceId.isValid()) {
+        return CalendarUtils::recurrenceIdToString(mData->recurrenceId);
     } else {
         return QString();
     }
 }
 
-// Returns the event as a iCalendar string
-QString CalendarEvent::iCalendar(const QString &prodId) const
+CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data)
+    : CalendarEvent(data, manager)
+    , mManager(manager)
 {
-    if (mUniqueId.isEmpty()) {
+    connect(mManager, SIGNAL(notebookColorChanged(QString)),
+            this, SLOT(notebookColorChanged(QString)));
+    connect(mManager, SIGNAL(eventUidChanged(QString,QString)),
+            this, SLOT(eventUidChanged(QString,QString)));
+}
+
+CalendarStoredEvent::~CalendarStoredEvent()
+{
+}
+
+void CalendarStoredEvent::notebookColorChanged(QString notebookUid)
+{
+    if (mData->calendarUid == notebookUid)
+        emit colorChanged();
+}
+
+void CalendarStoredEvent::eventUidChanged(QString oldUid, QString newUid)
+{
+    if (mData->uniqueId == oldUid) {
+        mData->uniqueId = newUid;
+        emit uniqueIdChanged();
+        // Event uid changes when the event is moved between notebooks, calendar uid has changed
+        emit calendarUidChanged();
+    }
+}
+
+bool CalendarStoredEvent::sendResponse(int response)
+{
+    return mManager->sendResponse(*mData, (Response)response);
+}
+
+void CalendarStoredEvent::deleteEvent()
+{
+    mManager->deleteEvent(mData->uniqueId, mData->recurrenceId, QDateTime());
+    mManager->save();
+}
+
+// Returns the event as a iCalendar string
+QString CalendarStoredEvent::iCalendar(const QString &prodId) const
+{
+    Q_UNUSED(prodId);
+    if (mData->uniqueId.isEmpty()) {
         qWarning() << "Event has no uid, returning empty iCalendar string."
                    << "Save event before calling this function";
         return QString();
     }
 
-    return mManager->convertEventToICalendarSync(mUniqueId, prodId);
+    return mManager->convertEventToICalendarSync(mData->uniqueId, prodId);
 }
 
-void CalendarEvent::notebookColorChanged(QString notebookUid)
+QString CalendarStoredEvent::color() const
 {
-    if (mManager->getEvent(mUniqueId, mRecurrenceId).calendarUid == notebookUid)
-        emit colorChanged();
+    return mManager->getNotebookColor(mData->calendarUid);
 }
 
-void CalendarEvent::eventUidChanged(QString oldUid, QString newUid)
+void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
 {
-    if (mUniqueId == oldUid) {
-        mUniqueId = newUid;
-        emit uniqueIdChanged();
-        // Event uid changes when the event is moved between notebooks, calendar uid has changed
-        emit calendarUidChanged();
-    }
+    if (!data)
+        return;
+
+    CalendarData::Event old = *mData;
+    *mData = *data;
+
+    if (mData->allDay != old.allDay)
+        emit allDayChanged();
+    if (mData->displayLabel != old.displayLabel)
+        emit displayLabelChanged();
+    if (mData->description != old.description)
+        emit descriptionChanged();
+    if (mData->endTime != old.endTime)
+        emit endTimeChanged();
+    if (mData->location != old.location)
+        emit locationChanged();
+    if (mData->secrecy != old.secrecy)
+        emit secrecyChanged();
+    if (mData->status != old.status)
+        emit statusChanged();
+    if (mData->recur != old.recur)
+        emit recurChanged();
+    if (mData->reminder != old.reminder)
+        emit reminderChanged();
+    if (mData->reminderDateTime != old.reminderDateTime)
+        emit reminderDateTimeChanged();
+    if (mData->startTime != old.startTime)
+        emit startTimeChanged();
+    if (mData->rsvp != old.rsvp)
+        emit rsvpChanged();
+    if (mData->externalInvitation != old.externalInvitation)
+        emit externalInvitationChanged();
+    if (mData->ownerStatus != old.ownerStatus)
+        emit ownerStatusChanged();
+    if (mData->syncFailure != old.syncFailure)
+        emit syncFailureChanged();
 }

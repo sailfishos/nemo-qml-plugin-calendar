@@ -61,7 +61,7 @@ public:
     static CalendarManager *instance(bool createIfNeeded = true);
     ~CalendarManager();
 
-    CalendarEvent* eventObject(const QString &eventUid, const QDateTime &recurrenceId);
+    CalendarStoredEvent* eventObject(const QString &eventUid, const QDateTime &recurrenceId);
 
     void saveModification(CalendarData::Event eventData, bool updateAttendees,
                           const QList<CalendarData::EmailContact> &required,
@@ -152,13 +152,12 @@ private:
     QList<CalendarData::Range> addRanges(const QList<CalendarData::Range> &oldRanges,
                                          const QList<CalendarData::Range> &newRanges);
     void updateAgendaModel(CalendarAgendaModel *model);
-    void sendEventChangeSignals(const CalendarData::Event &newEvent,
-                                const CalendarData::Event &oldEvent);
+    void sendEventChangeSignals(const CalendarData::Event &newEvent);
 
     QThread mWorkerThread;
     CalendarWorker *mCalendarWorker;
     QMultiHash<QString, CalendarData::Event> mEvents;
-    QMultiHash<QString, CalendarEvent *> mEventObjects;
+    QMultiHash<QString, CalendarStoredEvent *> mEventObjects;
     QHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
     QHash<QDate, QStringList> mEventOccurrenceForDates;
     QList<CalendarAgendaModel *> mAgendaRefreshList;

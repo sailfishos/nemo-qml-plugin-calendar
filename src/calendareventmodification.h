@@ -41,19 +41,16 @@
 #include "calendarchangeinformation.h"
 #include "calendarcontactmodel.h"
 
-class CalendarEventModification : public QObject
+class CalendarEventModification : public CalendarEvent
 {
     Q_OBJECT
+    // These properties already exist in the CalendarEvent class, but are redefined
+    // here to add WRITE access.
     Q_PROPERTY(QString displayLabel READ displayLabel WRITE setDisplayLabel NOTIFY displayLabelChanged)
     Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
-    Q_PROPERTY(QDateTime startTime READ startTime NOTIFY startTimeChanged)
-    Q_PROPERTY(QDateTime endTime READ endTime NOTIFY endTimeChanged)
     Q_PROPERTY(bool allDay READ allDay WRITE setAllDay NOTIFY allDayChanged)
     Q_PROPERTY(CalendarEvent::Recur recur READ recur WRITE setRecur NOTIFY recurChanged)
-    Q_PROPERTY(QDateTime recurEndDate READ recurEndDate NOTIFY recurEndDateChanged)
     Q_PROPERTY(CalendarEvent::Days recurWeeklyDays READ recurWeeklyDays WRITE setRecurWeeklyDays NOTIFY recurWeeklyDaysChanged)
-    Q_PROPERTY(bool hasRecurEndDate READ hasRecurEndDate NOTIFY hasRecurEndDateChanged)
-    Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
     Q_PROPERTY(int reminder READ reminder WRITE setReminder NOTIFY reminderChanged)
     Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime WRITE setReminderDateTime NOTIFY reminderDateTimeChanged)
     Q_PROPERTY(QString location READ location WRITE setLocation NOTIFY locationChanged)
@@ -61,14 +58,12 @@ class CalendarEventModification : public QObject
     Q_PROPERTY(CalendarEvent::SyncFailureResolution syncFailureResolution READ syncFailureResolution WRITE setSyncFailureResolution NOTIFY syncFailureResolutionChanged)
 
 public:
-    CalendarEventModification(CalendarData::Event data, QObject *parent = 0);
+    CalendarEventModification(const CalendarStoredEvent *source, QObject *parent = 0);
     explicit CalendarEventModification(QObject *parent = 0);
     ~CalendarEventModification();
 
-    QString displayLabel() const;
     void setDisplayLabel(const QString &displayLabel);
 
-    QString description() const;
     void setDescription(const QString &description);
 
     QDateTime startTime() const;
@@ -77,32 +72,21 @@ public:
     QDateTime endTime() const;
     Q_INVOKABLE void setEndTime(const QDateTime &endTime, Qt::TimeSpec spec, const QString &timezone = QString());
 
-    bool allDay() const;
     void setAllDay(bool);
 
-    CalendarEvent::Recur recur() const;
     void setRecur(CalendarEvent::Recur);
 
-    QDateTime recurEndDate() const;
-    bool hasRecurEndDate() const;
     Q_INVOKABLE void setRecurEndDate(const QDateTime &dateTime);
     Q_INVOKABLE void unsetRecurEndDate();
 
-    CalendarEvent::Days recurWeeklyDays() const;
     void setRecurWeeklyDays(CalendarEvent::Days days);
 
-    QString recurrenceIdString() const;
-
-    int reminder() const;
     void setReminder(int seconds);
 
-    QDateTime reminderDateTime() const;
     void setReminderDateTime(const QDateTime &dateTime);
 
-    QString location() const;
     void setLocation(const QString &newLocation);
 
-    QString calendarUid() const;
     void setCalendarUid(const QString &uid);
 
     CalendarEvent::SyncFailureResolution syncFailureResolution() const;
@@ -130,8 +114,7 @@ signals:
     void syncFailureResolutionChanged();
 
 private:
-    CalendarData::Event m_event;
-    bool m_attendeesSet;
+    bool m_attendeesSet = false;
     QList<CalendarData::EmailContact> m_requiredAttendees;
     QList<CalendarData::EmailContact> m_optionalAttendees;
 };

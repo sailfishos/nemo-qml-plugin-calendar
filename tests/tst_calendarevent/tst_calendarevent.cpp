@@ -224,7 +224,7 @@ void tst_CalendarEvent::testSave()
     query.setUniqueId(uid);
     QVERIFY(eventSpy.wait());
 
-    CalendarEvent *eventB = (CalendarEvent*) query.event();
+    CalendarStoredEvent *eventB = (CalendarStoredEvent*) query.event();
     QVERIFY(eventB != 0);
 
     // mKCal DB stores times as seconds, losing millisecond accuracy.
@@ -299,7 +299,7 @@ void tst_CalendarEvent::testTimeZone()
     query.setUniqueId(uid);
     QVERIFY(eventSpy.wait());
 
-    CalendarEvent *eventB = (CalendarEvent*) query.event();
+    CalendarStoredEvent *eventB = (CalendarStoredEvent*) query.event();
     QVERIFY(eventB != 0);
 
     QCOMPARE(eventB->endTime(), endTime);
@@ -356,7 +356,7 @@ void tst_CalendarEvent::testRecurrenceException()
     query.setStartTime(secondStart);
     QVERIFY(updated.wait());
 
-    CalendarEvent *savedEvent = (CalendarEvent*) query.event();
+    CalendarStoredEvent *savedEvent = (CalendarStoredEvent*) query.event();
     QVERIFY(savedEvent);
     QVERIFY(query.occurrence());
 
@@ -416,7 +416,7 @@ void tst_CalendarEvent::testRecurrenceException()
     QVERIFY(eventChangeSpy.count() > 0);
     QVERIFY(query.event());
 
-    recurrenceException = calendarApi->createModification(static_cast<CalendarEvent*>(query.event()));
+    recurrenceException = calendarApi->createModification(static_cast<CalendarStoredEvent*>(query.event()));
     QVERIFY(recurrenceException != 0);
 
     modifiedSecond = modifiedSecond.addSecs(20*60); // 12:30
@@ -620,7 +620,7 @@ void tst_CalendarEvent::testRecurrence()
     query.setUniqueId(uid);
     QVERIFY(eventSpy.wait());
 
-    CalendarEvent *event = (CalendarEvent*)query.event();
+    CalendarStoredEvent *event = (CalendarStoredEvent*)query.event();
     QVERIFY(event);
 
     QCOMPARE(event->recur(), recurType);
@@ -659,7 +659,7 @@ void tst_CalendarEvent::testRecurWeeklyDays()
     query.setUniqueId(uid);
     QVERIFY(eventSpy.wait());
 
-    CalendarEvent *event = (CalendarEvent*)query.event();
+    CalendarStoredEvent *event = (CalendarStoredEvent*)query.event();
     QVERIFY(event);
 
     QCOMPARE(event->recur(), CalendarEvent::RecurWeeklyByDays);
@@ -768,7 +768,7 @@ void tst_CalendarEvent::testAttendees()
     qDeleteAll(attendees);
 
     // Do a local modification, by removing participants and adding new.
-    eventMod = calendarApi->createModification(qobject_cast<CalendarEvent*>(query.event()));
+    eventMod = calendarApi->createModification(qobject_cast<CalendarStoredEvent*>(query.event()));
     QVERIFY(eventMod);
     required.remove(1); // Remove Bob
     optional.remove(0); // Remove Carl

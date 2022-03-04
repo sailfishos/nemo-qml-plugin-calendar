@@ -35,7 +35,6 @@
 
 #include <QDebug>
 #include <QSettings>
-#include <QBitArray>
 
 // mkcal
 #include <notebook.h>
@@ -268,7 +267,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         }
     }
 
-    setEventData(event, eventData);
+    eventData.toKCalendarCore(event);
 
     if (updateAttendees) {
         updateEventAttendees(event, createNew, required, optional, notebookUid);
@@ -287,40 +286,6 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
     }
 
     save();
-}
-
-void CalendarWorker::setEventData(KCalendarCore::Event::Ptr &event, const CalendarData::Event &eventData)
-{
-    event->setDescription(eventData.description);
-    event->setSummary(eventData.displayLabel);
-    event->setDtStart(eventData.startTime);
-    event->setDtEnd(eventData.endTime);
-    event->setAllDay(eventData.allDay);
-    event->setLocation(eventData.location);
-    setReminder(event, eventData.reminder, eventData.reminderDateTime);
-    setRecurrence(event, eventData.recur, eventData.recurWeeklyDays);
-    setStatus(event, eventData.status);
-
-    if (eventData.recur != CalendarEvent::RecurOnce) {
-        event->recurrence()->setEndDate(eventData.recurEndDate);
-        if (!eventData.recurEndDate.isValid()) {
-            // Recurrence/RecurrenceRule don't have separate method to clear the end date, and currently
-            // setting invalid date doesn't make the duration() indicate recurring infinitely.
-            event->recurrence()->setDuration(-1);
-        }
-    }
-
-    if (eventData.syncFailureResolution == CalendarEvent::RetrySync) {
-        event->removeCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION");
-    } else if (eventData.syncFailureResolution == CalendarEvent::KeepOutOfSync) {
-        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "keep-out-of-sync");
-    } else if (eventData.syncFailureResolution == CalendarEvent::PushDeviceData) {
-        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "device-reset");
-    } else if (eventData.syncFailureResolution == CalendarEvent::PullServerData) {
-        event->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "server-reset");
-    } else {
-        qWarning() << "No support for sync failure resolution" << eventData.syncFailureResolution;
-    }
 }
 
 void CalendarWorker::replaceOccurrence(const CalendarData::Event &eventData, const QDateTime &startTime,
@@ -358,7 +323,7 @@ void CalendarWorker::replaceOccurrence(const CalendarData::Event &eventData, con
         return;
     }
 
-    setEventData(replacement, eventData);
+    eventData.toKCalendarCore(replacement);
 
     if (updateAttendees) {
         updateEventAttendees(replacement, false, required, optional, notebookUid);
@@ -377,130 +342,6 @@ void CalendarWorker::init()
     mStorage->open();
     mStorage->registerObserver(this);
     loadNotebooks();
-}
-
-bool CalendarWorker::setRecurrence(KCalendarCore::Event::Ptr &event, CalendarEvent::Recur recur, CalendarEvent::Days days)
-{
-    if (!event)
-        return false;
-
-    CalendarEvent::Recur oldRecur = CalendarUtils::convertRecurrence(event);
-
-    if (recur == CalendarEvent::RecurOnce)
-        event->recurrence()->clear();
-
-    if (oldRecur != recur
-        || recur == CalendarEvent::RecurMonthlyByDayOfWeek
-        || recur == CalendarEvent::RecurMonthlyByLastDayOfWeek
-        || recur == CalendarEvent::RecurWeeklyByDays) {
-        switch (recur) {
-        case CalendarEvent::RecurOnce:
-            break;
-        case CalendarEvent::RecurDaily:
-            event->recurrence()->setDaily(1);
-            break;
-        case CalendarEvent::RecurWeekly:
-            event->recurrence()->setWeekly(1);
-            break;
-        case CalendarEvent::RecurBiweekly:
-            event->recurrence()->setWeekly(2);
-            break;
-        case CalendarEvent::RecurWeeklyByDays: {
-            QBitArray rDays(7);
-            rDays.setBit(0, days & CalendarEvent::Monday);
-            rDays.setBit(1, days & CalendarEvent::Tuesday);
-            rDays.setBit(2, days & CalendarEvent::Wednesday);
-            rDays.setBit(3, days & CalendarEvent::Thursday);
-            rDays.setBit(4, days & CalendarEvent::Friday);
-            rDays.setBit(5, days & CalendarEvent::Saturday);
-            rDays.setBit(6, days & CalendarEvent::Sunday);
-            event->recurrence()->setWeekly(1, rDays);
-            break;
-        }
-        case CalendarEvent::RecurMonthly:
-            event->recurrence()->setMonthly(1);
-            break;
-        case CalendarEvent::RecurMonthlyByDayOfWeek: {
-            event->recurrence()->setMonthly(1);
-            const QDate at(event->dtStart().date());
-            event->recurrence()->addMonthlyPos((at.day() - 1) / 7 + 1, at.dayOfWeek());
-            break;
-        }
-        case CalendarEvent::RecurMonthlyByLastDayOfWeek: {
-            event->recurrence()->setMonthly(1);
-            const QDate at(event->dtStart().date());
-            event->recurrence()->addMonthlyPos(-1, at.dayOfWeek());
-            break;
-        }
-        case CalendarEvent::RecurYearly:
-            event->recurrence()->setYearly(1);
-            break;
-        case CalendarEvent::RecurCustom:
-            // Unable to handle the recurrence rules, keep the existing ones.
-            break;
-        }
-        return true;
-    }
-
-    return false;
-}
-
-bool CalendarWorker::setReminder(KCalendarCore::Event::Ptr &event, int seconds, const QDateTime &dateTime)
-{
-    if (!event)
-        return false;
-
-    if (CalendarUtils::getReminder(event) == seconds
-        && CalendarUtils::getReminderDateTime(event) == dateTime)
-        return false;
-
-    KCalendarCore::Alarm::List alarms = event->alarms();
-    for (int ii = 0; ii < alarms.count(); ++ii) {
-        if (alarms.at(ii)->type() == KCalendarCore::Alarm::Procedure)
-            continue;
-        event->removeAlarm(alarms.at(ii));
-    }
-
-    // negative reminder seconds means "no reminder", so only
-    // deal with positive (or zero = at time of event) reminders.
-    if (seconds >= 0) {
-        KCalendarCore::Alarm::Ptr alarm = event->newAlarm();
-        alarm->setEnabled(true);
-        // backend stores as "offset to dtStart", i.e negative if reminder before event.
-        alarm->setStartOffset(-1 * seconds);
-        alarm->setType(KCalendarCore::Alarm::Display);
-    } else if (dateTime.isValid()) {
-        KCalendarCore::Alarm::Ptr alarm = event->newAlarm();
-        alarm->setEnabled(true);
-        alarm->setTime(dateTime);
-        alarm->setType(KCalendarCore::Alarm::Display);
-    }
-
-    return true;
-}
-
-bool CalendarWorker::setStatus(KCalendarCore::Event::Ptr &event, CalendarEvent::Status status)
-{
-    if (!event)
-        return false;
-
-    switch (status) {
-    case CalendarEvent::StatusNone:
-        event->setStatus(KCalendarCore::Incidence::StatusNone);
-        return true;
-    case CalendarEvent::StatusTentative:
-        event->setStatus(KCalendarCore::Incidence::StatusTentative);
-        return true;
-    case CalendarEvent::StatusConfirmed:
-        event->setStatus(KCalendarCore::Incidence::StatusConfirmed);
-        return true;
-    case CalendarEvent::StatusCancelled:
-        event->setStatus(KCalendarCore::Incidence::StatusCanceled);
-        return true;
-    default:
-        qWarning() << "unknown status value" << status;
-    }
-    return false;
 }
 
 bool CalendarWorker::needSendCancellation(KCalendarCore::Event::Ptr &event) const
@@ -892,40 +733,9 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
 CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event::Ptr &e,
                                                       mKCal::Notebook::Ptr notebook) const
 {
-    CalendarData::Event event;
-    event.uniqueId = e->uid();
-    event.recurrenceId = e->recurrenceId();
-    event.allDay = e->allDay();
+    CalendarData::Event event(*e);
     event.calendarUid = mCalendar->notebook(e);
-    event.description = e->description();
-    event.displayLabel = e->summary();
-    event.endTime = e->dtEnd();
-    event.location = e->location();
-    event.secrecy = CalendarUtils::convertSecrecy(e);
     event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
-    event.recur = CalendarUtils::convertRecurrence(e);
-    event.recurWeeklyDays = CalendarUtils::convertDayPositions(e);
-    event.status = CalendarUtils::convertStatus(e);
-    const QString &syncFailure = e->customProperty("VOLATILE", "SYNC-FAILURE");
-    if (syncFailure.compare("upload", Qt::CaseInsensitive) == 0) {
-        event.syncFailure = CalendarEvent::UploadFailure;
-    } else if (syncFailure.compare("upload-new", Qt::CaseInsensitive) == 0) {
-        event.syncFailure = CalendarEvent::CreationFailure;
-    } else if (syncFailure.compare("update", Qt::CaseInsensitive) == 0) {
-        event.syncFailure = CalendarEvent::UpdateFailure;
-    } else if (syncFailure.compare("delete", Qt::CaseInsensitive) == 0) {
-        event.syncFailure = CalendarEvent::DeleteFailure;
-    }
-    const QString &syncResolution = e->customProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION");
-    if (syncResolution.compare("keep-out-of-sync", Qt::CaseInsensitive) == 0) {
-        event.syncFailureResolution = CalendarEvent::KeepOutOfSync;
-    } else if (syncResolution.compare("server-reset", Qt::CaseInsensitive) == 0) {
-        event.syncFailureResolution = CalendarEvent::PullServerData;
-    } else if (syncResolution.compare("device-reset", Qt::CaseInsensitive) == 0) {
-        event.syncFailureResolution = CalendarEvent::PushDeviceData;
-    } else if (!syncResolution.isEmpty()) {
-        qWarning() << "unsupported sync failure resolution" << syncResolution;
-    }
     bool externalInvitation = false;
     const QString &calendarOwnerEmail = getNotebookAddress(e);
 
@@ -957,14 +767,6 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
             event.rsvp = calAttendee.RSVP();// || calAttendee->role() != KCalendarCore::Attendee::Chair;
         }
     }
-
-    KCalendarCore::RecurrenceRule *defaultRule = e->recurrence()->defaultRRule();
-    if (defaultRule) {
-        event.recurEndDate = defaultRule->endDt().date();
-    }
-    event.reminder = CalendarUtils::getReminder(e);
-    event.reminderDateTime = CalendarUtils::getReminderDateTime(e);
-    event.startTime = e->dtStart();
     return event;
 }
 

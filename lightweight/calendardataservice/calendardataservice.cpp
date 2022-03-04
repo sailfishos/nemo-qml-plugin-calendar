@@ -90,8 +90,8 @@ void CalendarDataService::updated()
     for (int i = 0; i < mAgendaModel->count(); i++) {
         QVariant variant = mAgendaModel->get(i, CalendarAgendaModel::EventObjectRole);
         QVariant occurrenceVariant = mAgendaModel->get(i, CalendarAgendaModel::OccurrenceObjectRole);
-        if (variant.canConvert<CalendarEvent *>() && occurrenceVariant.canConvert<CalendarEventOccurrence *>()) {
-            CalendarEvent* event = variant.value<CalendarEvent *>();
+        if (variant.canConvert<CalendarStoredEvent *>() && occurrenceVariant.canConvert<CalendarEventOccurrence *>()) {
+            CalendarStoredEvent* event = variant.value<CalendarStoredEvent *>();
             CalendarEventOccurrence* occurrence = occurrenceVariant.value<CalendarEventOccurrence *>();
             EventData eventStruct;
             eventStruct.displayLabel = event->displayLabel();
