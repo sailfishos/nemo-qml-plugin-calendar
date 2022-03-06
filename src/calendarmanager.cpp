@@ -57,7 +57,6 @@ CalendarManager::CalendarManager()
     qRegisterMetaType<CalendarData::Range>("CalendarData::Range");
     qRegisterMetaType<QList<CalendarData::Range > >("QList<CalendarData::Range>");
     qRegisterMetaType<QList<CalendarData::Notebook> >("QList<CalendarData::Notebook>");
-    qRegisterMetaType<QList<CalendarData::EmailContact> >("QList<CalendarData::EmailContact>");
 
     mCalendarWorker = new CalendarWorker();
     mCalendarWorker->moveToThread(&mWorkerThread);
@@ -155,14 +154,14 @@ CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const
 }
 
 void CalendarManager::saveModification(CalendarData::Event eventData, bool updateAttendees,
-                                       const QList<CalendarData::EmailContact> &required,
-                                       const QList<CalendarData::EmailContact> &optional)
+                                       const KCalendarCore::Person::List &required,
+                                       const KCalendarCore::Person::List &optional)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "saveEvent", Qt::QueuedConnection,
                               Q_ARG(CalendarData::Event, eventData),
                               Q_ARG(bool, updateAttendees),
-                              Q_ARG(QList<CalendarData::EmailContact>, required),
-                              Q_ARG(QList<CalendarData::EmailContact>, optional));
+                              Q_ARG(KCalendarCore::Person::List, required),
+                              Q_ARG(KCalendarCore::Person::List, optional));
 }
 
 CalendarData::Event CalendarManager::dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const

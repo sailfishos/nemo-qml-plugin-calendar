@@ -66,8 +66,8 @@ public slots:
     void save();
 
     void saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
-                   const QList<CalendarData::EmailContact> &required,
-                   const QList<CalendarData::EmailContact> &optional);
+                   const KCalendarCore::Person::List &required,
+                   const KCalendarCore::Person::List &optional);
     CalendarData::Event dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId);
     void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
@@ -115,8 +115,8 @@ private:
 
     bool needSendCancellation(KCalendarCore::Event::Ptr &event) const;
     void updateEventAttendees(KCalendarCore::Event::Ptr event, bool newEvent,
-                              const QList<CalendarData::EmailContact> &required,
-                              const QList<CalendarData::EmailContact> &optional,
+                              const KCalendarCore::Person::List &required,
+                              const KCalendarCore::Person::List &optional,
                               const QString &notebookUid);
     QString getNotebookAddress(const QString &notebookUid) const;
     QString getNotebookAddress(const KCalendarCore::Event::Ptr &event) const;

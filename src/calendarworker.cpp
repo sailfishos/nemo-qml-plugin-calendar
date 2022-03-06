@@ -218,8 +218,8 @@ void CalendarWorker::save()
 }
 
 void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
-                               const QList<CalendarData::EmailContact> &required,
-                               const QList<CalendarData::EmailContact> &optional)
+                               const KCalendarCore::Person::List &required,
+                               const KCalendarCore::Person::List &optional)
 {
     QString notebookUid = eventData.calendarUid;
 
@@ -350,8 +350,8 @@ bool CalendarWorker::needSendCancellation(KCalendarCore::Event::Ptr &event) cons
 // use explicit notebook uid so we don't need to assume the events involved being added there.
 // the related notebook is just needed to associate updates to some plugin/account
 void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool newEvent,
-                                          const QList<CalendarData::EmailContact> &required,
-                                          const QList<CalendarData::EmailContact> &optional,
+                                          const KCalendarCore::Person::List &required,
+                                          const KCalendarCore::Person::List &optional,
                                           const QString &notebookUid)
 {
     if (notebookUid.isEmpty()) {
@@ -382,13 +382,13 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
 
         // first remove everyone still listed as included
         for (int i = 0; i < required.length(); ++i) {
-            const KCalendarCore::Attendee toRemove = cancelEvent->attendeeByMail(required.at(i).email);
+            const KCalendarCore::Attendee toRemove = cancelEvent->attendeeByMail(required.at(i).email());
             if (!toRemove.email().isEmpty()) {
                 cancelAttendees.removeOne(toRemove);
             }
         }
         for (int i = 0; i < optional.length(); ++i) {
-            const KCalendarCore::Attendee toRemove = cancelEvent->attendeeByMail(optional.at(i).email);
+            const KCalendarCore::Attendee toRemove = cancelEvent->attendeeByMail(optional.at(i).email());
             if (!toRemove.email().isEmpty()) {
                 cancelAttendees.removeOne(toRemove);
             }
@@ -435,27 +435,27 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
 
     if (required.length() > 0 || optional.length() > 0) {
         for (int i = 0; i < required.length(); ++i) {
-            const KCalendarCore::Attendee existing = event->attendeeByMail(required.at(i).email);
+            const KCalendarCore::Attendee existing = event->attendeeByMail(required.at(i).email());
             if (!existing.email().isEmpty()) {
                 KCalendarCore::Attendee updated = existing;
                 updated.setRole(KCalendarCore::Attendee::ReqParticipant);
                 updateAttendee(event, existing, updated);
             } else {
                 event->addAttendee(KCalendarCore::Attendee(
-                        required.at(i).name, required.at(i).email, true /* rsvp */,
+                        required.at(i).name(), required.at(i).email(), true /* rsvp */,
                         KCalendarCore::Attendee::NeedsAction,
                         KCalendarCore::Attendee::ReqParticipant));
             }
         }
         for (int i = 0; i < optional.length(); ++i) {
-            const KCalendarCore::Attendee existing = event->attendeeByMail(optional.at(i).email);
+            const KCalendarCore::Attendee existing = event->attendeeByMail(optional.at(i).email());
             if (!existing.email().isEmpty()) {
                 KCalendarCore::Attendee updated = existing;
                 updated.setRole(KCalendarCore::Attendee::OptParticipant);
                 updateAttendee(event, existing, updated);
             } else {
                 event->addAttendee(KCalendarCore::Attendee(
-                        optional.at(i).name, optional.at(i).email, true,
+                        optional.at(i).name(), optional.at(i).email(), true,
                         KCalendarCore::Attendee::NeedsAction,
                         KCalendarCore::Attendee::OptParticipant));
             }
