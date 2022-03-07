@@ -153,28 +153,37 @@ void CalendarWorker::deleteAll(const QString &uid)
     mDeletedEvents.append(QPair<QString, QDateTime>(uid, QDateTime()));
 }
 
-bool CalendarWorker::sendResponse(const CalendarData::Event &eventData, const CalendarEvent::Response response)
+bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenceId,
+                                  const CalendarEvent::Response response)
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
+    KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
     if (!event) {
-        qWarning() << "Failed to send response, event not found. UID = " << eventData.uniqueId;
+        qWarning() << "Failed to send response, event not found. UID = " << uid;
         return false;
     }
-    const QString &notebookUid = mCalendar->notebook(event);
-    const QString &ownerEmail = mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
-                                                                 : QString();
-
+    const QString ownerEmail = mNotebooks.value(mCalendar->notebook(event)).emailAddress;
     const KCalendarCore::Attendee origAttendee = event->attendeeByMail(ownerEmail);
     KCalendarCore::Attendee updated = origAttendee;
-    updated.setStatus(CalendarUtils::convertResponse(response));
+    switch (response) {
+    case CalendarEvent::ResponseAccept:
+        updated.setStatus(KCalendarCore::Attendee::Accepted);
+        break;
+    case CalendarEvent::ResponseTentative:
+        updated.setStatus(KCalendarCore::Attendee::Tentative);
+        break;
+    case CalendarEvent::ResponseDecline:
+        updated.setStatus(KCalendarCore::Attendee::Declined);
+        break;
+    default:
+        updated.setStatus(KCalendarCore::Attendee::NeedsAction);
+    }
     updateAttendee(event, origAttendee, updated);
 
-    bool sent = mKCal::ServiceHandler::instance().sendResponse(event, eventData.description, mCalendar, mStorage);
+    bool sent = mKCal::ServiceHandler::instance().sendResponse(event, event->description(), mCalendar, mStorage);
 
     if (!sent)
         updateAttendee(event, updated, origAttendee);
 
-    save();
     return sent;
 }
 

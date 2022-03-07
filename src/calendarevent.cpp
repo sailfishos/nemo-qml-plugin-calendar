@@ -254,7 +254,12 @@ void CalendarStoredEvent::eventUidChanged(QString oldUid, QString newUid)
 
 bool CalendarStoredEvent::sendResponse(int response)
 {
-    return mManager->sendResponse(*mData, (Response)response);
+    if (mManager->sendResponse(mData->uniqueId, mData->recurrenceId, (Response)response)) {
+        mManager->save();
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void CalendarStoredEvent::deleteEvent()

@@ -565,12 +565,13 @@ CalendarData::Event CalendarManager::getEvent(const QString &instanceIdentifier,
     return CalendarData::Event();
 }
 
-bool CalendarManager::sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response)
+bool CalendarManager::sendResponse(const QString &uid, const QDateTime &recurrenceId, CalendarEvent::Response response)
 {
     bool result;
     QMetaObject::invokeMethod(mCalendarWorker, "sendResponse", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(bool, result),
-                              Q_ARG(CalendarData::Event, eventData),
+                              Q_ARG(QString, uid),
+                              Q_ARG(QDateTime, recurrenceId),
                               Q_ARG(CalendarEvent::Response, response));
     return result;
 }
