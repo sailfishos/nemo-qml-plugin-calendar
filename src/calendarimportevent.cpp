@@ -36,17 +36,16 @@
 #include "calendarutils.h"
 
 CalendarImportEvent::CalendarImportEvent(const KCalendarCore::Event::Ptr &event)
-    : CalendarEvent((CalendarData::Event*)0, nullptr)
+    : CalendarEvent(event, nullptr)
     , mColor("#ffffff")
 {
     if (event) {
-        *mData = CalendarData::Event(*event);
         mOrganizer = event->organizer().fullName();
         mOrganizerEmail = event->organizer().email();
         mAttendees = CalendarUtils::getEventAttendees(event);
         mOccurrence = CalendarUtils::getNextOccurrence(event);
     }
-    mData->readOnly = true;
+    mReadOnly = true;
 }
 
 QString CalendarImportEvent::color() const

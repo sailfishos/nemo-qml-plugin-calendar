@@ -35,6 +35,7 @@
 #include "calendarutils.h"
 
 #include <QTimeZone>
+#include <QBitArray>
 #include <QDebug>
 
 namespace {
@@ -59,11 +60,11 @@ CalendarEventModification::CalendarEventModification(const CalendarStoredEvent *
     : CalendarEvent(source, parent)
 {
     if (source && occurrence)
-        *mData = source->dissociateSingleOccurrence(occurrence);
+        mIncidence = source->dissociateSingleOccurrence(occurrence);
 }
 
 CalendarEventModification::CalendarEventModification(QObject *parent)
-    : CalendarEvent((CalendarData::Event*)0, parent)
+    : CalendarEvent(nullptr, parent)
 {
 }
 
@@ -73,26 +74,26 @@ CalendarEventModification::~CalendarEventModification()
 
 QDateTime CalendarEventModification::startTime() const
 {
-    return mData->startTime;
+    return mIncidence->dtStart();
 }
 
 QDateTime CalendarEventModification::endTime() const
 {
-    return mData->endTime;
+    return mIncidence->dateTime(KCalendarCore::Incidence::RoleEnd);
 }
 
 void CalendarEventModification::setDisplayLabel(const QString &displayLabel)
 {
-    if (mData->displayLabel != displayLabel) {
-        mData->displayLabel = displayLabel;
+    if (mIncidence->summary() != displayLabel) {
+        mIncidence->setSummary(displayLabel);
         emit displayLabelChanged();
     }
 }
 
 void CalendarEventModification::setDescription(const QString &description)
 {
-    if (mData->description != description) {
-        mData->description = description;
+    if (mIncidence->description() != description) {
+        mIncidence->setDescription(description);
         emit descriptionChanged();
     }
 }
@@ -101,51 +102,52 @@ void CalendarEventModification::setStartTime(const QDateTime &startTime, Qt::Tim
 {
     QDateTime newStartTimeInTz = startTime;
     updateTime(&newStartTimeInTz, spec, timezone);
-    if (mData->startTime != newStartTimeInTz
-        || mData->startTime.timeSpec() != newStartTimeInTz.timeSpec()
-        || (mData->startTime.timeSpec() == Qt::TimeZone
-            && mData->startTime.timeZone() != newStartTimeInTz.timeZone())) {
-        mData->startTime = newStartTimeInTz;
+    if (mIncidence->dtStart() != newStartTimeInTz
+        || mIncidence->dtStart().timeSpec() != newStartTimeInTz.timeSpec()
+        || mIncidence->dtStart().timeZone() != newStartTimeInTz.timeZone()) {
+        mIncidence->setDtStart(newStartTimeInTz);
         emit startTimeChanged();
     }
 }
 
 void CalendarEventModification::setEndTime(const QDateTime &endTime, Qt::TimeSpec spec, const QString &timezone)
 {
+    if (mIncidence->type() != KCalendarCore::IncidenceBase::TypeEvent)
+        return;
     QDateTime newEndTimeInTz = endTime;
     updateTime(&newEndTimeInTz, spec, timezone);
-    if (mData->endTime != newEndTimeInTz
-        || mData->endTime.timeSpec() != newEndTimeInTz.timeSpec()
-        || (mData->endTime.timeSpec() == Qt::TimeZone
-            && mData->endTime.timeZone() != newEndTimeInTz.timeZone())) {
-        mData->endTime = newEndTimeInTz;
+    const KCalendarCore::Event::Ptr &event = mIncidence.staticCast<KCalendarCore::Event>();
+    if (event->dtEnd() != newEndTimeInTz
+        || event->dtEnd().timeSpec() != newEndTimeInTz.timeSpec()
+        || event->dtEnd().timeZone() != newEndTimeInTz.timeZone()) {
+        event->setDtEnd(newEndTimeInTz);
         emit endTimeChanged();
     }
 }
 
 void CalendarEventModification::setAllDay(bool allDay)
 {
-    if (mData->allDay != allDay) {
-        mData->allDay = allDay;
+    if (mIncidence->allDay() != allDay) {
+        mIncidence->setAllDay(allDay);
         emit allDayChanged();
     }
 }
 
 void CalendarEventModification::setRecur(CalendarEvent::Recur recur)
 {
-    if (mData->recur != recur) {
-        mData->recur = recur;
+    if (mRecur != recur) {
+        mRecur = recur;
         emit recurChanged();
     }
 }
 
 void CalendarEventModification::setRecurEndDate(const QDateTime &dateTime)
 {
-    bool wasValid = mData->recurEndDate.isValid();
+    bool wasValid = mRecurEndDate.isValid();
     QDate date = dateTime.date();
 
-    if (mData->recurEndDate != date) {
-        mData->recurEndDate = date;
+    if (mRecurEndDate != date) {
+        mRecurEndDate = date;
         emit recurEndDateChanged();
 
         if (date.isValid() != wasValid) {
@@ -161,40 +163,40 @@ void CalendarEventModification::unsetRecurEndDate()
 
 void CalendarEventModification::setRecurWeeklyDays(CalendarEvent::Days days)
 {
-    if (mData->recurWeeklyDays != days) {
-        mData->recurWeeklyDays = days;
+    if (mRecurWeeklyDays != days) {
+        mRecurWeeklyDays = days;
         emit recurWeeklyDaysChanged();
     }
 }
 
 void CalendarEventModification::setReminder(int seconds)
 {
-    if (seconds != mData->reminder) {
-        mData->reminder = seconds;
+    if (seconds != mReminder) {
+        mReminder = seconds;
         emit reminderChanged();
     }
 }
 
 void CalendarEventModification::setReminderDateTime(const QDateTime &dateTime)
 {
-    if (dateTime != mData->reminderDateTime) {
-        mData->reminderDateTime = dateTime;
+    if (dateTime != mReminderDateTime) {
+        mReminderDateTime = dateTime;
         emit reminderDateTimeChanged();
     }
 }
 
 void CalendarEventModification::setLocation(const QString &newLocation)
 {
-    if (newLocation != mData->location) {
-        mData->location = newLocation;
+    if (newLocation != mIncidence->location()) {
+        mIncidence->setLocation(newLocation);
         emit locationChanged();
     }
 }
 
 void CalendarEventModification::setCalendarUid(const QString &uid)
 {
-    if (mData->calendarUid != uid) {
-        mData->calendarUid = uid;
+    if (mCalendarUid != uid) {
+        mCalendarUid = uid;
         emit calendarUidChanged();
     }
 }
@@ -213,14 +215,118 @@ void CalendarEventModification::setAttendees(CalendarContactModel *required, Cal
 
 void CalendarEventModification::save()
 {
-    CalendarManager::instance()->saveModification(*mData, m_attendeesSet,
+    updateIncidence();
+    CalendarData::Event ev(*mIncidence.staticCast<KCalendarCore::Event>());
+    ev.calendarUid = mCalendarUid;
+    CalendarManager::instance()->saveModification(ev, m_attendeesSet,
                                                   m_requiredAttendees, m_optionalAttendees);
+}
+
+void CalendarEventModification::updateIncidence() const
+{
+    if (fromKReminder() != mReminder || fromKReminderDateTime() != mReminderDateTime) {
+        KCalendarCore::Alarm::List alarms = mIncidence->alarms();
+        for (int ii = 0; ii < alarms.count(); ++ii) {
+            if (alarms.at(ii)->type() == KCalendarCore::Alarm::Procedure)
+                continue;
+            mIncidence->removeAlarm(alarms.at(ii));
+        }
+
+        // negative reminder seconds means "no reminder", so only
+        // deal with positive (or zero = at time of event) reminders.
+        if (mReminder >= 0) {
+            KCalendarCore::Alarm::Ptr alarm = mIncidence->newAlarm();
+            alarm->setEnabled(true);
+            // backend stores as "offset to dtStart", i.e negative if reminder before event.
+            alarm->setStartOffset(-1 * mReminder);
+            alarm->setType(KCalendarCore::Alarm::Display);
+        } else if (mReminderDateTime.isValid()) {
+            KCalendarCore::Alarm::Ptr alarm = mIncidence->newAlarm();
+            alarm->setEnabled(true);
+            alarm->setTime(mReminderDateTime);
+            alarm->setType(KCalendarCore::Alarm::Display);
+        }
+    }
+
+    if (mRecur == CalendarEvent::RecurOnce)
+        mIncidence->recurrence()->clear();
+
+    if (fromKRecurrence() != mRecur
+        || mRecur == CalendarEvent::RecurMonthlyByDayOfWeek
+        || mRecur == CalendarEvent::RecurMonthlyByLastDayOfWeek
+        || mRecur == CalendarEvent::RecurWeeklyByDays) {
+        switch (mRecur) {
+        case CalendarEvent::RecurOnce:
+            break;
+        case CalendarEvent::RecurDaily:
+            mIncidence->recurrence()->setDaily(1);
+            break;
+        case CalendarEvent::RecurWeekly:
+            mIncidence->recurrence()->setWeekly(1);
+            break;
+        case CalendarEvent::RecurBiweekly:
+            mIncidence->recurrence()->setWeekly(2);
+            break;
+        case CalendarEvent::RecurWeeklyByDays: {
+            QBitArray rDays(7);
+            rDays.setBit(0, mRecurWeeklyDays & CalendarEvent::Monday);
+            rDays.setBit(1, mRecurWeeklyDays & CalendarEvent::Tuesday);
+            rDays.setBit(2, mRecurWeeklyDays & CalendarEvent::Wednesday);
+            rDays.setBit(3, mRecurWeeklyDays & CalendarEvent::Thursday);
+            rDays.setBit(4, mRecurWeeklyDays & CalendarEvent::Friday);
+            rDays.setBit(5, mRecurWeeklyDays & CalendarEvent::Saturday);
+            rDays.setBit(6, mRecurWeeklyDays & CalendarEvent::Sunday);
+            mIncidence->recurrence()->setWeekly(1, rDays);
+            break;
+        }
+        case CalendarEvent::RecurMonthly:
+            mIncidence->recurrence()->setMonthly(1);
+            break;
+        case CalendarEvent::RecurMonthlyByDayOfWeek: {
+            mIncidence->recurrence()->setMonthly(1);
+            const QDate at(mIncidence->dtStart().date());
+            mIncidence->recurrence()->addMonthlyPos((at.day() - 1) / 7 + 1, at.dayOfWeek());
+            break;
+        }
+        case CalendarEvent::RecurMonthlyByLastDayOfWeek: {
+            mIncidence->recurrence()->setMonthly(1);
+            const QDate at(mIncidence->dtStart().date());
+            mIncidence->recurrence()->addMonthlyPos(-1, at.dayOfWeek());
+            break;
+        }
+        case CalendarEvent::RecurYearly:
+            mIncidence->recurrence()->setYearly(1);
+            break;
+        case CalendarEvent::RecurCustom:
+            // Unable to handle the recurrence rules, keep the existing ones.
+            break;
+        }
+    }
+
+    if (mRecur != CalendarEvent::RecurOnce) {
+        mIncidence->recurrence()->setEndDate(mRecurEndDate);
+        if (!mRecurEndDate.isValid()) {
+            // Recurrence/RecurrenceRule don't have separate method to clear the end date, and currently
+            // setting invalid date doesn't make the duration() indicate recurring infinitely.
+            mIncidence->recurrence()->setDuration(-1);
+        }
+    }
 }
 
 void CalendarEventModification::setSyncFailureResolution(CalendarEvent::SyncFailureResolution resolution)
 {
-    if (mData->syncFailureResolution != resolution) {
-        mData->syncFailureResolution = resolution;
+    if (syncFailureResolution() != resolution) {
+        if (resolution == CalendarEvent::RetrySync) {
+            mIncidence->removeCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION");
+        } else if (resolution == CalendarEvent::KeepOutOfSync) {
+            mIncidence->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "keep-out-of-sync");
+        } else if (resolution == CalendarEvent::PushDeviceData) {
+            mIncidence->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "device-reset");
+        } else if (resolution == CalendarEvent::PullServerData) {
+            mIncidence->setCustomProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION", "server-reset");
+        } else {
+            qWarning() << "No support for sync failure resolution" << resolution;
+        }
         emit syncFailureResolutionChanged();
     }
 }

@@ -35,42 +35,43 @@
 #include <QQmlInfo>
 #include <QDateTime>
 #include <QTimeZone>
+#include <QBitArray>
 
 #include "calendarutils.h"
 #include "calendarmanager.h"
 #include "calendareventoccurrence.h"
 #include "calendardata.h"
 
-CalendarEvent::CalendarEvent(const CalendarData::Event *data, QObject *parent)
-    : QObject(parent), mData(new CalendarData::Event)
+CalendarEvent::CalendarEvent(KCalendarCore::Incidence::Ptr data, QObject *parent)
+    : QObject(parent), mIncidence(data ? data : KCalendarCore::Incidence::Ptr(new KCalendarCore::Event))
 {
-    if (data)
-        *mData = *data;
+    cacheIncidence();
 }
 
 CalendarEvent::CalendarEvent(const CalendarEvent *other, QObject *parent)
-    : QObject(parent), mData(new CalendarData::Event)
+    : CalendarEvent(KCalendarCore::Incidence::Ptr(other ? other->mIncidence->clone() : nullptr), parent)
 {
     if (other) {
-        *mData = *other->mData;
-    } else {
-        qWarning("Null source passed to CalendarEvent().");
+        mCalendarUid = other->mCalendarUid;
+        mReadOnly = other->mReadOnly;
+        mRSVP = other->mRSVP;
+        mExternalInvitation = other->mExternalInvitation;
+        mOwnerStatus = other->mOwnerStatus;
     }
 }
 
 CalendarEvent::~CalendarEvent()
 {
-    delete mData;
 }
 
 QString CalendarEvent::displayLabel() const
 {
-    return mData->displayLabel;
+    return mIncidence->summary();
 }
 
 QString CalendarEvent::description() const
 {
-    return mData->description;
+    return mIncidence->description();
 }
 
 QDateTime CalendarEvent::startTime() const
@@ -79,13 +80,13 @@ QDateTime CalendarEvent::startTime() const
     // will be in UTC also and the UI will convert it to local when displaying
     // the time, while in every other case, it set the QDateTime in
     // local zone.
-    const QDateTime dt = mData->startTime;
+    const QDateTime dt = mIncidence->dtStart();
     return QDateTime(dt.date(), dt.time());
 }
 
 QDateTime CalendarEvent::endTime() const
 {
-    const QDateTime dt = mData->endTime;
+    const QDateTime dt = mIncidence->dateTime(KCalendarCore::Incidence::RoleEnd);
     return QDateTime(dt.date(), dt.time());
 }
 
@@ -100,132 +101,293 @@ static Qt::TimeSpec toTimeSpec(const QDateTime &dt)
 
 Qt::TimeSpec CalendarEvent::startTimeSpec() const
 {
-    return toTimeSpec(mData->startTime);
+    return toTimeSpec(mIncidence->dtStart());
 }
 
 Qt::TimeSpec CalendarEvent::endTimeSpec() const
 {
-    return toTimeSpec(mData->endTime);
+    return toTimeSpec(mIncidence->dateTime(KCalendarCore::Incidence::RoleEnd));
 }
 
 QString CalendarEvent::startTimeZone() const
 {
-    return QString::fromLatin1(mData->startTime.timeZone().id());
+    return QString::fromLatin1(mIncidence->dtStart().timeZone().id());
 }
 
 QString CalendarEvent::endTimeZone() const
 {
-    return QString::fromLatin1(mData->endTime.timeZone().id());
+    return QString::fromLatin1(mIncidence->dateTime(KCalendarCore::Incidence::RoleEnd).timeZone().id());
 }
 
 bool CalendarEvent::allDay() const
 {
-    return mData->allDay;
+    return mIncidence->allDay();
 }
 
 CalendarEvent::Recur CalendarEvent::recur() const
 {
-    return mData->recur;
+    return mRecur;
 }
 
 QDateTime CalendarEvent::recurEndDate() const
 {
-    return QDateTime(mData->recurEndDate);
+    return QDateTime(mRecurEndDate);
 }
 
 bool CalendarEvent::hasRecurEndDate() const
 {
-    return mData->recurEndDate.isValid();
+    return mRecurEndDate.isValid();
 }
 
 CalendarEvent::Days CalendarEvent::recurWeeklyDays() const
 {
-    return mData->recurWeeklyDays;
+    return mRecurWeeklyDays;
 }
 
 int CalendarEvent::reminder() const
 {
-    return mData->reminder;
+    return mReminder;
 }
 
 QDateTime CalendarEvent::reminderDateTime() const
 {
-    return mData->reminderDateTime;
+    return mReminderDateTime;
 }
 
 QString CalendarEvent::uniqueId() const
 {
-    return mData->uniqueId;
+    return mIncidence->uid();
 }
 
 bool CalendarEvent::readOnly() const
 {
-    return mData->readOnly;
+    return mReadOnly;
 }
 
 QString CalendarEvent::calendarUid() const
 {
-    return mData->calendarUid;
+    return mCalendarUid;
 }
 
 QString CalendarEvent::location() const
 {
-    return mData->location;
+    return mIncidence->location();
 }
 
 CalendarEvent::Secrecy CalendarEvent::secrecy() const
 {
-    return mData->secrecy;
+    KCalendarCore::Incidence::Secrecy s = mIncidence->secrecy();
+    switch (s) {
+    case KCalendarCore::Incidence::SecrecyPrivate:
+        return CalendarEvent::SecrecyPrivate;
+    case KCalendarCore::Incidence::SecrecyConfidential:
+        return CalendarEvent::SecrecyConfidential;
+    case KCalendarCore::Incidence::SecrecyPublic:
+    default:
+        return CalendarEvent::SecrecyPublic;
+    }
 }
 
 CalendarEvent::Status CalendarEvent::status() const
 {
-    return mData->status;
+    switch (mIncidence->status()) {
+    case KCalendarCore::Incidence::StatusTentative:
+        return CalendarEvent::StatusTentative;
+    case KCalendarCore::Incidence::StatusConfirmed:
+        return CalendarEvent::StatusConfirmed;
+    case KCalendarCore::Incidence::StatusCanceled:
+        return CalendarEvent::StatusCancelled;
+    case KCalendarCore::Incidence::StatusNone:
+    default:
+        return CalendarEvent::StatusNone;
+    }
 }
 
 CalendarEvent::SyncFailure CalendarEvent::syncFailure() const
 {
-    return mData->syncFailure;
+    const QString &syncFailure = mIncidence->customProperty("VOLATILE", "SYNC-FAILURE");
+    if (syncFailure.compare("upload-new", Qt::CaseInsensitive) == 0) {
+        return CalendarEvent::CreationFailure;
+    } else if (syncFailure.compare("upload", Qt::CaseInsensitive) == 0) {
+        return CalendarEvent::UploadFailure;
+    } else if (syncFailure.compare("update", Qt::CaseInsensitive) == 0) {
+        return CalendarEvent::UpdateFailure;
+    } else if (syncFailure.compare("delete", Qt::CaseInsensitive) == 0) {
+        return CalendarEvent::DeleteFailure;
+    }
+    return CalendarEvent::NoSyncFailure;
 }
 
 CalendarEvent::SyncFailureResolution CalendarEvent::syncFailureResolution() const
 {
-    return mData->syncFailureResolution;
+    const QString &syncResolution = mIncidence->customProperty("VOLATILE", "SYNC-FAILURE-RESOLUTION");
+    if (syncResolution.compare("keep-out-of-sync", Qt::CaseInsensitive) == 0) {
+        return CalendarEvent::KeepOutOfSync;
+    } else if (syncResolution.compare("server-reset", Qt::CaseInsensitive) == 0) {
+        return CalendarEvent::PullServerData;
+    } else if (syncResolution.compare("device-reset", Qt::CaseInsensitive) == 0) {
+        return CalendarEvent::PushDeviceData;
+    } else if (!syncResolution.isEmpty()) {
+        qWarning() << "unsupported sync failure resolution" << syncResolution;
+    }
+    return CalendarEvent::RetrySync;
 }
 
 CalendarEvent::Response CalendarEvent::ownerStatus() const
 {
-    return mData->ownerStatus;
+    return mOwnerStatus;
 }
 
 bool CalendarEvent::rsvp() const
 {
-    return mData->rsvp;
+    return mRSVP;
 }
 
 bool CalendarEvent::externalInvitation() const
 {
-    return mData->externalInvitation;
+    return mExternalInvitation;
 }
 
 QDateTime CalendarEvent::recurrenceId() const
 {
-    return mData->recurrenceId;
+    return mIncidence->recurrenceId();
 }
 
 QString CalendarEvent::recurrenceIdString() const
 {
-    if (mData->recurrenceId.isValid()) {
-        return CalendarUtils::recurrenceIdToString(mData->recurrenceId);
+    if (mIncidence->hasRecurrenceId()) {
+        return CalendarUtils::recurrenceIdToString(mIncidence->recurrenceId());
     } else {
         return QString();
     }
 }
 
-CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data)
+void CalendarEvent::cacheIncidence()
+{
+    mRecur = fromKRecurrence();
+    mRecurWeeklyDays = fromKDayPositions();
+    mRecurEndDate = QDate();
+    if (mIncidence->recurs()) {
+        KCalendarCore::RecurrenceRule *defaultRule = mIncidence->recurrence()->defaultRRule();
+        if (defaultRule) {
+            mRecurEndDate = defaultRule->endDt().date();
+        }
+    }
+    mReminder = fromKReminder();
+    mReminderDateTime = fromKReminderDateTime();
+}
+
+CalendarEvent::Recur CalendarEvent::fromKRecurrence() const
+{
+    if (!mIncidence->recurs())
+        return CalendarEvent::RecurOnce;
+
+    if (mIncidence->recurrence()->rRules().count() != 1)
+        return CalendarEvent::RecurCustom;
+
+    ushort rt = mIncidence->recurrence()->recurrenceType();
+    int freq = mIncidence->recurrence()->frequency();
+
+    if (rt == KCalendarCore::Recurrence::rDaily && freq == 1) {
+        return CalendarEvent::RecurDaily;
+    } else if (rt == KCalendarCore::Recurrence::rWeekly && freq == 1) {
+        if (mIncidence->recurrence()->days().count(true) == 0) {
+            return CalendarEvent::RecurWeekly;
+        } else {
+            return CalendarEvent::RecurWeeklyByDays;
+        }
+    } else if (rt == KCalendarCore::Recurrence::rWeekly && freq == 2 && mIncidence->recurrence()->days().count(true) == 0) {
+        return CalendarEvent::RecurBiweekly;
+    } else if (rt == KCalendarCore::Recurrence::rMonthlyDay && freq == 1) {
+        return CalendarEvent::RecurMonthly;
+    } else if (rt == KCalendarCore::Recurrence::rMonthlyPos && freq == 1) {
+        const QList<KCalendarCore::RecurrenceRule::WDayPos> monthPositions = mIncidence->recurrence()->monthPositions();
+        if (monthPositions.length() == 1
+            && monthPositions.first().day() == mIncidence->dtStart().date().dayOfWeek()) {
+            if (monthPositions.first().pos() > 0) {
+                return CalendarEvent::RecurMonthlyByDayOfWeek;
+            } else if (monthPositions.first().pos() == -1) {
+                return CalendarEvent::RecurMonthlyByLastDayOfWeek;
+            }
+        }
+    } else if (rt == KCalendarCore::Recurrence::rYearlyMonth && freq == 1) {
+        return CalendarEvent::RecurYearly;
+    }
+
+    return CalendarEvent::RecurCustom;
+}
+
+CalendarEvent::Days CalendarEvent::fromKDayPositions() const
+{
+    if (!mIncidence->recurs())
+        return CalendarEvent::NoDays;
+
+    if (mIncidence->recurrence()->rRules().count() != 1)
+        return CalendarEvent::NoDays;
+
+    if (mIncidence->recurrence()->recurrenceType() != KCalendarCore::Recurrence::rWeekly
+        || mIncidence->recurrence()->frequency() != 1)
+        return CalendarEvent::NoDays;
+
+    const CalendarEvent::Day week[7] = {CalendarEvent::Monday,
+                                        CalendarEvent::Tuesday,
+                                        CalendarEvent::Wednesday,
+                                        CalendarEvent::Thursday,
+                                        CalendarEvent::Friday,
+                                        CalendarEvent::Saturday,
+                                        CalendarEvent::Sunday};
+
+    const QList<KCalendarCore::RecurrenceRule::WDayPos> monthPositions = mIncidence->recurrence()->monthPositions();
+    CalendarEvent::Days days = CalendarEvent::NoDays;
+    for (QList<KCalendarCore::RecurrenceRule::WDayPos>::ConstIterator it = monthPositions.constBegin();
+         it != monthPositions.constEnd(); ++it) {
+        days |= week[it->day() - 1];
+    }
+    return days;
+}
+
+int CalendarEvent::fromKReminder() const
+{
+    KCalendarCore::Alarm::List alarms = mIncidence->alarms();
+
+    KCalendarCore::Alarm::Ptr alarm;
+
+    int seconds = -1; // Any negative values means "no reminder"
+    for (int ii = 0; ii < alarms.count(); ++ii) {
+        if (alarms.at(ii)->type() == KCalendarCore::Alarm::Procedure)
+            continue;
+        alarm = alarms.at(ii);
+        if (alarm && !alarm->hasTime()) {
+            KCalendarCore::Duration d = alarm->startOffset();
+            seconds = d.asSeconds() * -1; // backend stores as "offset in seconds to dtStart", we return "seconds before"
+            if (seconds >= 0) {
+                break;
+            }
+        }
+        break;
+    }
+
+    return seconds;
+}
+
+QDateTime CalendarEvent::fromKReminderDateTime() const
+{
+    for (const KCalendarCore::Alarm::Ptr &alarm : mIncidence->alarms()) {
+        if (alarm && alarm->type() == KCalendarCore::Alarm::Display && alarm->hasTime()) {
+            return alarm->time();
+        }
+    }
+
+    return QDateTime();
+}
+
+CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, KCalendarCore::Incidence::Ptr data,
+                                         const CalendarData::Notebook *notebook)
     : CalendarEvent(data, manager)
     , mManager(manager)
 {
+    cacheIncidence(notebook);
+
     connect(mManager, SIGNAL(notebookColorChanged(QString)),
             this, SLOT(notebookColorChanged(QString)));
     connect(mManager, SIGNAL(eventUidChanged(QString,QString)),
@@ -236,16 +398,77 @@ CalendarStoredEvent::~CalendarStoredEvent()
 {
 }
 
+void CalendarStoredEvent::cacheIncidence(const CalendarData::Notebook *notebook)
+{
+    mCalendarUid = notebook->uid;
+    mReadOnly = notebook->readOnly;
+    mNotebookColor = notebook->color;
+
+    const QString &calendarOwnerEmail = notebook->emailAddress;
+    const KCalendarCore::Person &organizer = mIncidence->organizer();
+    const QString organizerEmail = organizer.email();
+    mExternalInvitation = (!organizerEmail.isEmpty() && organizerEmail != calendarOwnerEmail
+                           && notebook->sharedWith.contains(organizerEmail));
+
+    // It would be good to set the attendance status directly in the event within the plugin,
+    // however in some cases the account email and owner attendee email won't necessarily match
+    // (e.g. in the case where server-side aliases are defined but unknown to the plugin).
+    // So we handle this here to avoid "missing" some status changes due to owner email mismatch.
+    // This defaults to QString() -> ResponseUnspecified in case the property is undefined
+    // QString::toInt() conversion defaults to 0 on failure
+    switch (mIncidence->nonKDECustomProperty("X-EAS-RESPONSE-TYPE").toInt()) {
+    case 1: // OrganizerResponseType (Organizer's acceptance is implicit)
+    case 3: // AcceptedResponseType
+        mOwnerStatus = CalendarEvent::ResponseAccept;
+        break;
+    case 2: // TentativeResponseType
+        mOwnerStatus = CalendarEvent::ResponseTentative;
+        break;
+    case 4: // DeclinedResponseType
+        mOwnerStatus = CalendarEvent::ResponseDecline;
+        break;
+    case -1: // ResponseTypeUnset
+    case 0: // NoneResponseType
+    case 5: // NotRespondedResponseType
+    default:
+        mOwnerStatus = CalendarEvent::ResponseUnspecified;
+        break;
+    }
+    const KCalendarCore::Attendee::List attendees = mIncidence->attendees();
+    for (const KCalendarCore::Attendee &calAttendee : attendees) {
+        if (calAttendee.email() == calendarOwnerEmail) {
+            // Override the ResponseType
+            switch (calAttendee.status()) {
+            case KCalendarCore::Attendee::Accepted:
+                mOwnerStatus = CalendarEvent::ResponseAccept;
+                break;
+            case KCalendarCore::Attendee::Declined:
+                mOwnerStatus = CalendarEvent::ResponseDecline;
+                break;
+            case KCalendarCore::Attendee::Tentative:
+                mOwnerStatus = CalendarEvent::ResponseTentative;
+                break;
+            default:
+                break;
+            }            
+            //TODO: KCalendarCore::Attendee::RSVP() returns false even if response was requested for some accounts like Google.
+            // We can use attendee role until the problem is not fixed (probably in Google plugin).
+            // To be updated later when google account support for responses is added.
+            mRSVP = calAttendee.RSVP();// || calAttendee->role() != KCalendarCore::Attendee::Chair;
+        }
+    }
+}
+
 void CalendarStoredEvent::notebookColorChanged(QString notebookUid)
 {
-    if (mData->calendarUid == notebookUid)
+    if (mCalendarUid == notebookUid)
         emit colorChanged();
 }
 
 void CalendarStoredEvent::eventUidChanged(QString oldUid, QString newUid)
 {
-    if (mData->uniqueId == oldUid) {
-        mData->uniqueId = newUid;
+    if (mIncidence->uid() == oldUid) {
+        mIncidence->setUid(newUid);
         emit uniqueIdChanged();
         // Event uid changes when the event is moved between notebooks, calendar uid has changed
         emit calendarUidChanged();
@@ -254,7 +477,7 @@ void CalendarStoredEvent::eventUidChanged(QString oldUid, QString newUid)
 
 bool CalendarStoredEvent::sendResponse(int response)
 {
-    if (mManager->sendResponse(mData->uniqueId, mData->recurrenceId, (Response)response)) {
+    if (mManager->sendResponse(mIncidence->uid(), mIncidence->recurrenceId(), (Response)response)) {
         mManager->save();
         return true;
     } else {
@@ -264,69 +487,98 @@ bool CalendarStoredEvent::sendResponse(int response)
 
 void CalendarStoredEvent::deleteEvent()
 {
-    mManager->deleteEvent(mData->uniqueId, mData->recurrenceId, QDateTime());
+    mManager->deleteEvent(mIncidence->uid(), mIncidence->recurrenceId(), QDateTime());
     mManager->save();
 }
 
 // Returns the event as a iCalendar string
 QString CalendarStoredEvent::iCalendar(const QString &prodId) const
 {
-    Q_UNUSED(prodId);
-    if (mData->uniqueId.isEmpty()) {
+    if (mIncidence->uid().isEmpty()) {
         qWarning() << "Event has no uid, returning empty iCalendar string."
                    << "Save event before calling this function";
         return QString();
     }
 
-    return mManager->convertEventToICalendarSync(mData->uniqueId, prodId);
+    return mManager->convertEventToICalendarSync(mIncidence->uid(), prodId);
 }
 
 QString CalendarStoredEvent::color() const
 {
-    return mManager->getNotebookColor(mData->calendarUid);
+    return mNotebookColor;
 }
 
-void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
+void CalendarStoredEvent::setEvent(const KCalendarCore::Incidence::Ptr &incidence,
+                                   const CalendarData::Notebook *notebook)
 {
-    if (!data)
+    if (!incidence)
         return;
 
-    CalendarData::Event old = *mData;
-    *mData = *data;
+    CalendarEvent::Recur oldRecur = mRecur;
+    CalendarEvent::Days oldDays = mRecurWeeklyDays;
+    int oldReminder = mReminder;
+    QDateTime oldReminderDateTime = mReminderDateTime;
+    CalendarEvent::SyncFailure oldSyncFailure = syncFailure();
+    CalendarEvent::SyncFailureResolution oldSyncFailureResolution = syncFailureResolution();
+    bool oldRSVP = mRSVP;
+    bool oldExternalInvitation = mExternalInvitation;
+    CalendarEvent::Response oldOwnerStatus = mOwnerStatus;
 
-    if (mData->allDay != old.allDay)
+    const bool mAllDayChanged = mIncidence->allDay() != incidence->allDay();
+    const bool mSummaryChanged = mIncidence->summary() != incidence->summary();
+    const bool mDescriptionChanged = mIncidence->description() != incidence->description();
+    const bool mDtEndChanged = mIncidence->type() == KCalendarCore::IncidenceBase::TypeEvent
+        && incidence->type() == KCalendarCore::IncidenceBase::TypeEvent
+        && mIncidence.staticCast<KCalendarCore::Event>()->dtEnd() != incidence.staticCast<KCalendarCore::Event>()->dtEnd();
+    const bool mLocationChanged = mIncidence->location() != incidence->location();
+    const bool mSecrecyChanged = mIncidence->secrecy() != incidence->secrecy();
+    const bool mStatusChanged = mIncidence->status() != incidence->status();
+    const bool mDtStartChanged = mIncidence->dtStart() != incidence->dtStart();
+    const bool mNbColorChanged = notebook->color != mNotebookColor;
+
+    mIncidence = incidence;
+    CalendarEvent::cacheIncidence();
+    cacheIncidence(notebook);
+
+    if (mAllDayChanged)
         emit allDayChanged();
-    if (mData->displayLabel != old.displayLabel)
+    if (mSummaryChanged)
         emit displayLabelChanged();
-    if (mData->description != old.description)
+    if (mDescriptionChanged)
         emit descriptionChanged();
-    if (mData->endTime != old.endTime)
+    if (mDtEndChanged)
         emit endTimeChanged();
-    if (mData->location != old.location)
+    if (mLocationChanged)
         emit locationChanged();
-    if (mData->secrecy != old.secrecy)
+    if (mSecrecyChanged)
         emit secrecyChanged();
-    if (mData->status != old.status)
+    if (mStatusChanged)
         emit statusChanged();
-    if (mData->recur != old.recur)
+    if (mRecur != oldRecur)
         emit recurChanged();
-    if (mData->reminder != old.reminder)
+    if (mReminder != oldReminder)
         emit reminderChanged();
-    if (mData->reminderDateTime != old.reminderDateTime)
+    if (mReminderDateTime != oldReminderDateTime)
         emit reminderDateTimeChanged();
-    if (mData->startTime != old.startTime)
+    if (mDtStartChanged)
         emit startTimeChanged();
-    if (mData->rsvp != old.rsvp)
+    if (mRecurWeeklyDays != oldDays)
+        emit recurWeeklyDaysChanged();
+    if (mRSVP != oldRSVP)
         emit rsvpChanged();
-    if (mData->externalInvitation != old.externalInvitation)
+    if (mExternalInvitation != oldExternalInvitation)
         emit externalInvitationChanged();
-    if (mData->ownerStatus != old.ownerStatus)
+    if (mOwnerStatus != oldOwnerStatus)
         emit ownerStatusChanged();
-    if (mData->syncFailure != old.syncFailure)
+    if (syncFailure() != oldSyncFailure)
         emit syncFailureChanged();
+    if (syncFailureResolution() != oldSyncFailureResolution)
+        emit syncFailureResolutionChanged();
+    if (mNbColorChanged)
+        emit colorChanged();
 }
 
-CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
+KCalendarCore::Incidence::Ptr CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
 {
-    return occurrence ? mManager->dissociateSingleOccurrence(mData->uniqueId, occurrence->startTime()) : CalendarData::Event();
+    return occurrence ? mManager->dissociateSingleOccurrence(mIncidence->uid(), occurrence->startTime()) : KCalendarCore::Incidence::Ptr();
 }

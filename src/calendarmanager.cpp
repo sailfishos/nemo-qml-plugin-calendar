@@ -57,6 +57,7 @@ CalendarManager::CalendarManager()
     qRegisterMetaType<CalendarData::Range>("CalendarData::Range");
     qRegisterMetaType<QList<CalendarData::Range > >("QList<CalendarData::Range>");
     qRegisterMetaType<QList<CalendarData::Notebook> >("QList<CalendarData::Notebook>");
+    qRegisterMetaType<KCalendarCore::Person::List>("KCalendarCore::Person::List");
 
     mCalendarWorker = new CalendarWorker();
     mCalendarWorker->moveToThread(&mWorkerThread);
@@ -142,7 +143,12 @@ CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const
 
     CalendarData::Event event = getEvent(eventUid, recurrenceId);
     if (event.isValid()) {
-        CalendarStoredEvent *calendarEvent = new CalendarStoredEvent(this, &event);
+        KCalendarCore::Event::Ptr kev(new KCalendarCore::Event);
+        event.toKCalendarCore(kev);
+        kev->setUid(event.uniqueId);
+        kev->setRecurrenceId(event.recurrenceId);
+        CalendarData::Notebook notebook = mNotebooks.value(event.calendarUid);
+        CalendarStoredEvent *calendarEvent = new CalendarStoredEvent(this, kev, &notebook);
         mEventObjects.insert(eventUid, calendarEvent);
         return calendarEvent;
     }
@@ -150,7 +156,7 @@ CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const
     // TODO: maybe attempt to read event from DB? This situation should not happen.
     qWarning() << Q_FUNC_INFO << "No event with uid" << eventUid << recurrenceId << ", returning empty event";
 
-    return new CalendarStoredEvent(this, nullptr);
+    return new CalendarStoredEvent(this, {}, nullptr);
 }
 
 void CalendarManager::saveModification(CalendarData::Event eventData, bool updateAttendees,
@@ -164,15 +170,15 @@ void CalendarManager::saveModification(CalendarData::Event eventData, bool updat
                               Q_ARG(KCalendarCore::Person::List, optional));
 }
 
-CalendarData::Event CalendarManager::dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const
+KCalendarCore::Incidence::Ptr CalendarManager::dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const
 {
-    CalendarData::Event event;
+    KCalendarCore::Incidence::Ptr event;
     // Worker method is not calling any storage method that could block.
     // The only blocking possibility here would be to obtain the worker thread
     // availability.
     QMetaObject::invokeMethod(mCalendarWorker, "dissociateSingleOccurrence",
                               Qt::BlockingQueuedConnection,
-                              Q_RETURN_ARG(CalendarData::Event, event),
+                              Q_RETURN_ARG(KCalendarCore::Incidence::Ptr, event),
                               Q_ARG(QString, eventUid),
                               Q_ARG(QDateTime, recurrenceId));
     return event;
@@ -788,5 +794,10 @@ void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent
     if (!eventObject)
         return;
 
-    eventObject->setEvent(&newEvent);
+    CalendarData::Notebook notebook = mNotebooks.value(newEvent.calendarUid);
+    KCalendarCore::Event::Ptr ev(new KCalendarCore::Event);
+    newEvent.toKCalendarCore(ev);
+    ev->setUid(newEvent.uniqueId);
+    ev->setRecurrenceId(newEvent.recurrenceId);
+    eventObject->setEvent(ev, &notebook);
 }

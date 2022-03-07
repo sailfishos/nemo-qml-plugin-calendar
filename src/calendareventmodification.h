@@ -111,6 +111,8 @@ signals:
     void syncFailureResolutionChanged();
 
 private:
+    void updateIncidence() const;
+
     bool m_attendeesSet = false;
     KCalendarCore::Person::List m_requiredAttendees;
     KCalendarCore::Person::List m_optionalAttendees;

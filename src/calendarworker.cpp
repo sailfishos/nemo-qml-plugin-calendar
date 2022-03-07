@@ -236,16 +236,8 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         return;
     }
 
-    KCalendarCore::Event::Ptr event;
-    if (!eventData.uniqueId.isEmpty()) {
-        event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
-        if (!event && eventData.recurrenceId.isNull()) {
-            // possibility that event was removed while changes were edited. options to either skip, as done now,
-            // or resurrect the event
-            qWarning("Event to be saved not found");
-            return;
-        }
-    }
+    KCalendarCore::Event::Ptr event = mCalendar->event(eventData.uniqueId,
+                                                       eventData.recurrenceId);
     bool createNew = event.isNull();
 
     if (createNew) {
@@ -256,11 +248,11 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
         // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
         // for new events than trying to implement some complex logic in basesailfish-eas.
-        if (eventData.uniqueId.isEmpty()) {
-            event->setUid(event->uid().toUpper());
-        } else {
-            event->setUid(eventData.uniqueId);
-            event->setRecurrenceId(eventData.recurrenceId);
+        event->setUid(eventData.uniqueId.toUpper());
+        event->setRecurrenceId(eventData.recurrenceId);
+        if (!mCalendar->addEvent(event, notebookUid.isEmpty() ? mCalendar->defaultNotebook() : notebookUid)) {
+            qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
+            return;
         }
     } else {
         if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
@@ -282,27 +274,15 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         updateEventAttendees(event, createNew, required, optional, notebookUid);
     }
 
-    if (createNew) {
-        bool eventAdded;
-        if (notebookUid.isEmpty())
-            eventAdded = mCalendar->addEvent(event);
-        else
-            eventAdded = mCalendar->addEvent(event, notebookUid);
-        if (!eventAdded) {
-            qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
-            return;
-        }
-    }
-
     save();
 }
 
-CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId)
+KCalendarCore::Incidence::Ptr CalendarWorker::dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId)
 {
     KCalendarCore::Incidence::Ptr event = mCalendar->incidence(uid);
     if (!event) {
         qWarning("Event to create occurrence replacement for not found");
-        return CalendarData::Event();
+        return KCalendarCore::Incidence::Ptr();
     }
 
     // Note: for all day events, to guarantee that exception set in a given time
@@ -311,18 +291,7 @@ CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &ui
     const QDateTime occurrence = event->allDay()
             ? QDateTime(recurrenceId.date(), recurrenceId.time(), Qt::LocalTime)
             : recurrenceId;
-    KCalendarCore::Incidence::Ptr replacement = mCalendar->dissociateSingleOccurrence(event, occurrence);
-    if (!replacement) {
-        qWarning("Unable to create the replacing occurrence");
-        return CalendarData::Event();
-    }
-
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
-    if (!notebook) {
-        qWarning("Unable to find the notebook of created exception");
-        return CalendarData::Event();
-    }
-    return createEventStruct(replacement.staticCast<KCalendarCore::Event>(), notebook);
+    return mCalendar->dissociateSingleOccurrence(event, occurrence);
 }
 
 void CalendarWorker::init()
@@ -810,6 +779,7 @@ void CalendarWorker::loadNotebooks()
         notebook.localCalendar = mkNotebook->isMaster()
                 && !mkNotebook->isShared()
                 && mkNotebook->pluginName().isEmpty();
+        notebook.sharedWith = mkNotebook->sharedWith();
 
         notebook.excluded = !mkNotebook->isVisible();
         // To keep backward compatibility:
