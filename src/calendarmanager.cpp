@@ -58,6 +58,7 @@ CalendarManager::CalendarManager()
     qRegisterMetaType<QList<CalendarData::Range > >("QList<CalendarData::Range>");
     qRegisterMetaType<QList<CalendarData::Notebook> >("QList<CalendarData::Notebook>");
     qRegisterMetaType<KCalendarCore::Person::List>("KCalendarCore::Person::List");
+    qRegisterMetaType<KCalendarCore::Incidence::Ptr>("KCalendarCore::Incidence::Ptr");
 
     mCalendarWorker = new CalendarWorker();
     mCalendarWorker->moveToThread(&mWorkerThread);
@@ -159,12 +160,14 @@ CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const
     return new CalendarStoredEvent(this, {}, nullptr);
 }
 
-void CalendarManager::saveModification(CalendarData::Event eventData, bool updateAttendees,
+void CalendarManager::saveModification(const KCalendarCore::Incidence::Ptr &incidence, const QString &calendarUid,
+                                       bool updateAttendees,
                                        const KCalendarCore::Person::List &required,
                                        const KCalendarCore::Person::List &optional)
 {
     QMetaObject::invokeMethod(mCalendarWorker, "saveEvent", Qt::QueuedConnection,
-                              Q_ARG(CalendarData::Event, eventData),
+                              Q_ARG(KCalendarCore::Incidence::Ptr, incidence),
+                              Q_ARG(QString, calendarUid),
                               Q_ARG(bool, updateAttendees),
                               Q_ARG(KCalendarCore::Person::List, required),
                               Q_ARG(KCalendarCore::Person::List, optional));

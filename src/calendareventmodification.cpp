@@ -216,9 +216,7 @@ void CalendarEventModification::setAttendees(CalendarContactModel *required, Cal
 void CalendarEventModification::save()
 {
     updateIncidence();
-    CalendarData::Event ev(*mIncidence.staticCast<KCalendarCore::Event>());
-    ev.calendarUid = mCalendarUid;
-    CalendarManager::instance()->saveModification(ev, m_attendeesSet,
+    CalendarManager::instance()->saveModification(mIncidence, mCalendarUid, m_attendeesSet,
                                                   m_requiredAttendees, m_optionalAttendees);
 }
 

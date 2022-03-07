@@ -62,7 +62,8 @@ public:
 
     CalendarStoredEvent* eventObject(const QString &eventUid, const QDateTime &recurrenceId);
 
-    void saveModification(CalendarData::Event eventData, bool updateAttendees,
+    void saveModification(const KCalendarCore::Incidence::Ptr &incidence, const QString &calendarUid,
+                          bool updateAttendees,
                           const KCalendarCore::Person::List &required,
                           const KCalendarCore::Person::List &optional);
     void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);

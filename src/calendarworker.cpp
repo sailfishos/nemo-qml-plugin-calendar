@@ -225,53 +225,51 @@ void CalendarWorker::save()
     }
 }
 
-void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
+void CalendarWorker::saveEvent(const KCalendarCore::Incidence::Ptr &incidence, const QString &notebookUid,
+                               bool updateAttendees,
                                const KCalendarCore::Person::List &required,
                                const KCalendarCore::Person::List &optional)
 {
-    QString notebookUid = eventData.calendarUid;
-
+    if (!incidence) {
+        return;
+    }
     if (!notebookUid.isEmpty() && !mStorage->isValidNotebook(notebookUid)) {
         qWarning() << "Invalid notebook uid:" << notebookUid;
         return;
     }
 
-    KCalendarCore::Event::Ptr event = mCalendar->event(eventData.uniqueId,
-                                                       eventData.recurrenceId);
-    bool createNew = event.isNull();
-
-    if (createNew) {
-        event = KCalendarCore::Event::Ptr(new KCalendarCore::Event);
-
+    KCalendarCore::Incidence::Ptr event = mCalendar->incidence(incidence->uid(),
+                                                               incidence->recurrenceId());
+    if (updateAttendees) {
+        if (event)
+            incidence->setAttendees(event->attendees());
+        updateEventAttendees(incidence, !event, required, optional, notebookUid);
+    }
+    if (!event) {
         // For exchange it is better to use upper case UIDs, because for some reason when
         // UID is generated out of Global object id of the email message we are getting a lowercase
         // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
         // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
         // for new events than trying to implement some complex logic in basesailfish-eas.
-        event->setUid(eventData.uniqueId.toUpper());
-        event->setRecurrenceId(eventData.recurrenceId);
-        if (!mCalendar->addEvent(event, notebookUid.isEmpty() ? mCalendar->defaultNotebook() : notebookUid)) {
-            qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
+        incidence->setUid(incidence->uid().toUpper());
+        if (!mCalendar->addIncidence(incidence, notebookUid.isEmpty() ? mCalendar->defaultNotebook() : notebookUid)) {
+            qWarning() << "Cannot add incidence" << incidence->uid() << ", notebookUid:" << notebookUid;
             return;
         }
     } else {
-        if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
+        if (!notebookUid.isEmpty() && mCalendar->notebook(incidence) != notebookUid) {
             // mkcal does funny things when moving event between notebooks, work around by changing uid
-            KCalendarCore::Event::Ptr newEvent = KCalendarCore::Event::Ptr(event->clone());
+            KCalendarCore::Incidence::Ptr newEvent(incidence->clone());
             newEvent->setUid(KCalendarCore::CalFormat::createUniqueId().toUpper());
-            emit eventNotebookChanged(event->uid(), newEvent->uid(), notebookUid);
-            mCalendar->deleteEvent(event);
-            mCalendar->addEvent(newEvent, notebookUid);
-            event = newEvent;
+            emit eventNotebookChanged(incidence->uid(), newEvent->uid(), notebookUid);
+            mCalendar->deleteIncidence(event);
+            mCalendar->addIncidence(newEvent, notebookUid);
         } else {
-            event->setRevision(event->revision() + 1);
+            incidence->setRevision(event->revision() + 1);
+            event->startUpdates();
+            *event.staticCast<KCalendarCore::IncidenceBase>() = *incidence.staticCast<KCalendarCore::IncidenceBase>();
+            event->endUpdates();
         }
-    }
-
-    eventData.toKCalendarCore(event);
-
-    if (updateAttendees) {
-        updateEventAttendees(event, createNew, required, optional, notebookUid);
     }
 
     save();
