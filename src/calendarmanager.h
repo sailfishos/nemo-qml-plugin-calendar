@@ -76,7 +76,7 @@ public:
     CalendarData::Event getEvent(const QString& instanceIdentifier, bool *loaded = nullptr) const;
     CalendarData::Event getEvent(const QString& uid, const QDateTime &recurrenceId);
     CalendarData::Event dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const;
-    bool sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response);
+    bool sendResponse(const QString &uid, const QDateTime &recurrenceId, CalendarEvent::Response response);
 
     // Notebooks
     QList<CalendarData::Notebook> notebooks();
