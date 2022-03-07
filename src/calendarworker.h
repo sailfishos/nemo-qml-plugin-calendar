@@ -114,7 +114,7 @@ private:
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
     bool needSendCancellation(KCalendarCore::Event::Ptr &event) const;
-    void updateEventAttendees(KCalendarCore::Event::Ptr event, bool newEvent,
+    void updateEventAttendees(KCalendarCore::Incidence::Ptr event, bool newEvent,
                               const KCalendarCore::Person::List &required,
                               const KCalendarCore::Person::List &optional,
                               const QString &notebookUid);

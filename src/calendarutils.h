@@ -39,14 +39,14 @@
 #include "calendardata.h"
 
 // KCalendarCore
-#include <KCalendarCore/Event>
+#include <KCalendarCore/Incidence>
 #include <KCalendarCore/Calendar>
 
 namespace CalendarUtils {
 
-QList<CalendarData::Attendee> getEventAttendees(const KCalendarCore::Event::Ptr &event);
+QList<CalendarData::Attendee> getEventAttendees(const KCalendarCore::Incidence::Ptr &event);
 QList<QObject*> convertAttendeeList(const QList<CalendarData::Attendee> &list);
-CalendarData::EventOccurrence getNextOccurrence(const KCalendarCore::Event::Ptr &event,
+CalendarData::EventOccurrence getNextOccurrence(const KCalendarCore::Incidence::Ptr &event,
                                                 const QDateTime &start = QDateTime::currentDateTime(),
                                                 const KCalendarCore::Incidence::List &exceptions = KCalendarCore::Incidence::List());
 bool importFromFile(const QString &fileName, KCalendarCore::Calendar::Ptr calendar);

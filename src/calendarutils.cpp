@@ -351,7 +351,7 @@ QDateTime CalendarData::Event::fromKReminderDateTime(const KCalendarCore::Event 
     return QDateTime();
 }
 
-QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalendarCore::Event::Ptr &event)
+QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalendarCore::Incidence::Ptr &event)
 {
     QList<CalendarData::Attendee> result;
     const KCalendarCore::Person calOrganizer = event->organizer();
@@ -431,7 +431,7 @@ QList<QObject *> CalendarUtils::convertAttendeeList(const QList<CalendarData::At
     return result;
 }
 
-CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCore::Event::Ptr &event,
+CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCore::Incidence::Ptr &event,
                                                                const QDateTime &start,
                                                                const KCalendarCore::Incidence::List &exceptions)
 {
@@ -443,14 +443,13 @@ CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCo
         occurrence.recurrenceId = event->recurrenceId();
         occurrence.eventAllDay = event->allDay();
         occurrence.startTime = event->dtStart().toTimeZone(systemTimeZone);
-        occurrence.endTime = event->dtEnd().toTimeZone(systemTimeZone);
+        occurrence.endTime = event->dateTime(KCalendarCore::Incidence::RoleEnd).toTimeZone(systemTimeZone);
 
         if (!start.isNull() && event->recurs()) {
             KCalendarCore::Recurrence *recurrence = event->recurrence();
             QSet<QDateTime> recurrenceIds;
             for (const KCalendarCore::Incidence::Ptr &exception : exceptions)
                 recurrenceIds.insert(exception->recurrenceId());
-            const KCalendarCore::Duration period(event->dtStart(), event->dtEnd());
 
             QDateTime match;
             if (recurrence->recursAt(start) && !recurrenceIds.contains(start))
@@ -469,7 +468,12 @@ CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCo
             }
             if (match.isValid()) {
                 occurrence.startTime = match.toTimeZone(systemTimeZone);
-                occurrence.endTime = period.end(match).toTimeZone(systemTimeZone);
+                if (event->hasDuration()) {
+                    occurrence.endTime = event->duration().end(match).toTimeZone(systemTimeZone);
+                } else {
+                    const KCalendarCore::Duration period(event->dtStart(), event->dateTime(KCalendarCore::Incidence::RoleEnd));
+                    occurrence.endTime = period.end(match).toTimeZone(systemTimeZone);
+                }
             }
         }
     }
