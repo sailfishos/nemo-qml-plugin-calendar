@@ -113,6 +113,7 @@ signals:
 private:
     void updateIncidence() const;
 
+    QString m_ownerEmail;
     bool m_attendeesSet = false;
     KCalendarCore::Person::List m_requiredAttendees;
     KCalendarCore::Person::List m_optionalAttendees;

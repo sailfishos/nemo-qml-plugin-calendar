@@ -54,6 +54,7 @@ CalendarEvent::CalendarEvent(const CalendarEvent *other, QObject *parent)
 {
     if (other) {
         mCalendarUid = other->mCalendarUid;
+        mCalendarEmail = other->mCalendarEmail;
         mReadOnly = other->mReadOnly;
         mRSVP = other->mRSVP;
         mExternalInvitation = other->mExternalInvitation;
@@ -427,13 +428,13 @@ CalendarStoredEvent::~CalendarStoredEvent()
 void CalendarStoredEvent::cacheIncidence(const CalendarData::Notebook *notebook)
 {
     mCalendarUid = notebook->uid;
+    mCalendarEmail = notebook->emailAddress;
     mReadOnly = notebook->readOnly;
     mNotebookColor = notebook->color;
 
-    const QString &calendarOwnerEmail = notebook->emailAddress;
     const KCalendarCore::Person &organizer = mIncidence->organizer();
     const QString organizerEmail = organizer.email();
-    mExternalInvitation = (!organizerEmail.isEmpty() && organizerEmail != calendarOwnerEmail
+    mExternalInvitation = (!organizerEmail.isEmpty() && organizerEmail != mCalendarEmail
                            && notebook->sharedWith.contains(organizerEmail));
 
     // It would be good to set the attendance status directly in the event within the plugin,
@@ -462,7 +463,7 @@ void CalendarStoredEvent::cacheIncidence(const CalendarData::Notebook *notebook)
     }
     const KCalendarCore::Attendee::List attendees = mIncidence->attendees();
     for (const KCalendarCore::Attendee &calAttendee : attendees) {
-        if (calAttendee.email() == calendarOwnerEmail) {
+        if (calAttendee.email() == mCalendarEmail) {
             // Override the ResponseType
             switch (calAttendee.status()) {
             case KCalendarCore::Attendee::Accepted:

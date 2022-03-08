@@ -166,10 +166,8 @@ CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const
     return new CalendarStoredEvent(this, {}, nullptr);
 }
 
-void CalendarManager::saveModification(const KCalendarCore::Incidence::Ptr &incidence, const QString &calendarUid,
-                                       bool updateAttendees,
-                                       const KCalendarCore::Person::List &required,
-                                       const KCalendarCore::Person::List &optional)
+void CalendarManager::saveModification(const KCalendarCore::Incidence::Ptr &incidence,
+                                       const QString &calendarUid)
 {
     if (!incidence)
         return;
@@ -180,10 +178,7 @@ void CalendarManager::saveModification(const KCalendarCore::Incidence::Ptr &inci
     detachIncidence(incidence->uid(), incidence->recurrenceId());
     QMetaObject::invokeMethod(mCalendarWorker, "saveEvent", Qt::QueuedConnection,
                               Q_ARG(KCalendarCore::Incidence::Ptr, incidence),
-                              Q_ARG(QString, calendarUid),
-                              Q_ARG(bool, updateAttendees),
-                              Q_ARG(KCalendarCore::Person::List, required),
-                              Q_ARG(KCalendarCore::Person::List, optional));
+                              Q_ARG(QString, calendarUid));
 }
 
 KCalendarCore::Incidence::Ptr CalendarManager::dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const
@@ -237,6 +232,11 @@ QString CalendarManager::getNotebookColor(const QString &notebookUid) const
         return mNotebooks.value(notebookUid, CalendarData::Notebook()).color;
     else
         return QString();
+}
+
+QString CalendarManager::getNotebookEmail(const QString &notebookUid) const
+{
+    return mNotebooks.value(notebookUid).emailAddress;
 }
 
 void CalendarManager::cancelAgendaRefresh(CalendarAgendaModel *model)

@@ -65,10 +65,8 @@ public slots:
     void init();
     void save();
 
-    void saveEvent(const KCalendarCore::Incidence::Ptr &incidence, const QString &notebookUid,
-                   bool updateAttendees,
-                   const KCalendarCore::Person::List &required,
-                   const KCalendarCore::Person::List &optional);
+    void saveEvent(const KCalendarCore::Incidence::Ptr &incidence,
+                   const QString &notebookUid);
     KCalendarCore::Incidence::Ptr dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId);
     void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);

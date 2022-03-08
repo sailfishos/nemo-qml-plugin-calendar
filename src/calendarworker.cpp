@@ -225,10 +225,8 @@ void CalendarWorker::save()
     }
 }
 
-void CalendarWorker::saveEvent(const KCalendarCore::Incidence::Ptr &incidence, const QString &notebookUid,
-                               bool updateAttendees,
-                               const KCalendarCore::Person::List &required,
-                               const KCalendarCore::Person::List &optional)
+void CalendarWorker::saveEvent(const KCalendarCore::Incidence::Ptr &incidence,
+                               const QString &notebookUid)
 {
     if (!incidence) {
         return;
@@ -240,11 +238,6 @@ void CalendarWorker::saveEvent(const KCalendarCore::Incidence::Ptr &incidence, c
 
     KCalendarCore::Incidence::Ptr event = mCalendar->incidence(incidence->uid(),
                                                                incidence->recurrenceId());
-    if (updateAttendees) {
-        if (event)
-            incidence->setAttendees(event->attendees());
-        updateEventAttendees(incidence, !event, required, optional, notebookUid);
-    }
     if (!event) {
         // For exchange it is better to use upper case UIDs, because for some reason when
         // UID is generated out of Global object id of the email message we are getting a lowercase
@@ -256,6 +249,8 @@ void CalendarWorker::saveEvent(const KCalendarCore::Incidence::Ptr &incidence, c
             qWarning() << "Cannot add incidence" << incidence->uid() << ", notebookUid:" << notebookUid;
             return;
         }
+        if (!incidence->attendees().isEmpty())
+            mKCal::ServiceHandler::instance().sendInvitation(incidence, QString(), mCalendar, mStorage, mStorage->notebook(mCalendar->notebook(incidence)));
     } else {
         if (!notebookUid.isEmpty() && mCalendar->notebook(incidence) != notebookUid) {
             // mkcal does funny things when moving event between notebooks, work around by changing uid
@@ -266,9 +261,28 @@ void CalendarWorker::saveEvent(const KCalendarCore::Incidence::Ptr &incidence, c
             mCalendar->addIncidence(newEvent, notebookUid);
         } else {
             incidence->setRevision(event->revision() + 1);
+            if (!event->attendees().isEmpty()) {
+                KCalendarCore::Attendee::List cancelAttendees;
+                const KCalendarCore::Attendee::List oldAttendees = event->attendees();
+                for (const KCalendarCore::Attendee &attendee : oldAttendees) {
+                    if (incidence->attendeeByMail(attendee.email()).isNull()
+                        && (attendee.role() == KCalendarCore::Attendee::ReqParticipant
+                            || attendee.role() == KCalendarCore::Attendee::OptParticipant)) {
+                        cancelAttendees.append(attendee);
+                    }
+                }
+                if (!cancelAttendees.isEmpty()) {
+                    KCalendarCore::Incidence::Ptr cancelled(incidence->clone());
+                    cancelled->setAttendees(cancelAttendees);
+                    cancelled->setStatus(KCalendarCore::Incidence::StatusCanceled);
+                    mKCal::ServiceHandler::instance().sendUpdate(cancelled, QString(), mCalendar, mStorage, mStorage->notebook(mCalendar->notebook(event)));
+                }
+            }
             event->startUpdates();
             *event.staticCast<KCalendarCore::IncidenceBase>() = *incidence.staticCast<KCalendarCore::IncidenceBase>();
             event->endUpdates();
+            if (!event->attendees().isEmpty())
+                mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage, mStorage->notebook(mCalendar->notebook(event)));
         }
     }
 

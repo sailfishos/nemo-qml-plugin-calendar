@@ -216,6 +216,7 @@ protected:
     QDateTime mReminderDateTime;
     // Exists in the public API, but should be in CalendarStoredEvent
     QString mCalendarUid;
+    QString mCalendarEmail;
     bool mReadOnly = false;
     bool mRSVP = false;
     bool mExternalInvitation = false;

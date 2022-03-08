@@ -197,6 +197,7 @@ void CalendarEventModification::setCalendarUid(const QString &uid)
 {
     if (mCalendarUid != uid) {
         mCalendarUid = uid;
+        mCalendarEmail = CalendarManager::instance()->getNotebookEmail(uid);
         emit calendarUidChanged();
     }
 }
@@ -216,8 +217,19 @@ void CalendarEventModification::setAttendees(CalendarContactModel *required, Cal
 void CalendarEventModification::save()
 {
     updateIncidence();
-    CalendarManager::instance()->saveModification(mIncidence, mCalendarUid, m_attendeesSet,
-                                                  m_requiredAttendees, m_optionalAttendees);
+    CalendarManager::instance()->saveModification(mIncidence, mCalendarUid);
+}
+
+static bool popByEmail(KCalendarCore::Person::List *list, const QString &email)
+{
+    KCalendarCore::Person::List::Iterator it
+        = std::find_if(list->begin(), list->end(),
+                       [email](const KCalendarCore::Person &person)
+                       {return person.email() == email;});
+    bool found = (it != list->end());
+    if (found)
+        list->erase(it);
+    return found;
 }
 
 void CalendarEventModification::updateIncidence() const
@@ -307,6 +319,54 @@ void CalendarEventModification::updateIncidence() const
             // Recurrence/RecurrenceRule don't have separate method to clear the end date, and currently
             // setting invalid date doesn't make the duration() indicate recurring infinitely.
             mIncidence->recurrence()->setDuration(-1);
+        }
+    }
+
+    if (m_attendeesSet) {
+        KCalendarCore::Person::List required = m_requiredAttendees;
+        KCalendarCore::Person::List optional = m_optionalAttendees;
+        const KCalendarCore::Attendee::List oldAttendees = mIncidence->attendees();
+        mIncidence->clearAttendees();
+        for (const KCalendarCore::Attendee &attendee : oldAttendees) {
+            const QString &email = attendee.email();
+            if (attendee.role() == KCalendarCore::Attendee::ReqParticipant) {
+                if (popByEmail(&required, email)) {
+                    mIncidence->addAttendee(attendee);
+                } else if (popByEmail(&optional, email)) {
+                    KCalendarCore::Attendee at(attendee);
+                    at.setRole(KCalendarCore::Attendee::OptParticipant);
+                    mIncidence->addAttendee(at);
+                }
+            } else if (attendee.role() == KCalendarCore::Attendee::OptParticipant) {
+                if (popByEmail(&optional, email)) {
+                    mIncidence->addAttendee(attendee);
+                } else if (popByEmail(&required, email)) {
+                    KCalendarCore::Attendee at(attendee);
+                    at.setRole(KCalendarCore::Attendee::ReqParticipant);
+                    mIncidence->addAttendee(at);
+                }
+            } else {
+                mIncidence->addAttendee(attendee);
+            }
+        }
+        for (const KCalendarCore::Person &person : required) {
+            KCalendarCore::Attendee at(person.name(), person.email(), true /* rsvp */,
+                                       KCalendarCore::Attendee::NeedsAction,
+                                       KCalendarCore::Attendee::ReqParticipant);
+            mIncidence->addAttendee(at);
+        }
+        for (const KCalendarCore::Person &person : optional) {
+            KCalendarCore::Attendee at(person.name(), person.email(), true /* rsvp */,
+                                       KCalendarCore::Attendee::NeedsAction,
+                                       KCalendarCore::Attendee::OptParticipant);
+            mIncidence->addAttendee(at);
+        }
+        // set the notebook email address as the organizer email address
+        // if no explicit organizer is set (i.e. assume we are the organizer).
+        if (mIncidence->organizer().email().isEmpty() && !mCalendarEmail.isEmpty()) {
+            KCalendarCore::Person organizer = mIncidence->organizer();
+            organizer.setEmail(mCalendarEmail);
+            mIncidence->setOrganizer(organizer);
         }
     }
 }

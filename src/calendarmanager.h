@@ -62,10 +62,8 @@ public:
 
     CalendarStoredEvent* eventObject(const QString &eventUid, const QDateTime &recurrenceId);
 
-    void saveModification(const KCalendarCore::Incidence::Ptr &incidence, const QString &calendarUid,
-                          bool updateAttendees,
-                          const KCalendarCore::Person::List &required,
-                          const KCalendarCore::Person::List &optional);
+    void saveModification(const KCalendarCore::Incidence::Ptr &incidence,
+                          const QString &calendarUid);
     void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     void save();
@@ -84,6 +82,7 @@ public:
     void excludeNotebook(const QString &notebookUid, bool exclude);
     void setNotebookColor(const QString &notebookUid, const QString &color);
     QString getNotebookColor(const QString &notebookUid) const;
+    QString getNotebookEmail(const QString &notebookUid) const;
 
     // AgendaModel
     void cancelAgendaRefresh(CalendarAgendaModel *model);
