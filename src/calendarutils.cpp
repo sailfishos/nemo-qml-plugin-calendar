@@ -47,7 +47,8 @@
 #include <QBitArray>
 #include <QDebug>
 
-CalendarData::Event::Event(const KCalendarCore::Event &event)
+CalendarData::Event::Event(const KCalendarCore::Event &event,
+                           const QString &notebookUid)
     : displayLabel(event.summary())
     , description(event.description())
     , startTime(event.dtStart())
@@ -56,6 +57,7 @@ CalendarData::Event::Event(const KCalendarCore::Event &event)
     , uniqueId(event.uid())
     , recurrenceId(event.recurrenceId())
     , location(event.location())
+    , calendarUid(notebookUid)
 {
     switch (event.secrecy()) {
     case KCalendarCore::Incidence::SecrecyPrivate:

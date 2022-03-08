@@ -117,9 +117,10 @@ void CalendarEventListModel::doRefresh()
 
     for (const QString &id : mIdentifiers) {
         bool loaded;
-        CalendarData::Event event = CalendarManager::instance()->getEvent(id, &loaded);
-        if (event.isValid()) {
-            mEvents.append(new CalendarEventOccurrence(event.uniqueId, event.recurrenceId, event.startTime, event.endTime, this));
+        CalendarEventOccurrence *eo = CalendarManager::instance()->getOccurrence(id, &loaded);
+        if (eo) {
+            eo->setParent(this);
+            mEvents.append(eo);
             mEventIdentifiers.append(id);
         } else if (loaded) {
             mMissingItems.append(id);

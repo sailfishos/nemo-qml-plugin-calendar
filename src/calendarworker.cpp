@@ -636,7 +636,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     if (reset)
         mSentEvents.clear();
 
-    QMultiHash<QString, CalendarData::Event> events;
+    QMultiHash<QString, CalendarData::Incidence> events;
     bool orphansDeleted = false;
 
     const KCalendarCore::Event::List list = mCalendar->rawEvents();
@@ -671,12 +671,12 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
 
         const QString id = e->instanceIdentifier();
         if (!mSentEvents.contains(id)) {
-            CalendarData::Event event = createEventStruct(e, notebook);
             mSentEvents.insert(id);
-            events.insert(event.uniqueId, event);
-            if (id != event.uniqueId) {
+            const CalendarData::Incidence data{e, mCalendar->notebook(e)};
+            events.insert(e->uid(), data);
+            if (id != e->uid()) {
                 // Ensures that events can also be retrieved by instanceIdentifier
-                events.insert(id, event);
+                events.insert(id, data);
             }
         }
     }
@@ -694,7 +694,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
 CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event::Ptr &e,
                                                       mKCal::Notebook::Ptr notebook) const
 {
-    CalendarData::Event event(*e);
+    CalendarData::Event event(*e, mCalendar->notebook(e));
     event.calendarUid = mCalendar->notebook(e);
     event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
     bool externalInvitation = false;

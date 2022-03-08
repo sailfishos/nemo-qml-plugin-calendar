@@ -101,7 +101,7 @@ signals:
 
     void dataLoaded(const QList<CalendarData::Range> &ranges,
                     const QStringList &instanceList,
-                    const QMultiHash<QString, CalendarData::Event> &events,
+                    const QMultiHash<QString, CalendarData::Incidence> &events,
                     const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                     const QHash<QDate, QStringList> &dailyOccurrences,
                     bool reset);

@@ -57,6 +57,11 @@ struct EventOccurrence {
     }
 };
 
+struct Incidence {
+    KCalendarCore::Incidence::Ptr incidence;
+    QString calendarUid;
+};
+
 struct Event {
     QString displayLabel;
     QString description;
@@ -82,7 +87,7 @@ struct Event {
     CalendarEvent::SyncFailureResolution syncFailureResolution = CalendarEvent::RetrySync;
 
     Event() {}
-    Event(const KCalendarCore::Event &event);
+    Event(const KCalendarCore::Event &event, const QString &notebookUid);
 
     void toKCalendarCore(KCalendarCore::Event::Ptr &event) const;
 
