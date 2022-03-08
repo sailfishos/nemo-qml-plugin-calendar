@@ -89,7 +89,6 @@ public:
 
     void setCalendarUid(const QString &uid);
 
-    CalendarEvent::SyncFailureResolution syncFailureResolution() const;
     void setSyncFailureResolution(CalendarEvent::SyncFailureResolution resolution);
 
     Q_INVOKABLE void setAttendees(CalendarContactModel *required, CalendarContactModel *optional);

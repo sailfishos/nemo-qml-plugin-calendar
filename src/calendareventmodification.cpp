@@ -222,11 +222,6 @@ CalendarEventModification::replaceOccurrence(CalendarEventOccurrence *occurrence
                                                           m_requiredAttendees, m_optionalAttendees);
 }
 
-CalendarEvent::SyncFailureResolution CalendarEventModification::syncFailureResolution() const
-{
-    return mData->syncFailureResolution;
-}
-
 void CalendarEventModification::setSyncFailureResolution(CalendarEvent::SyncFailureResolution resolution)
 {
     if (mData->syncFailureResolution != resolution) {
