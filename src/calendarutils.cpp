@@ -81,7 +81,9 @@ CalendarData::Event::Event(const KCalendarCore::Event &event)
         break;
     }
     const QString &failure = event.customProperty("VOLATILE", "SYNC-FAILURE");
-    if (failure.compare("upload", Qt::CaseInsensitive) == 0) {
+    if (failure.compare("upload-new", Qt::CaseInsensitive) == 0) {
+        syncFailure = CalendarEvent::CreationFailure;
+    } else if (failure.compare("upload", Qt::CaseInsensitive) == 0) {
         syncFailure = CalendarEvent::UploadFailure;
     } else if (failure.compare("update", Qt::CaseInsensitive) == 0) {
         syncFailure = CalendarEvent::UpdateFailure;
