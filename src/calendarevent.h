@@ -175,6 +175,7 @@ public:
     virtual Response ownerStatus() const;
     virtual bool rsvp() const;
     virtual bool externalInvitation() const;
+    QList<QObject *> attendees() const;
 
 signals:
     void displayLabelChanged();

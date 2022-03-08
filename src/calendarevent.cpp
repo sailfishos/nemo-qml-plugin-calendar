@@ -41,6 +41,7 @@
 #include "calendarmanager.h"
 #include "calendareventoccurrence.h"
 #include "calendardata.h"
+#include "calendareventquery.h"
 
 CalendarEvent::CalendarEvent(KCalendarCore::Incidence::Ptr data, QObject *parent)
     : QObject(parent), mIncidence(data ? data : KCalendarCore::Incidence::Ptr(new KCalendarCore::Event))
@@ -379,6 +380,31 @@ QDateTime CalendarEvent::fromKReminderDateTime() const
     }
 
     return QDateTime();
+}
+
+QList<QObject *> CalendarEvent::attendees() const
+{
+    QList<QObject *> result;
+
+    const KCalendarCore::Person &organizer = mIncidence->organizer();
+    for (const KCalendarCore::Attendee &attendee : mIncidence->attendees()) {
+        if (attendee.email() == organizer.email()) {
+            // If organizer is in the attendee list, we prioritize the
+            // details from the attendee structure.
+            result.prepend(new Person(KCalendarCore::Person(attendee.name(), attendee.email())));
+        } else {
+            result.append(new Person(attendee));
+        }
+    }
+
+    if (result.isEmpty() || !qobject_cast<Person*>(result.first())->isOrganizer()) {
+        // We always prepend the organizer in the list returned to QML.
+        // If it was not present in the attendee list, we create one attendee
+        // from the data in the KCalendarCore::Person structure.
+        result.append(new Person(organizer));
+    }
+
+    return result;
 }
 
 CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, KCalendarCore::Incidence::Ptr data,

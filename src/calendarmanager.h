@@ -106,8 +106,6 @@ public:
     CalendarEventOccurrence* getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                const QDateTime &start);
     CalendarEventOccurrence* getOccurrence(const QString &instanceIdentifier, bool *loaded);
-    // return attendees for given event, synchronous call
-    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId, bool *resultValid);
 
 private slots:
     void storageModifiedSlot();

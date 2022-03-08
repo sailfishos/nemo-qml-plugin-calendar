@@ -86,7 +86,6 @@ public slots:
 
     CalendarData::EventOccurrence getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                     const QDateTime &startTime) const;
-    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId);
 
     void findMatchingEvent(const QString &invitationFile);
 

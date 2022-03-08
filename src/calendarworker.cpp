@@ -818,19 +818,6 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &u
     return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event) : KCalendarCore::Incidence::List());
 }
 
-QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &uid, const QDateTime &recurrenceId)
-{
-    QList<CalendarData::Attendee> result;
-
-    KCalendarCore::Incidence::Ptr event = mCalendar->incidence(uid, recurrenceId);
-
-    if (event.isNull()) {
-        return result;
-    }
-
-    return CalendarUtils::getEventAttendees(event);
-}
-
 void CalendarWorker::findMatchingEvent(const QString &invitationFile)
 {
     KCalendarCore::MemoryCalendar::Ptr cal(new KCalendarCore::MemoryCalendar(QTimeZone::systemTimeZone()));

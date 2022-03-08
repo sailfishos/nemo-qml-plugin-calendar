@@ -67,11 +67,58 @@ public:
         TentativeParticipation
     };
 
-    Person(const QString &aName, const QString &aEmail, bool aIsOrganizer, AttendeeRole aParticipationRole,
-           ParticipationStatus aStatus)
-        : m_name(aName), m_email(aEmail), m_isOrganizer(aIsOrganizer), m_participationRole(aParticipationRole),
-          m_participationStatus(aStatus)
+    Person(const Person &other)
+        : QObject()
+        , m_name(other.m_name)
+        , m_email(other.m_email)
+        , m_isOrganizer(other.m_isOrganizer)
+        , m_participationRole(other.m_participationRole)
+        , m_participationStatus(other.m_participationStatus)
     {
+    }
+
+    Person(const KCalendarCore::Person &person)
+        : m_name(person.name())
+        , m_email(person.email())
+        , m_isOrganizer(true)
+        , m_participationRole(ChairParticipant)
+        , m_participationStatus(UnknownParticipation)
+    {
+    }
+
+    Person(const KCalendarCore::Attendee &attendee)
+        : m_name(attendee.name())
+        , m_email(attendee.email())
+        , m_isOrganizer(false)
+    {
+        switch (attendee.role()) {
+        case KCalendarCore::Attendee::ReqParticipant:
+            m_participationRole = Person::RequiredParticipant;
+            break;
+        case KCalendarCore::Attendee::OptParticipant:
+            m_participationRole = Person::OptionalParticipant;
+            break;
+        case KCalendarCore::Attendee::Chair:
+            m_participationRole = Person::ChairParticipant;
+            break;
+        default:
+            m_participationRole = Person::NonParticipant;
+            break;
+        }
+
+        switch (attendee.status()) {
+        case KCalendarCore::Attendee::Accepted:
+            m_participationStatus = Person::AcceptedParticipation;
+            break;
+        case KCalendarCore::Attendee::Declined:
+            m_participationStatus = Person::DeclinedParticipation;
+            break;
+        case KCalendarCore::Attendee::Tentative:
+            m_participationStatus = Person::TentativeParticipation;
+            break;
+        default:
+            m_participationStatus = Person::UnknownParticipation;
+        }
     }
 
     bool operator==(const Person &other) const
@@ -159,9 +206,7 @@ private:
     QDateTime mStartTime;
     KCalendarCore::Incidence::Ptr mEvent;
     CalendarEventOccurrence *mOccurrence;
-    bool mAttendeesCached;
     bool mEventError;
-    QList<CalendarData::Attendee> mAttendees;
 };
 
 #endif

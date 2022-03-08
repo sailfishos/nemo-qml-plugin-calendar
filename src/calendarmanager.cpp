@@ -763,31 +763,6 @@ CalendarEventOccurrence* CalendarManager::getNextOccurrence(const QString &uid, 
     return new CalendarEventOccurrence(eo.eventUid, eo.recurrenceId, eo.startTime, eo.endTime);
 }
 
-QList<CalendarData::Attendee> CalendarManager::getEventAttendees(const QString &uid, const QDateTime &recurrenceId, bool *resultValid)
-{
-    QList<CalendarData::Attendee> attendees;
-
-    // Not foolproof, since thread interleaving means we might
-    // receive a storageModified() signal on the worker thread
-    // while we're dispatching this call here.
-    // But, this will at least ensure that if we _know_ that
-    // the storage is not in loaded state, that we don't
-    // attempt to read the invalid data.
-    // The other alternative would be to cache all attendee
-    // info in the event struct immediately within
-    // CalendarWorker::createEventStruct(), however it was
-    // decided that it would be better to avoid the memory usage.
-    *resultValid = !(mLoadPending || mResetPending);
-    if (*resultValid) {
-        QMetaObject::invokeMethod(mCalendarWorker, "getEventAttendees", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(QList<CalendarData::Attendee>, attendees),
-                                  Q_ARG(QString, uid),
-                                  Q_ARG(QDateTime, recurrenceId));
-    }
-
-    return attendees;
-}
-
 void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
                                      const QStringList &instanceList,
                                      const QMultiHash<QString, CalendarData::Incidence> &events,

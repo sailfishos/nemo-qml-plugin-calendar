@@ -39,7 +39,7 @@
 #include <QDebug>
 
 CalendarEventQuery::CalendarEventQuery()
-    : mIsComplete(true), mOccurrence(0), mAttendeesCached(false), mEventError(false)
+    : mIsComplete(true), mOccurrence(0), mEventError(false)
 {
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
@@ -139,15 +139,11 @@ QObject *CalendarEventQuery::occurrence() const
 
 QList<QObject*> CalendarEventQuery::attendees()
 {
-    if (!mAttendeesCached) {
-        bool resultValid = false;
-        mAttendees = CalendarManager::instance()->getEventAttendees(mUid, mRecurrenceId, &resultValid);
-        if (resultValid) {
-            mAttendeesCached = true;
-        }
-    }
-
-    return CalendarUtils::convertAttendeeList(mAttendees);
+    CalendarStoredEvent *object = qobject_cast<CalendarStoredEvent*>(event());
+    if (object)
+        return object->attendees();
+    else
+        return {};
 }
 
 void CalendarEventQuery::classBegin()
@@ -169,6 +165,10 @@ void CalendarEventQuery::doRefresh(KCalendarCore::Incidence::Ptr event, bool eve
 
     bool updateOccurrence = false;
     bool signalEventChanged = false;
+
+    KCalendarCore::Attendee::List oldAttendees;
+    if (mEvent)
+        oldAttendees = mEvent->attendees();
 
     if ((event && !mEvent) || (!event && mEvent)
         || (event && mEvent && event->uid() != mEvent->uid())
@@ -215,12 +215,10 @@ void CalendarEventQuery::doRefresh(KCalendarCore::Incidence::Ptr event, bool eve
         emit eventChanged();
 
     // check if attendees have changed.
-    bool resultValid = false;
-    QList<CalendarData::Attendee> attendees = CalendarManager::instance()->getEventAttendees(
-            mUid, mRecurrenceId, &resultValid);
-    if (resultValid && mAttendees != attendees) {
-        mAttendees = attendees;
-        mAttendeesCached = true;
+    KCalendarCore::Attendee::List attendees;
+    if (event)
+        attendees = event->attendees();
+    if (oldAttendees != attendees) {
         emit attendeesChanged();
     }
 

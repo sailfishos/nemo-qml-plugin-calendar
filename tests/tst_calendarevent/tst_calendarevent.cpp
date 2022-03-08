@@ -726,9 +726,12 @@ void tst_CalendarEvent::testAttendees()
     required.append(bob, bobEmail);
     optional.append(carl, carlEmail);
     eventMod->setAttendees(&required, &optional);
-    Person Alice(alice, aliceEmail, true, Person::ChairParticipant, Person::UnknownParticipation);
-    Person Bob(bob, bobEmail, false, Person::RequiredParticipant, Person::UnknownParticipation);
-    Person Carl(carl, carlEmail, false, Person::OptionalParticipant, Person::UnknownParticipation);
+    KCalendarCore::Attendee attAlice(alice, aliceEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attBob(bob, bobEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attCarl(carl, carlEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::OptParticipant);
+    Person Alice(KCalendarCore::Person(alice, aliceEmail));
+    Person Bob(attBob);
+    Person Carl(attCarl);
 
     QString uid;
     bool ok = saveEvent(eventMod, &uid);
@@ -745,9 +748,6 @@ void tst_CalendarEvent::testAttendees()
     QCOMPARE(sentInvitation->uid(), uid);
     const KCalendarCore::Attendee::List sentAttendees = sentInvitation->attendees();
     QCOMPARE(sentAttendees.count(), 3);
-    KCalendarCore::Attendee attAlice(alice, aliceEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
-    KCalendarCore::Attendee attBob(bob, bobEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
-    KCalendarCore::Attendee attCarl(carl, carlEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::OptParticipant);
     QVERIFY(sentAttendees.contains(attAlice));
     QVERIFY(sentAttendees.contains(attBob));
     QVERIFY(sentAttendees.contains(attCarl));
@@ -771,10 +771,10 @@ void tst_CalendarEvent::testAttendees()
     QVERIFY(incidence);
     const QString dude = QString::fromLatin1("Dude");
     const QString dudeEmail = QString::fromLatin1("dude@example.org");
-    Person Dude(dude, dudeEmail, false, Person::NonParticipant, Person::AcceptedParticipation);
     KCalendarCore::Attendee attDude(dude, dudeEmail, false,
                                     KCalendarCore::Attendee::Accepted,
                                     KCalendarCore::Attendee::NonParticipant);
+    Person Dude(attDude);
     incidence->addAttendee(attDude);
     QVERIFY(storage->save());
 
@@ -794,10 +794,12 @@ void tst_CalendarEvent::testAttendees()
     optional.remove(0); // Remove Carl
     const QString emily = QString::fromLatin1("Emily");
     const QString emilyEmail = QString::fromLatin1("emily@example.org");
-    Person Emily(emily, emilyEmail, false, Person::RequiredParticipant, Person::UnknownParticipation);
     const QString fanny = QString::fromLatin1("Fanny");
     const QString fannyEmail = QString::fromLatin1("fanny@example.org");
-    Person Fanny(fanny, fannyEmail, false, Person::OptionalParticipant, Person::UnknownParticipation);
+    KCalendarCore::Attendee attEmily(emily, emilyEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attFanny(fanny, fannyEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::OptParticipant);
+    Person Emily(attEmily);
+    Person Fanny(attFanny);
     required.prepend(emily, emilyEmail);
     optional.append(fanny, fannyEmail);
     eventMod->setAttendees(&required, &optional);
@@ -836,8 +838,6 @@ void tst_CalendarEvent::testAttendees()
     QCOMPARE(updatedAttendees.count(), 4);
     QVERIFY(updatedAttendees.contains(attAlice));
     QVERIFY(updatedAttendees.contains(attDude));
-    KCalendarCore::Attendee attEmily(emily, emilyEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
-    KCalendarCore::Attendee attFanny(fanny, fannyEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::OptParticipant);
     QVERIFY(updatedAttendees.contains(attEmily));
     QVERIFY(updatedAttendees.contains(attFanny));
 }
