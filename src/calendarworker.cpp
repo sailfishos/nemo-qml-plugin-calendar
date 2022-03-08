@@ -691,46 +691,6 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     emit dataLoaded(ranges, instanceList, events, occurrences, dailyOccurrences, reset);
 }
 
-CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event::Ptr &e,
-                                                      mKCal::Notebook::Ptr notebook) const
-{
-    CalendarData::Event event(*e, mCalendar->notebook(e));
-    event.calendarUid = mCalendar->notebook(e);
-    event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
-    bool externalInvitation = false;
-    const QString &calendarOwnerEmail = getNotebookAddress(e);
-
-    KCalendarCore::Person organizer = e->organizer();
-    const QString organizerEmail = organizer.email();
-    if (!organizerEmail.isEmpty() && organizerEmail != calendarOwnerEmail
-            && (notebook.isNull() || !notebook->sharedWith().contains(organizerEmail))) {
-        externalInvitation = true;
-    }
-    event.externalInvitation = externalInvitation;
-
-    // It would be good to set the attendance status directly in the event within the plugin,
-    // however in some cases the account email and owner attendee email won't necessarily match
-    // (e.g. in the case where server-side aliases are defined but unknown to the plugin).
-    // So we handle this here to avoid "missing" some status changes due to owner email mismatch.
-    // This defaults to QString() -> ResponseUnspecified in case the property is undefined
-    event.ownerStatus = CalendarUtils::convertResponseType(e->nonKDECustomProperty("X-EAS-RESPONSE-TYPE"));
-
-    const KCalendarCore::Attendee::List attendees = e->attendees();
-    for (const KCalendarCore::Attendee &calAttendee : attendees) {
-        if (calAttendee.email() == calendarOwnerEmail) {
-            if (CalendarUtils::convertPartStat(calAttendee.status()) != CalendarEvent::ResponseUnspecified) {
-                // Override the ResponseType
-                event.ownerStatus = CalendarUtils::convertPartStat(calAttendee.status());
-            }
-            //TODO: KCalendarCore::Attendee::RSVP() returns false even if response was requested for some accounts like Google.
-            // We can use attendee role until the problem is not fixed (probably in Google plugin).
-            // To be updated later when google account support for responses is added.
-            event.rsvp = calAttendee.RSVP();// || calAttendee->role() != KCalendarCore::Attendee::Chair;
-        }
-    }
-    return event;
-}
-
 static bool serviceIsEnabled(Accounts::Account *account, const QString &syncProfile)
 {
     account->selectService();
@@ -889,7 +849,7 @@ void CalendarWorker::findMatchingEvent(const QString &invitationFile)
                     if ((!incidence->hasRecurrenceId() && !dbIncidence->hasRecurrenceId())
                             || (incidence->hasRecurrenceId() && dbIncidence->hasRecurrenceId()
                                 && incidence->recurrenceId() == dbIncidence->recurrenceId())) {
-                        emit findMatchingEventFinished(invitationFile, createEventStruct(dbIncidence.staticCast<KCalendarCore::Event>()));
+                        emit findMatchingEventFinished(invitationFile, {dbIncidence, mCalendar->notebook(dbIncidence)});
                         return;
                     }
                 }
@@ -899,5 +859,5 @@ void CalendarWorker::findMatchingEvent(const QString &invitationFile)
     }
 
     // not found.
-    emit findMatchingEventFinished(invitationFile, CalendarData::Event());
+    emit findMatchingEventFinished(invitationFile, {});
 }

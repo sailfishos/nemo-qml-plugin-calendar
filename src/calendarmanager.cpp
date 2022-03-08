@@ -52,6 +52,7 @@ CalendarManager::CalendarManager()
     qRegisterMetaType<CalendarEvent::Recur>("CalendarEvent::Recur");
     qRegisterMetaType<QHash<QString,CalendarData::EventOccurrence> >("QHash<QString,CalendarData::EventOccurrence>");
     qRegisterMetaType<CalendarData::Event>("CalendarData::Event");
+    qRegisterMetaType<CalendarData::Incidence>("CalendarData::Incidence");
     qRegisterMetaType<QMultiHash<QString,CalendarData::Incidence> >("QMultiHash<QString,CalendarData::Incidence>");
     qRegisterMetaType<QHash<QDate,QStringList> >("QHash<QDate,QStringList>");
     qRegisterMetaType<CalendarData::Range>("CalendarData::Range");
@@ -479,10 +480,7 @@ void CalendarManager::doAgendaAndQueryRefresh()
                 && !missingInstanceList.contains(id)) {
             missingInstanceList << id;
         }
-        if (!event.incidence)
-            query->doRefresh(CalendarData::Event(), !event.incidence && loaded);
-        else
-            query->doRefresh(CalendarData::Event(*event.incidence, event.calendarUid), !event.incidence && loaded);
+        query->doRefresh(event.incidence, !event.incidence && loaded);
     }
 
     const QList<CalendarEventListModel *> eventListModels = mEventListRefreshList;
@@ -637,7 +635,8 @@ void CalendarManager::unRegisterInvitationQuery(CalendarInvitationQuery *query)
     mInvitationQueryHash.remove(query);
 }
 
-void CalendarManager::findMatchingEventFinished(const QString &invitationFile, const CalendarData::Event &event)
+void CalendarManager::findMatchingEventFinished(const QString &invitationFile,
+                                                const CalendarData::Incidence &event)
 {
     QHash<CalendarInvitationQuery*, QString>::iterator it = mInvitationQueryHash.begin();
     while (it != mInvitationQueryHash.end()) {

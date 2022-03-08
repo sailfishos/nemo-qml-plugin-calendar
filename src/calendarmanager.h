@@ -122,7 +122,7 @@ private slots:
                         bool reset);
     void timeout();
     void findMatchingEventFinished(const QString &invitationFile,
-                                   const CalendarData::Event &event);
+                                   const CalendarData::Incidence &event);
 
 signals:
     void excludedNotebooksChanged(QStringList excludedNotebooks);

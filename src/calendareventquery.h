@@ -132,7 +132,7 @@ public:
     virtual void classBegin();
     virtual void componentComplete();
 
-    void doRefresh(CalendarData::Event event, bool eventError);
+    void doRefresh(KCalendarCore::Incidence::Ptr event, bool eventError);
 
 signals:
     void uniqueIdChanged();
@@ -157,7 +157,7 @@ private:
     QString mUid;
     QDateTime mRecurrenceId;
     QDateTime mStartTime;
-    CalendarData::Event mEvent;
+    KCalendarCore::Incidence::Ptr mEvent;
     CalendarEventOccurrence *mOccurrence;
     bool mAttendeesCached;
     bool mEventError;

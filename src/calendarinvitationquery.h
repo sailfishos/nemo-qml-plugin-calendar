@@ -81,7 +81,7 @@ signals:
 
 private:
     friend class CalendarManager;
-    void queryResult(CalendarData::Event event);
+    void queryResult(const CalendarData::Incidence &event);
 
     bool mIsComplete;
     bool mNeedQuery;

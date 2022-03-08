@@ -107,7 +107,7 @@ signals:
                     bool reset);
 
     void findMatchingEventFinished(const QString &invitationFile,
-                                   const CalendarData::Event &eventData);
+                                   const CalendarData::Incidence &eventData);
 
 private:
     void loadNotebooks();
@@ -122,8 +122,6 @@ private:
     QString getNotebookAddress(const QString &notebookUid) const;
     QString getNotebookAddress(const KCalendarCore::Event::Ptr &event) const;
 
-    CalendarData::Event createEventStruct(const KCalendarCore::Event::Ptr &event,
-                                          mKCal::Notebook::Ptr notebook = mKCal::Notebook::Ptr()) const;
     QHash<QString, CalendarData::EventOccurrence> eventOccurrences(const QList<CalendarData::Range> &ranges) const;
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
                                                     const QList<CalendarData::EventOccurrence> &occurrences) const;
