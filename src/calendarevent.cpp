@@ -38,6 +38,7 @@
 
 #include "calendarutils.h"
 #include "calendarmanager.h"
+#include "calendareventoccurrence.h"
 #include "calendardata.h"
 
 CalendarEvent::CalendarEvent(const CalendarData::Event *data, QObject *parent)
@@ -318,4 +319,9 @@ void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
         emit ownerStatusChanged();
     if (mData->syncFailure != old.syncFailure)
         emit syncFailureChanged();
+}
+
+CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
+{
+    return occurrence ? mManager->dissociateSingleOccurrence(mData->uniqueId, occurrence->startTime()) : CalendarData::Event();
 }

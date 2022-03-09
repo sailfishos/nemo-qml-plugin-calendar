@@ -42,7 +42,6 @@
 
 #include "calendardata.h"
 #include "calendarevent.h"
-#include "calendarchangeinformation.h"
 
 class CalendarWorker;
 class CalendarAgendaModel;
@@ -66,11 +65,6 @@ public:
     void saveModification(CalendarData::Event eventData, bool updateAttendees,
                           const QList<CalendarData::EmailContact> &required,
                           const QList<CalendarData::EmailContact> &optional);
-    CalendarChangeInformation * replaceOccurrence(CalendarData::Event eventData,
-                                                  CalendarEventOccurrence *occurrence,
-                                                  bool updateAttendees,
-                                                  const QList<CalendarData::EmailContact> &required,
-                                                  const QList<CalendarData::EmailContact> &optional);
     void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     void save();
@@ -81,6 +75,7 @@ public:
     // Event
     CalendarData::Event getEvent(const QString& instanceIdentifier, bool *loaded = nullptr) const;
     CalendarData::Event getEvent(const QString& uid, const QDateTime &recurrenceId);
+    CalendarData::Event dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const;
     bool sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response);
 
     // Notebooks
@@ -128,9 +123,6 @@ private slots:
                         const QHash<QDate, QStringList> &dailyOccurrences,
                         bool reset);
     void timeout();
-    void occurrenceExceptionFailedSlot(const CalendarData::Event &data, const QDateTime &occurrence);
-    void occurrenceExceptionCreatedSlot(const CalendarData::Event &data, const QDateTime &occurrence,
-                                        const QDateTime &newRecurrenceId);
     void findMatchingEventFinished(const QString &invitationFile,
                                    const CalendarData::Event &event);
 
@@ -166,13 +158,6 @@ private:
     QHash<CalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
     QStringList mExcludedNotebooks;
     QHash<QString, CalendarData::Notebook> mNotebooks;
-
-    struct OccurrenceData {
-        CalendarData::Event event;
-        QDateTime occurrenceTime;
-        QPointer<CalendarChangeInformation> changeObject;
-    };
-    QList<OccurrenceData> mPendingOccurrenceExceptions;
 
     QTimer *mTimer;
 

@@ -66,9 +66,7 @@ public slots:
     void saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
                    const QList<CalendarData::EmailContact> &required,
                    const QList<CalendarData::EmailContact> &optional);
-    void replaceOccurrence(const CalendarData::Event &eventData, const QDateTime &startTime, bool updateAttendees,
-                           const QList<CalendarData::EmailContact> &required,
-                           const QList<CalendarData::EmailContact> &optional);
+    CalendarData::Event dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId);
     void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     bool sendResponse(const CalendarData::Event &eventData, const CalendarEvent::Response response);
@@ -104,10 +102,6 @@ signals:
                     const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                     const QHash<QDate, QStringList> &dailyOccurrences,
                     bool reset);
-
-    void occurrenceExceptionFailed(const CalendarData::Event &eventData, const QDateTime &startTime);
-    void occurrenceExceptionCreated(const CalendarData::Event &eventData, const QDateTime &startTime,
-                                    const QDateTime &newRecurrenceId);
 
     void findMatchingEventFinished(const QString &invitationFile,
                                    const CalendarData::Event &eventData);

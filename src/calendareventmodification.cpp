@@ -55,9 +55,11 @@ void updateTime(QDateTime *dt, Qt::TimeSpec spec, const QString &timeZone)
 
 }
 
-CalendarEventModification::CalendarEventModification(const CalendarStoredEvent *source, QObject *parent)
+CalendarEventModification::CalendarEventModification(const CalendarStoredEvent *source, const CalendarEventOccurrence *occurrence, QObject *parent)
     : CalendarEvent(source, parent)
 {
+    if (source && occurrence)
+        *mData = source->dissociateSingleOccurrence(occurrence);
 }
 
 CalendarEventModification::CalendarEventModification(QObject *parent)
@@ -215,13 +217,6 @@ void CalendarEventModification::save()
                                                   m_requiredAttendees, m_optionalAttendees);
 }
 
-CalendarChangeInformation *
-CalendarEventModification::replaceOccurrence(CalendarEventOccurrence *occurrence)
-{
-    return CalendarManager::instance()->replaceOccurrence(*mData, occurrence, m_attendeesSet,
-                                                          m_requiredAttendees, m_optionalAttendees);
-}
-
 void CalendarEventModification::setSyncFailureResolution(CalendarEvent::SyncFailureResolution resolution)
 {
     if (mData->syncFailureResolution != resolution) {
@@ -229,4 +224,3 @@ void CalendarEventModification::setSyncFailureResolution(CalendarEvent::SyncFail
         emit syncFailureResolutionChanged();
     }
 }
-

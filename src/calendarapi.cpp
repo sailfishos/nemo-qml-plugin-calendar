@@ -35,6 +35,7 @@
 #include <QQmlEngine>
 #include "calendarevent.h"
 #include "calendareventmodification.h"
+#include "calendareventoccurrence.h"
 #include "calendarmanager.h"
 
 CalendarApi::CalendarApi(QObject *parent)
@@ -51,9 +52,10 @@ CalendarEventModification *CalendarApi::createNewEvent()
     return new CalendarEventModification();
 }
 
-CalendarEventModification * CalendarApi::createModification(CalendarStoredEvent *sourceEvent)
+CalendarEventModification * CalendarApi::createModification(CalendarStoredEvent *sourceEvent,
+                                                            CalendarEventOccurrence *occurrence)
 {
-    return new CalendarEventModification(sourceEvent);
+    return new CalendarEventModification(sourceEvent, occurrence);
 }
 
 void CalendarApi::remove(const QString &uid, const QString &recurrenceId, const QDateTime &time)

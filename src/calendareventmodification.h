@@ -38,7 +38,6 @@
 #include "calendardata.h"
 #include "calendarevent.h"
 #include "calendareventoccurrence.h"
-#include "calendarchangeinformation.h"
 #include "calendarcontactmodel.h"
 
 class CalendarEventModification : public CalendarEvent
@@ -58,7 +57,7 @@ class CalendarEventModification : public CalendarEvent
     Q_PROPERTY(CalendarEvent::SyncFailureResolution syncFailureResolution READ syncFailureResolution WRITE setSyncFailureResolution NOTIFY syncFailureResolutionChanged)
 
 public:
-    CalendarEventModification(const CalendarStoredEvent *source, QObject *parent = 0);
+    CalendarEventModification(const CalendarStoredEvent *source, const CalendarEventOccurrence *occurrence = 0, QObject *parent = 0);
     explicit CalendarEventModification(QObject *parent = 0);
     ~CalendarEventModification();
 
@@ -94,7 +93,6 @@ public:
     Q_INVOKABLE void setAttendees(CalendarContactModel *required, CalendarContactModel *optional);
 
     Q_INVOKABLE void save();
-    Q_INVOKABLE CalendarChangeInformation * replaceOccurrence(CalendarEventOccurrence *occurrence);
 
 signals:
     void displayLabelChanged();

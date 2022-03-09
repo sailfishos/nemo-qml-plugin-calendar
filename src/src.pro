@@ -38,7 +38,6 @@ SOURCES += \
     $$SRCDIR/calendarworker.cpp \
     $$SRCDIR/calendarnotebookquery.cpp \
     $$SRCDIR/calendareventmodification.cpp \
-    $$SRCDIR/calendarchangeinformation.cpp \
     $$SRCDIR/calendarutils.cpp \
     $$SRCDIR/calendarimportmodel.cpp \
     $$SRCDIR/calendarimportevent.cpp \
@@ -59,7 +58,6 @@ HEADERS += \
     $$SRCDIR/calendardata.h \
     $$SRCDIR/calendarnotebookquery.h \
     $$SRCDIR/calendareventmodification.h \
-    $$SRCDIR/calendarchangeinformation.h \
     $$SRCDIR/calendarutils.h \
     $$SRCDIR/calendarimportmodel.h \
     $$SRCDIR/calendarimportevent.h \

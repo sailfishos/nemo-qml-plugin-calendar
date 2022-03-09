@@ -41,7 +41,6 @@
 #include "calendarnotebookmodel.h"
 #include "calendarevent.h"
 #include "calendareventmodification.h"
-#include "calendarchangeinformation.h"
 #include "calendaragendamodel.h"
 #include "calendareventlistmodel.h"
 #include "calendarmanager.h"
@@ -120,10 +119,9 @@ public:
         Q_ASSERT(uri == QLatin1String("org.nemomobile.calendar"));
         qmlRegisterUncreatableType<CalendarEvent>(uri, 1, 0, "CalendarEvent", "CalendarEvent is a base class");
         qmlRegisterUncreatableType<CalendarStoredEvent>(uri, 1, 0, "CalendarStoredEvent", "Create CalendarEvent instances through a model");
+        qmlRegisterUncreatableType<CalendarEventOccurrence>(uri, 1, 0, "CalendarEventOccurrence", "Create CalendarEventOccurrence instances through a model");
         qmlRegisterUncreatableType<CalendarEventModification>(uri, 1, 0, "CalendarEventModification",
                                                                   "Create CalendarEventModification instances through Calendar API");
-        qmlRegisterUncreatableType<CalendarChangeInformation>(uri, 1, 0, "CalendarChangeInformation",
-                                                                  "Change information instances are returned from CalendarEventModification");
         qmlRegisterType<CalendarAgendaModel>(uri, 1, 0, "AgendaModel");
         qmlRegisterType<CalendarEventListModel>(uri, 1, 0, "EventListModel");
         qmlRegisterType<CalendarEventQuery>(uri, 1, 0, "EventQuery");
