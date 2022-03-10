@@ -51,7 +51,6 @@ CalendarManager::CalendarManager()
     qRegisterMetaType<QList<QDateTime> >("QList<QDateTime>");
     qRegisterMetaType<CalendarEvent::Recur>("CalendarEvent::Recur");
     qRegisterMetaType<QHash<QString,CalendarData::EventOccurrence> >("QHash<QString,CalendarData::EventOccurrence>");
-    qRegisterMetaType<CalendarData::Event>("CalendarData::Event");
     qRegisterMetaType<CalendarData::Incidence>("CalendarData::Incidence");
     qRegisterMetaType<QMultiHash<QString,CalendarData::Incidence> >("QMultiHash<QString,CalendarData::Incidence>");
     qRegisterMetaType<QHash<QDate,QStringList> >("QHash<QDate,QStringList>");
@@ -155,7 +154,7 @@ CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const
     CalendarData::Incidence event = getIncidence(eventUid, recurrenceId);
     if (event.incidence) {
         CalendarData::Notebook notebook = mNotebooks.value(event.calendarUid);
-        object = new CalendarStoredEvent(this, KCalendarCore::Incidence::Ptr(event.incidence->clone()), &notebook);
+        object = new CalendarStoredEvent(this, KCalendarCore::Incidence::Ptr(event.incidence->clone()), notebook);
         mEventObjects.insert(eventUid, object);
         return object;
     }
@@ -163,7 +162,7 @@ CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const
     // TODO: maybe attempt to read event from DB? This situation should not happen.
     qWarning() << Q_FUNC_INFO << "No event with uid" << eventUid << recurrenceId << ", returning empty event";
 
-    return new CalendarStoredEvent(this, {}, nullptr);
+    return new CalendarStoredEvent(this, {}, {});
 }
 
 void CalendarManager::saveModification(const KCalendarCore::Incidence::Ptr &incidence,
@@ -801,8 +800,8 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
         CalendarData::Incidence newEvent = getIncidence(oldEvent.incidence->uid(),
                                                         oldEvent.incidence->recurrenceId());
         if (object && newEvent.incidence) {
-            CalendarData::Notebook notebook = mNotebooks.value(newEvent.calendarUid);
-            object->setEvent(newEvent.incidence, &notebook);
+            object->setEvent(newEvent.incidence,
+                             mNotebooks.value(newEvent.calendarUid));
         }
     }
 

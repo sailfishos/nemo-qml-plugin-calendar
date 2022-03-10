@@ -34,13 +34,10 @@
 #define NEMOCALENDARDATA_H
 
 #include <QString>
-#include <QUrl>
 #include <QDateTime>
 
 // KCalendarCore
-#include <KCalendarCore/Event>
-
-#include "calendarevent.h"
+#include <KCalendarCore/Incidence>
 
 namespace CalendarData {
 
@@ -60,54 +57,6 @@ struct EventOccurrence {
 struct Incidence {
     KCalendarCore::Incidence::Ptr incidence;
     QString calendarUid;
-};
-
-struct Event {
-    QString displayLabel;
-    QString description;
-    QDateTime startTime;
-    QDateTime endTime;
-    bool allDay = false;
-    bool readOnly = false;
-    bool rsvp = false;
-    bool externalInvitation = false;
-    CalendarEvent::Recur recur = CalendarEvent::RecurOnce;
-    QDate recurEndDate;
-    CalendarEvent::Days recurWeeklyDays;
-    int reminder = -1; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
-    QDateTime reminderDateTime; // Valid when reminder is at a given date and time.
-    QString uniqueId;
-    QDateTime recurrenceId;
-    QString location;
-    CalendarEvent::Secrecy secrecy = CalendarEvent::SecrecyPublic;
-    QString calendarUid;
-    CalendarEvent::Response ownerStatus = CalendarEvent::ResponseUnspecified;
-    CalendarEvent::Status status = CalendarEvent::StatusNone;
-    CalendarEvent::SyncFailure syncFailure = CalendarEvent::NoSyncFailure;
-    CalendarEvent::SyncFailureResolution syncFailureResolution = CalendarEvent::RetrySync;
-
-    Event() {}
-    Event(const KCalendarCore::Event &event, const QString &notebookUid);
-
-    void toKCalendarCore(KCalendarCore::Event::Ptr &event) const;
-
-    bool operator==(const Event& other) const
-    {
-        return uniqueId == other.uniqueId;
-    }
-
-    bool isValid() const
-    {
-        return !uniqueId.isEmpty();
-    }
-
-private:
-    int fromKReminder(const KCalendarCore::Event &event) const;
-    QDateTime fromKReminderDateTime(const KCalendarCore::Event &event) const;
-    void toKReminder(KCalendarCore::Event &event) const;
-    CalendarEvent::Days fromKDayPositions(const KCalendarCore::Event &event) const;
-    CalendarEvent::Recur fromKRecurrence(const KCalendarCore::Event &event) const;
-    void toKRecurrence(KCalendarCore::Event &event) const;
 };
 
 struct Notebook {

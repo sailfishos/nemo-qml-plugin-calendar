@@ -38,9 +38,7 @@
 
 #include <KCalendarCore/Incidence>
 
-namespace CalendarData {
-    struct Notebook;
-}
+#include "calendardata.h"
 
 class CalendarEvent : public QObject
 {
@@ -231,10 +229,10 @@ class CalendarStoredEvent : public CalendarEvent
     Q_PROPERTY(QString color READ color NOTIFY colorChanged)
 public:
     CalendarStoredEvent(CalendarManager *manager, KCalendarCore::Incidence::Ptr data,
-                        const CalendarData::Notebook *notebook);
+                        const CalendarData::Notebook &notebook);
     ~CalendarStoredEvent();
 
-    void setEvent(const KCalendarCore::Incidence::Ptr &incidence, const CalendarData::Notebook *notebook);
+    void setEvent(const KCalendarCore::Incidence::Ptr &incidence, const CalendarData::Notebook &notebook);
     KCalendarCore::Incidence::Ptr dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const;
 
     QString color() const;
@@ -251,7 +249,7 @@ private slots:
     void eventUidChanged(QString oldUid, QString newUid);
 
 private:
-    void cacheIncidence(const CalendarData::Notebook *notebook);
+    void cacheIncidence(const CalendarData::Notebook &notebook);
 
     QString mNotebookColor;
     CalendarManager *mManager;

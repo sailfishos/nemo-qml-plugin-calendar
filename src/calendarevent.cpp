@@ -409,7 +409,7 @@ QList<QObject *> CalendarEvent::attendees() const
 }
 
 CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, KCalendarCore::Incidence::Ptr data,
-                                         const CalendarData::Notebook *notebook)
+                                         const CalendarData::Notebook &notebook)
     : CalendarEvent(data, manager)
     , mManager(manager)
 {
@@ -425,17 +425,17 @@ CalendarStoredEvent::~CalendarStoredEvent()
 {
 }
 
-void CalendarStoredEvent::cacheIncidence(const CalendarData::Notebook *notebook)
+void CalendarStoredEvent::cacheIncidence(const CalendarData::Notebook &notebook)
 {
-    mCalendarUid = notebook->uid;
-    mCalendarEmail = notebook->emailAddress;
-    mReadOnly = notebook->readOnly;
-    mNotebookColor = notebook->color;
+    mCalendarUid = notebook.uid;
+    mCalendarEmail = notebook.emailAddress;
+    mReadOnly = notebook.readOnly;
+    mNotebookColor = notebook.color;
 
     const KCalendarCore::Person &organizer = mIncidence->organizer();
     const QString organizerEmail = organizer.email();
     mExternalInvitation = (!organizerEmail.isEmpty() && organizerEmail != mCalendarEmail
-                           && notebook->sharedWith.contains(organizerEmail));
+                           && notebook.sharedWith.contains(organizerEmail));
 
     // It would be good to set the attendance status directly in the event within the plugin,
     // however in some cases the account email and owner attendee email won't necessarily match
@@ -536,7 +536,7 @@ QString CalendarStoredEvent::color() const
 }
 
 void CalendarStoredEvent::setEvent(const KCalendarCore::Incidence::Ptr &incidence,
-                                   const CalendarData::Notebook *notebook)
+                                   const CalendarData::Notebook &notebook)
 {
     if (!incidence)
         return;
@@ -561,7 +561,7 @@ void CalendarStoredEvent::setEvent(const KCalendarCore::Incidence::Ptr &incidenc
     const bool mSecrecyChanged = mIncidence->secrecy() != incidence->secrecy();
     const bool mStatusChanged = mIncidence->status() != incidence->status();
     const bool mDtStartChanged = mIncidence->dtStart() != incidence->dtStart();
-    const bool mNbColorChanged = notebook->color != mNotebookColor;
+    const bool mNbColorChanged = notebook.color != mNotebookColor;
 
     mIncidence = incidence;
     CalendarEvent::cacheIncidence();

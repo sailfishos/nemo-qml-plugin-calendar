@@ -49,8 +49,6 @@ CalendarData::EventOccurrence getNextOccurrence(const KCalendarCore::Incidence::
                                                 const KCalendarCore::Incidence::List &exceptions = KCalendarCore::Incidence::List());
 bool importFromFile(const QString &fileName, KCalendarCore::Calendar::Ptr calendar);
 bool importFromIcsRawData(const QByteArray &icsData, KCalendarCore::Calendar::Ptr calendar);
-CalendarEvent::Response convertPartStat(KCalendarCore::Attendee::PartStat status);
-CalendarEvent::Response convertResponseType(const QString &responseType);
 QString recurrenceIdToString(const QDateTime &dt);
 
 } // namespace CalendarUtils

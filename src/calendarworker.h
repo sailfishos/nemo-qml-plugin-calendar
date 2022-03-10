@@ -34,6 +34,7 @@
 #define CALENDARWORKER_H
 
 #include "calendardata.h"
+#include "calendarevent.h"
 
 #include <QObject>
 #include <QHash>
@@ -112,12 +113,6 @@ private:
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
     bool needSendCancellation(KCalendarCore::Event::Ptr &event) const;
-    void updateEventAttendees(KCalendarCore::Incidence::Ptr event, bool newEvent,
-                              const KCalendarCore::Person::List &required,
-                              const KCalendarCore::Person::List &optional,
-                              const QString &notebookUid);
-    QString getNotebookAddress(const QString &notebookUid) const;
-    QString getNotebookAddress(const KCalendarCore::Event::Ptr &event) const;
 
     QHash<QString, CalendarData::EventOccurrence> eventOccurrences(const QList<CalendarData::Range> &ranges) const;
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
