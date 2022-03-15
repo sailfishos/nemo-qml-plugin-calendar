@@ -56,8 +56,10 @@ public:
 
     /* mKCal::ExtendedStorageObserver */
     void storageModified(mKCal::ExtendedStorage *storage, const QString &info);
-    void storageProgress(mKCal::ExtendedStorage *storage, const QString &info);
-    void storageFinished(mKCal::ExtendedStorage *storage, bool error, const QString &info);
+    void storageUpdated(mKCal::ExtendedStorage *storage,
+                        const KCalendarCore::Incidence::List &added,
+                        const KCalendarCore::Incidence::List &modified,
+                        const KCalendarCore::Incidence::List &deleted);
 
 public slots:
     void init();
@@ -88,7 +90,7 @@ public slots:
     void findMatchingEvent(const QString &invitationFile);
 
 signals:
-    void storageModifiedSignal(const QString &info);
+    void storageModifiedSignal();
 
     void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
 
@@ -137,10 +139,9 @@ private:
 
     QHash<QString, CalendarData::Notebook> mNotebooks;
 
-    // Tracks which events have been already passed to manager. Maps Uid -> RecurrenceId
-    QMultiHash<QString, QDateTime> mSentEvents;
-
-    bool mHasRecurringEvents;
+    // Tracks which events have been already passed to manager, using instanceIdentifiers.
+    QSet<QString> mSentEvents;
+    QSet<CalendarData::Range> mLoadedRanges;
 };
 
 #endif // CALENDARWORKER_H

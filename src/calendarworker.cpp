@@ -72,7 +72,7 @@ namespace {
 }
 
 CalendarWorker::CalendarWorker()
-    : QObject(0), mAccountManager(0), mHasRecurringEvents(false)
+    : QObject(0), mAccountManager(0)
 {
 }
 
@@ -87,32 +87,28 @@ CalendarWorker::~CalendarWorker()
 
 void CalendarWorker::storageModified(mKCal::ExtendedStorage *storage, const QString &info)
 {
-    Q_UNUSED(storage)
-    Q_UNUSED(info)
+    Q_UNUSED(storage);
+    Q_UNUSED(info);
 
-    // 'info' is either a path to the database (in which case we're screwed, we
-    // have no idea what changed, so tell all interested models to reload) or a
-    // space-seperated list of event UIDs.
-    //
-    // unfortunately we don't know *what* about these events changed with the
-    // current mkcal API, so we'll have to try our best to guess when the time
-    // comes.
-    mSentEvents.clear();
+    // External touch of the database. We have no clue what changed.
+    // The mCalendar content has been wiped out already.
+    mLoadedRanges.clear();
     loadNotebooks();
-    emit storageModifiedSignal(info);
+    emit storageModifiedSignal();
 }
 
-void CalendarWorker::storageProgress(mKCal::ExtendedStorage *storage, const QString &info)
+void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
+                                    const KCalendarCore::Incidence::List &added,
+                                    const KCalendarCore::Incidence::List &modified,
+                                    const KCalendarCore::Incidence::List &deleted)
 {
-    Q_UNUSED(storage)
-    Q_UNUSED(info)
-}
+    Q_UNUSED(storage);
+    Q_UNUSED(added);
+    Q_UNUSED(modified);
+    Q_UNUSED(deleted);
 
-void CalendarWorker::storageFinished(mKCal::ExtendedStorage *storage, bool error, const QString &info)
-{
-    Q_UNUSED(storage)
-    Q_UNUSED(error)
-    Q_UNUSED(info)
+    // No smart handling of known updates at the moment.
+    emit storageModifiedSignal();
 }
 
 void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime)
@@ -508,8 +504,9 @@ void CalendarWorker::setDefaultNotebook(const QString &notebookUid)
     if (mStorage->defaultNotebook() && mStorage->defaultNotebook()->uid() == notebookUid)
         return;
 
-    mStorage->setDefaultNotebook(mStorage->notebook(notebookUid));
-    mStorage->save();
+    if (!mStorage->setDefaultNotebook(mStorage->notebook(notebookUid))) {
+        qWarning() << "unable to set default notebook";
+    }
 }
 
 QStringList CalendarWorker::excludedNotebooks() const
@@ -642,20 +639,23 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
                               const QStringList &instanceList,
                               bool reset)
 {
-    if (reset)
-        mHasRecurringEvents = false;
-
-    foreach (const CalendarData::Range &range, ranges)
-        mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
-
-    foreach (const QString &id, instanceList)
-        mStorage->loadIncidenceInstance(id);
-
-    if (!ranges.isEmpty() && !mHasRecurringEvents) {
+    if (!ranges.isEmpty() && mLoadedRanges.isEmpty()) {
         // Load all recurring incidences,
         // we have no other way to detect if they occur within a range
         mStorage->loadRecurringIncidences();
-        mHasRecurringEvents = true;
+    }
+
+    for (const CalendarData::Range &range : ranges) {
+        if (!mLoadedRanges.contains(range)) {
+            mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
+            mLoadedRanges.insert(range);
+        }
+    }
+
+    foreach (const QString &id, instanceList) {
+        if (mCalendar->instance(id).isNull()) {
+            mStorage->loadIncidenceInstance(id);
+        }
     }
 
     if (reset)
@@ -694,11 +694,11 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
             continue;
         }
 
-        if (!mSentEvents.contains(e->uid(), e->recurrenceId())) {
+        const QString id = e->instanceIdentifier();
+        if (!mSentEvents.contains(id)) {
             CalendarData::Event event = createEventStruct(e, notebook);
-            mSentEvents.insert(event.uniqueId, event.recurrenceId);
+            mSentEvents.insert(id);
             events.insert(event.uniqueId, event);
-            const QString id = e->instanceIdentifier();
             if (id != event.uniqueId) {
                 // Ensures that events can also be retrieved by instanceIdentifier
                 events.insert(id, event);

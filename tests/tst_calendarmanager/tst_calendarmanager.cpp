@@ -586,13 +586,9 @@ void tst_CalendarManager::test_notebookApi()
         QVERIFY(uidList.contains(notebookPtr->uid()));
 
     QSignalSpy defaultNotebookSpy(mManager, SIGNAL(defaultNotebookChanged(QString)));
+    notebookSpy.clear();
     mManager->setDefaultNotebook(mAddedNotebooks.first()->uid());
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 3)
-            break;
-
-        QTest::qWait(100);
-    }
+    QVERIFY(notebookSpy.wait());
     QCOMPARE(mManager->defaultNotebook(), mAddedNotebooks.first()->uid());
     QCOMPARE(defaultNotebookSpy.count(), 1);
 

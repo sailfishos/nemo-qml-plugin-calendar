@@ -192,7 +192,13 @@ void tst_CalendarEvent::testSave()
     eventMod->setLocation(location);
     QCOMPARE(eventMod->location(), location);
 
-    QDateTime endTime = QDateTime::currentDateTime();
+    QDateTime startTime = QDateTime::currentDateTime().addDays(-200);
+    const QTime at = startTime.time();
+    startTime.setTime(QTime(at.hour(), at.minute(), at.second()));
+    eventMod->setStartTime(startTime, Qt::LocalTime);
+    QCOMPARE(eventMod->startTime(), startTime);
+
+    QDateTime endTime = startTime.addSecs(3600);
     eventMod->setEndTime(endTime, Qt::LocalTime);
     QCOMPARE(eventMod->endTime(), endTime);
 
@@ -207,10 +213,6 @@ void tst_CalendarEvent::testSave()
     int reminder = 0; // at the time of the event
     eventMod->setReminder(reminder);
     QCOMPARE(eventMod->reminder(), reminder);
-
-    QDateTime startTime = QDateTime::currentDateTime();
-    eventMod->setStartTime(startTime, Qt::LocalTime);
-    QCOMPARE(eventMod->startTime(), startTime);
 
     QString uid;
     bool ok = saveEvent(eventMod, &uid);
@@ -478,12 +480,11 @@ void tst_CalendarEvent::testRecurrenceException()
     }
     QVERIFY(!modificationFound);
 
-    // ensure all gone, this emits two warning for not finding the two occurrences.
+    // ensure all is gone
     calendarApi->removeAll(uid);
-    QVERIFY(dataUpdated.wait());
+    QVERIFY(updated.wait());
+    QVERIFY(!query.event());
     mSavedEvents.remove(uid);
-    QVERIFY(!CalendarManager::instance()->getEvent(uid, QDateTime()).isValid());
-    QVERIFY(!CalendarManager::instance()->getEvent(uid, QDateTime::fromString(recurrenceException->recurrenceIdString(), Qt::ISODate)).isValid());
 
     delete recurrenceException;
     delete mod;
