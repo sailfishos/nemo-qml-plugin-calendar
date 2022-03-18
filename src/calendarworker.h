@@ -113,7 +113,7 @@ private:
     QStringList excludedNotebooks() const;
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
-    bool needSendCancellation(const KCalendarCore::Incidence::Ptr &event) const;
+    bool isOrganizer(const KCalendarCore::Incidence::Ptr &event) const;
     void updateEventAttendees(KCalendarCore::Event::Ptr event, bool newEvent,
                               const QList<CalendarData::EmailContact> &required,
                               const QList<CalendarData::EmailContact> &optional,
