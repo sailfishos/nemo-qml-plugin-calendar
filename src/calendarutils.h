@@ -52,7 +52,6 @@ CalendarData::EventOccurrence getNextOccurrence(const KCalendarCore::Event::Ptr 
 bool importFromFile(const QString &fileName, KCalendarCore::Calendar::Ptr calendar);
 bool importFromIcsRawData(const QByteArray &icsData, KCalendarCore::Calendar::Ptr calendar);
 CalendarEvent::Response convertPartStat(KCalendarCore::Attendee::PartStat status);
-KCalendarCore::Attendee::PartStat convertResponse(CalendarEvent::Response response);
 CalendarEvent::Response convertResponseType(const QString &responseType);
 QString recurrenceIdToString(const QDateTime &dt);
 

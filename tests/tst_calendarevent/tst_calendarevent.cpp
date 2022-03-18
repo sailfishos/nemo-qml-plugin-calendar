@@ -59,6 +59,7 @@ private slots:
 
     void modSetters();
     void testSave();
+    void testModify();
     void testTimeZone_data();
     void testTimeZone();
     void testRecurrenceException();
@@ -256,6 +257,34 @@ void tst_CalendarEvent::testSave()
     mSavedEvents.remove(uid);
 
     delete eventMod;
+}
+
+void tst_CalendarEvent::testModify()
+{
+    CalendarEventModification *eventMod = calendarApi->createNewEvent();
+    QVERIFY(eventMod != 0);
+
+    eventMod->setStartTime(QDateTime(QDate(2022, 3, 15), QTime(14, 9)), Qt::UTC);
+
+    QString uid;
+    QVERIFY(saveEvent(eventMod, &uid));
+    QVERIFY(!uid.isEmpty());
+    mSavedEvents.insert(uid);
+    delete eventMod;
+
+    CalendarEventQuery query;
+    QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
+    query.setUniqueId(uid);
+    QVERIFY(eventSpy.wait());
+
+    CalendarStoredEvent *event = qobject_cast<CalendarStoredEvent*>(query.event());
+    QVERIFY(event);
+
+    QSignalSpy modSpy(event, &CalendarStoredEvent::startTimeChanged);
+    eventMod = calendarApi->createModification(event);
+    eventMod->setStartTime(QDateTime(QDate(2022, 3, 15), QTime(14, 13)), Qt::UTC);
+    eventMod->save();
+    QVERIFY(modSpy.wait());
 }
 
 void tst_CalendarEvent::testTimeZone_data()

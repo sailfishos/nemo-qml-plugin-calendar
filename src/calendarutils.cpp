@@ -541,20 +541,6 @@ CalendarEvent::Response CalendarUtils::convertPartStat(KCalendarCore::Attendee::
     }
 }
 
-KCalendarCore::Attendee::PartStat CalendarUtils::convertResponse(CalendarEvent::Response response)
-{
-    switch (response) {
-    case CalendarEvent::ResponseAccept:
-        return KCalendarCore::Attendee::Accepted;
-    case CalendarEvent::ResponseTentative:
-        return KCalendarCore::Attendee::Tentative;
-    case CalendarEvent::ResponseDecline:
-        return KCalendarCore::Attendee::Declined;
-    default:
-        return KCalendarCore::Attendee::NeedsAction;
-    }
-}
-
 CalendarEvent::Response CalendarUtils::convertResponseType(const QString &responseType)
 {
     // QString::toInt() conversion defaults to 0 on failure
