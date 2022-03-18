@@ -34,13 +34,10 @@
 #define NEMOCALENDARDATA_H
 
 #include <QString>
-#include <QUrl>
 #include <QDateTime>
 
 // KCalendarCore
-#include <KCalendarCore/Event>
-
-#include "calendarevent.h"
+#include <KCalendarCore/Incidence>
 
 namespace CalendarData {
 
@@ -57,52 +54,9 @@ struct EventOccurrence {
     }
 };
 
-struct Event {
-    QString displayLabel;
-    QString description;
-    QDateTime startTime;
-    QDateTime endTime;
-    bool allDay = false;
-    bool readOnly = false;
-    bool rsvp = false;
-    bool externalInvitation = false;
-    CalendarEvent::Recur recur = CalendarEvent::RecurOnce;
-    QDate recurEndDate;
-    CalendarEvent::Days recurWeeklyDays;
-    int reminder = -1; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
-    QDateTime reminderDateTime; // Valid when reminder is at a given date and time.
-    QString uniqueId;
-    QDateTime recurrenceId;
-    QString location;
-    CalendarEvent::Secrecy secrecy = CalendarEvent::SecrecyPublic;
+struct Incidence {
+    KCalendarCore::Incidence::Ptr incidence;
     QString calendarUid;
-    CalendarEvent::Response ownerStatus = CalendarEvent::ResponseUnspecified;
-    CalendarEvent::Status status = CalendarEvent::StatusNone;
-    CalendarEvent::SyncFailure syncFailure = CalendarEvent::NoSyncFailure;
-    CalendarEvent::SyncFailureResolution syncFailureResolution = CalendarEvent::RetrySync;
-
-    Event() {}
-    Event(const KCalendarCore::Event &event);
-
-    void toKCalendarCore(KCalendarCore::Event::Ptr &event) const;
-
-    bool operator==(const Event& other) const
-    {
-        return uniqueId == other.uniqueId;
-    }
-
-    bool isValid() const
-    {
-        return !uniqueId.isEmpty();
-    }
-
-private:
-    int fromKReminder(const KCalendarCore::Event &event) const;
-    QDateTime fromKReminderDateTime(const KCalendarCore::Event &event) const;
-    void toKReminder(KCalendarCore::Event &event) const;
-    CalendarEvent::Days fromKDayPositions(const KCalendarCore::Event &event) const;
-    CalendarEvent::Recur fromKRecurrence(const KCalendarCore::Event &event) const;
-    void toKRecurrence(KCalendarCore::Event &event) const;
 };
 
 struct Notebook {
@@ -111,6 +65,7 @@ struct Notebook {
     QString description;
     QString color;
     QString emailAddress;
+    QStringList sharedWith;
     int accountId;
     QUrl accountIcon;
     bool isDefault;
@@ -126,7 +81,7 @@ struct Notebook {
                 && color == other.color && emailAddress == other.emailAddress
                 && accountId == other.accountId && accountIcon == other.accountIcon
                 && isDefault == other.isDefault && readOnly == other.readOnly && localCalendar == other.localCalendar
-                && excluded == other.excluded;
+                && excluded == other.excluded && sharedWith == other.sharedWith;
     }
 
     bool operator!=(const Notebook other) const
@@ -136,29 +91,6 @@ struct Notebook {
 };
 
 typedef QPair<QDate,QDate> Range;
-
-struct Attendee {
-    bool isOrganizer = false;
-    QString name;
-    QString email;
-    KCalendarCore::Attendee::Role participationRole = KCalendarCore::Attendee::OptParticipant;
-    KCalendarCore::Attendee::PartStat status = KCalendarCore::Attendee::None;
-
-    bool operator==(const Attendee &other) const {
-        return isOrganizer == other.isOrganizer
-                && name == other.name
-                && email == other.email
-                && participationRole == other.participationRole
-                && status == other.status;
-    }
-};
-
-struct EmailContact {
-    EmailContact(const QString &aName, const QString &aEmail)
-        : name(aName), email(aEmail) {}
-    QString name;
-    QString email;
-};
 
 }
 #endif // NEMOCALENDARDATA_H

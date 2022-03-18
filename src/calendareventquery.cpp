@@ -39,7 +39,7 @@
 #include <QDebug>
 
 CalendarEventQuery::CalendarEventQuery()
-    : mIsComplete(true), mOccurrence(0), mAttendeesCached(false), mEventError(false)
+    : mIsComplete(true), mOccurrence(0), mEventError(false)
 {
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
@@ -66,8 +66,8 @@ void CalendarEventQuery::setUniqueId(const QString &uid)
     mUid = uid;
     emit uniqueIdChanged();
 
-    if (mEvent.isValid()) {
-        mEvent = CalendarData::Event();
+    if (mEvent) {
+        mEvent.clear();
         emit eventChanged();
     }
     if (mOccurrence) {
@@ -126,7 +126,7 @@ void CalendarEventQuery::resetStartTime()
 
 QObject *CalendarEventQuery::event() const
 {
-    if (mEvent.isValid() && mEvent.uniqueId == mUid)
+    if (mEvent && mEvent->uid() == mUid)
         return CalendarManager::instance()->eventObject(mUid, mRecurrenceId);
     else
         return nullptr;
@@ -139,15 +139,11 @@ QObject *CalendarEventQuery::occurrence() const
 
 QList<QObject*> CalendarEventQuery::attendees()
 {
-    if (!mAttendeesCached) {
-        bool resultValid = false;
-        mAttendees = CalendarManager::instance()->getEventAttendees(mUid, mRecurrenceId, &resultValid);
-        if (resultValid) {
-            mAttendeesCached = true;
-        }
-    }
-
-    return CalendarUtils::convertAttendeeList(mAttendees);
+    CalendarStoredEvent *object = qobject_cast<CalendarStoredEvent*>(event());
+    if (object)
+        return object->attendees();
+    else
+        return {};
 }
 
 void CalendarEventQuery::classBegin()
@@ -161,26 +157,41 @@ void CalendarEventQuery::componentComplete()
     refresh();
 }
 
-void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
+void CalendarEventQuery::doRefresh(KCalendarCore::Incidence::Ptr event, bool eventError)
 {
     // The value of mUid may have changed, verify that we got what we asked for
-    if (event.isValid() && (event.uniqueId != mUid || event.recurrenceId != mRecurrenceId))
+    if (event && (event->uid() != mUid || event->recurrenceId() != mRecurrenceId))
         return;
 
     bool updateOccurrence = false;
     bool signalEventChanged = false;
 
-    if (event.uniqueId != mEvent.uniqueId || event.recurrenceId != mEvent.recurrenceId) {
-        mEvent = event;
+    KCalendarCore::Attendee::List oldAttendees;
+    if (mEvent)
+        oldAttendees = mEvent->attendees();
+
+    if ((event && !mEvent) || (!event && mEvent)
+        || (event && mEvent && event->uid() != mEvent->uid())
+        || (event && mEvent && event->recurrenceId() != mEvent->recurrenceId())) {
+        if (event) {
+            mEvent = KCalendarCore::Incidence::Ptr(event->clone());
+        } else {
+            mEvent.clear();
+        }
         signalEventChanged = true;
         updateOccurrence = true;
-    } else if (mEvent.isValid()) { // The event may have changed even if the pointer did not
-        if (mEvent.allDay != event.allDay
-                || mEvent.endTime != event.endTime
-                || mEvent.recur != event.recur
-                || event.recur == CalendarEvent::RecurCustom
-                || mEvent.startTime != event.startTime) {
-            mEvent = event;
+    } else if (mEvent && event) { // The event may have changed even if the pointer did not
+        if (mEvent->allDay() != event->allDay()
+            || mEvent->dateTime(KCalendarCore::Incidence::RoleEnd) != event->dateTime(KCalendarCore::Incidence::RoleEnd)
+            || (mEvent->recurs() && !event->recurs())
+            || (!mEvent->recurs() && event->recurs())
+            || (mEvent->recurs() && event->recurs() && (*mEvent->recurrence() != *event->recurrence()))
+            || mEvent->dtStart() != event->dtStart()) {
+            if (event) {
+                mEvent = KCalendarCore::Incidence::Ptr(event->clone());
+            } else {
+                mEvent.clear();
+            }
             updateOccurrence = true;
         }
     }
@@ -189,7 +200,7 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
         delete mOccurrence;
         mOccurrence = 0;
 
-        if (mEvent.isValid()) {
+        if (mEvent) {
             CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(
                     mUid, mRecurrenceId, mStartTime);
             if (occurrence) {
@@ -204,12 +215,10 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
         emit eventChanged();
 
     // check if attendees have changed.
-    bool resultValid = false;
-    QList<CalendarData::Attendee> attendees = CalendarManager::instance()->getEventAttendees(
-            mUid, mRecurrenceId, &resultValid);
-    if (resultValid && mAttendees != attendees) {
-        mAttendees = attendees;
-        mAttendeesCached = true;
+    KCalendarCore::Attendee::List attendees;
+    if (event)
+        attendees = event->attendees();
+    if (oldAttendees != attendees) {
         emit attendeesChanged();
     }
 

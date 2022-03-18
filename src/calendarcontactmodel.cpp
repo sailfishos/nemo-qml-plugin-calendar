@@ -24,9 +24,9 @@ QVariant CalendarContactModel::data(const QModelIndex &index, int role) const
 
     switch(role) {
     case NameRole:
-        return m_contacts.at(index.row()).name;
+        return m_contacts.at(index.row()).name();
     case EmailRole:
-        return m_contacts.at(index.row()).email;
+        return m_contacts.at(index.row()).email();
     default:
         return QVariant();
     }
@@ -51,7 +51,7 @@ void CalendarContactModel::remove(int index)
 bool CalendarContactModel::hasEmail(const QString &email) const
 {
     for (auto &contact : m_contacts) {
-        if (contact.email == email) {
+        if (contact.email() == email) {
             return true;
         }
     }
@@ -65,7 +65,7 @@ QString CalendarContactModel::name(int index) const
         return QString();
     }
 
-    return m_contacts.at(index).name;
+    return m_contacts.at(index).name();
 }
 
 QString CalendarContactModel::email(int index) const
@@ -74,10 +74,10 @@ QString CalendarContactModel::email(int index) const
         return QString();
     }
 
-    return m_contacts.at(index).email;
+    return m_contacts.at(index).email();
 }
 
-QList<CalendarData::EmailContact> CalendarContactModel::getList()
+KCalendarCore::Person::List CalendarContactModel::getList()
 {
     return m_contacts;
 }
@@ -85,7 +85,7 @@ QList<CalendarData::EmailContact> CalendarContactModel::getList()
 void CalendarContactModel::append(const QString &name, const QString &email)
 {
     beginInsertRows(QModelIndex(), m_contacts.length(), m_contacts.length());
-    m_contacts.append(CalendarData::EmailContact(name, email));
+    m_contacts.append(KCalendarCore::Person(name, email));
     endInsertRows();
 
     emit countChanged();
@@ -94,7 +94,7 @@ void CalendarContactModel::append(const QString &name, const QString &email)
 void CalendarContactModel::prepend(const QString &name, const QString &email)
 {
     beginInsertRows(QModelIndex(), 0, 0);
-    m_contacts.prepend(CalendarData::EmailContact(name, email));
+    m_contacts.prepend(KCalendarCore::Person(name, email));
     endInsertRows();
 
     emit countChanged();

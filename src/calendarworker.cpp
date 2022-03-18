@@ -56,7 +56,7 @@
 #include <Accounts/Account>
 
 namespace {
-    void updateAttendee(KCalendarCore::Event::Ptr event,
+    void updateAttendee(const KCalendarCore::Incidence::Ptr &event,
                         const KCalendarCore::Attendee &attendee,
                         const KCalendarCore::Attendee &updated)
     {
@@ -112,9 +112,9 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
 
 void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime)
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
+    KCalendarCore::Incidence::Ptr event = mCalendar->incidence(uid, recurrenceId);
     if (!event && mStorage->load(uid, recurrenceId)) {
-        event = mCalendar->event(uid, recurrenceId);
+        event = mCalendar->incidence(uid, recurrenceId);
     }
     if (!event) {
         qDebug() << uid << "event already deleted from DB";
@@ -131,56 +131,64 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
             event->recurrence()->addExDateTime(dateTime);
         event->setRevision(event->revision() + 1);
     } else {
-        mCalendar->deleteEvent(event);
+        mCalendar->deleteIncidence(event);
         mDeletedEvents.append(QPair<QString, QDateTime>(uid, recurrenceId));
     }
 }
 
 void CalendarWorker::deleteAll(const QString &uid)
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid);
+    KCalendarCore::Incidence::Ptr event = mCalendar->incidence(uid);
     if (!event && mStorage->loadSeries(uid)) {
-        event = mCalendar->event(uid);
+        event = mCalendar->incidence(uid);
     }
     if (!event) {
         qDebug() << uid << "event already deleted from DB";
         return;
     }
 
-    mCalendar->deleteEventInstances(event);
-    mCalendar->deleteEvent(event);
+    mCalendar->deleteIncidence(event);
     mDeletedEvents.append(QPair<QString, QDateTime>(uid, QDateTime()));
 }
 
-bool CalendarWorker::sendResponse(const CalendarData::Event &eventData, const CalendarEvent::Response response)
+bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenceId,
+                                  const CalendarEvent::Response response)
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
+    KCalendarCore::Incidence::Ptr event = mCalendar->incidence(uid, recurrenceId);
     if (!event) {
-        qWarning() << "Failed to send response, event not found. UID = " << eventData.uniqueId;
+        qWarning() << "Failed to send response, event not found. UID = " << uid;
         return false;
     }
-    const QString &notebookUid = mCalendar->notebook(event);
-    const QString &ownerEmail = mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
-                                                                 : QString();
-
+    const QString ownerEmail = mNotebooks.value(mCalendar->notebook(event)).emailAddress;
     const KCalendarCore::Attendee origAttendee = event->attendeeByMail(ownerEmail);
     KCalendarCore::Attendee updated = origAttendee;
-    updated.setStatus(CalendarUtils::convertResponse(response));
+    switch (response) {
+    case CalendarEvent::ResponseAccept:
+        updated.setStatus(KCalendarCore::Attendee::Accepted);
+        break;
+    case CalendarEvent::ResponseTentative:
+        updated.setStatus(KCalendarCore::Attendee::Tentative);
+        break;
+    case CalendarEvent::ResponseDecline:
+        updated.setStatus(KCalendarCore::Attendee::Declined);
+        break;
+    default:
+        updated.setStatus(KCalendarCore::Attendee::NeedsAction);
+    }
     updateAttendee(event, origAttendee, updated);
 
-    bool sent = mKCal::ServiceHandler::instance().sendResponse(event, eventData.description, mCalendar, mStorage);
+    bool sent = mKCal::ServiceHandler::instance().sendResponse(event, event->description(), mCalendar, mStorage);
 
     if (!sent)
         updateAttendee(event, updated, origAttendee);
 
-    save();
     return sent;
 }
 
 QString CalendarWorker::convertEventToICalendar(const QString &uid, const QString &prodId) const
 {
     // NOTE: not fetching eventInstances() with different recurrenceId
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid);
+    KCalendarCore::Incidence::Ptr event = mCalendar->event(uid);
     if (event.isNull()) {
         qWarning() << "No event with uid " << uid << ", unable to create iCalendar";
         return QString();
@@ -216,84 +224,76 @@ void CalendarWorker::save()
     }
 }
 
-void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
-                               const QList<CalendarData::EmailContact> &required,
-                               const QList<CalendarData::EmailContact> &optional)
+void CalendarWorker::saveEvent(const KCalendarCore::Incidence::Ptr &incidence,
+                               const QString &notebookUid)
 {
-    QString notebookUid = eventData.calendarUid;
-
+    if (!incidence) {
+        return;
+    }
     if (!notebookUid.isEmpty() && !mStorage->isValidNotebook(notebookUid)) {
         qWarning() << "Invalid notebook uid:" << notebookUid;
         return;
     }
 
-    KCalendarCore::Event::Ptr event;
-    if (!eventData.uniqueId.isEmpty()) {
-        event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
-        if (!event && eventData.recurrenceId.isNull()) {
-            // possibility that event was removed while changes were edited. options to either skip, as done now,
-            // or resurrect the event
-            qWarning("Event to be saved not found");
-            return;
-        }
-    }
-    bool createNew = event.isNull();
-
-    if (createNew) {
-        event = KCalendarCore::Event::Ptr(new KCalendarCore::Event);
-
+    KCalendarCore::Incidence::Ptr event = mCalendar->incidence(incidence->uid(),
+                                                               incidence->recurrenceId());
+    if (!event) {
         // For exchange it is better to use upper case UIDs, because for some reason when
         // UID is generated out of Global object id of the email message we are getting a lowercase
         // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
         // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
         // for new events than trying to implement some complex logic in basesailfish-eas.
-        if (eventData.uniqueId.isEmpty()) {
-            event->setUid(event->uid().toUpper());
-        } else {
-            event->setUid(eventData.uniqueId);
-            event->setRecurrenceId(eventData.recurrenceId);
-        }
-    } else {
-        if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
-            // mkcal does funny things when moving event between notebooks, work around by changing uid
-            KCalendarCore::Event::Ptr newEvent = KCalendarCore::Event::Ptr(event->clone());
-            newEvent->setUid(KCalendarCore::CalFormat::createUniqueId().toUpper());
-            emit eventNotebookChanged(event->uid(), newEvent->uid(), notebookUid);
-            mCalendar->deleteEvent(event);
-            mCalendar->addEvent(newEvent, notebookUid);
-            event = newEvent;
-        } else {
-            event->setRevision(event->revision() + 1);
-        }
-    }
-
-    eventData.toKCalendarCore(event);
-
-    if (updateAttendees) {
-        updateEventAttendees(event, createNew, required, optional, notebookUid);
-    }
-
-    if (createNew) {
-        bool eventAdded;
-        if (notebookUid.isEmpty())
-            eventAdded = mCalendar->addEvent(event);
-        else
-            eventAdded = mCalendar->addEvent(event, notebookUid);
-        if (!eventAdded) {
-            qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
+        incidence->setUid(incidence->uid().toUpper());
+        if (!mCalendar->addIncidence(incidence, notebookUid.isEmpty() ? mCalendar->defaultNotebook() : notebookUid)) {
+            qWarning() << "Cannot add incidence" << incidence->uid() << ", notebookUid:" << notebookUid;
             return;
+        }
+        if (!incidence->attendees().isEmpty())
+            mKCal::ServiceHandler::instance().sendInvitation(incidence, QString(), mCalendar, mStorage, mStorage->notebook(mCalendar->notebook(incidence)));
+    } else {
+        if (!notebookUid.isEmpty() && mCalendar->notebook(incidence) != notebookUid) {
+            // mkcal does funny things when moving event between notebooks, work around by changing uid
+            KCalendarCore::Incidence::Ptr newEvent(incidence->clone());
+            newEvent->setUid(KCalendarCore::CalFormat::createUniqueId().toUpper());
+            emit eventNotebookChanged(incidence->uid(), newEvent->uid(), notebookUid);
+            mCalendar->deleteIncidence(event);
+            mCalendar->addIncidence(newEvent, notebookUid);
+        } else {
+            incidence->setRevision(event->revision() + 1);
+            if (!event->attendees().isEmpty()) {
+                KCalendarCore::Attendee::List cancelAttendees;
+                const KCalendarCore::Attendee::List oldAttendees = event->attendees();
+                for (const KCalendarCore::Attendee &attendee : oldAttendees) {
+                    if (incidence->attendeeByMail(attendee.email()).isNull()
+                        && (attendee.role() == KCalendarCore::Attendee::ReqParticipant
+                            || attendee.role() == KCalendarCore::Attendee::OptParticipant)) {
+                        cancelAttendees.append(attendee);
+                    }
+                }
+                if (!cancelAttendees.isEmpty()) {
+                    KCalendarCore::Incidence::Ptr cancelled(incidence->clone());
+                    cancelled->setAttendees(cancelAttendees);
+                    cancelled->setStatus(KCalendarCore::Incidence::StatusCanceled);
+                    mKCal::ServiceHandler::instance().sendUpdate(cancelled, QString(), mCalendar, mStorage, mStorage->notebook(mCalendar->notebook(event)));
+                }
+            }
+            event->startUpdates();
+            *event.staticCast<KCalendarCore::IncidenceBase>() = *incidence.staticCast<KCalendarCore::IncidenceBase>();
+            event->endUpdates();
+            if (!event->attendees().isEmpty())
+                mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage, mStorage->notebook(mCalendar->notebook(event)));
         }
     }
 
     save();
 }
 
-CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId)
+KCalendarCore::Incidence::Ptr CalendarWorker::dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId)
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid);
+    KCalendarCore::Incidence::Ptr event = mCalendar->incidence(uid);
     if (!event) {
         qWarning("Event to create occurrence replacement for not found");
-        return CalendarData::Event();
+        return KCalendarCore::Incidence::Ptr();
     }
 
     // Note: for all day events, to guarantee that exception set in a given time
@@ -302,18 +302,7 @@ CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &ui
     const QDateTime occurrence = event->allDay()
             ? QDateTime(recurrenceId.date(), recurrenceId.time(), Qt::LocalTime)
             : recurrenceId;
-    KCalendarCore::Incidence::Ptr replacement = mCalendar->dissociateSingleOccurrence(event, occurrence);
-    if (!replacement) {
-        qWarning("Unable to create the replacing occurrence");
-        return CalendarData::Event();
-    }
-
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
-    if (!notebook) {
-        qWarning("Unable to find the notebook of created exception");
-        return CalendarData::Event();
-    }
-    return createEventStruct(replacement.staticCast<KCalendarCore::Event>(), notebook);
+    return mCalendar->dissociateSingleOccurrence(event, occurrence);
 }
 
 void CalendarWorker::init()
@@ -340,149 +329,10 @@ bool CalendarWorker::needSendCancellation(KCalendarCore::Event::Ptr &event) cons
         return false;
     }
     // we shouldn't send a response if we are not an organizer
-    if (calOrganizer.email() != getNotebookAddress(event)) {
+    if (calOrganizer.email() != mNotebooks.value(mCalendar->notebook(event)).emailAddress) {
         return false;
     }
     return true;
-}
-
-// use explicit notebook uid so we don't need to assume the events involved being added there.
-// the related notebook is just needed to associate updates to some plugin/account
-void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool newEvent,
-                                          const QList<CalendarData::EmailContact> &required,
-                                          const QList<CalendarData::EmailContact> &optional,
-                                          const QString &notebookUid)
-{
-    if (notebookUid.isEmpty()) {
-        qWarning() << "No notebook passed, refusing to send event updates from random source";
-        return;
-    }
-
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(notebookUid);
-    if (notebook.isNull()) {
-        qWarning() << "No notebook found with UID" << notebookUid;
-        return;
-    }
-
-    // set the notebook email address as the organizer email address
-    // if no explicit organizer is set (i.e. assume we are the organizer).
-    const QString notebookOwnerEmail = getNotebookAddress(notebookUid);
-    if (event->organizer().email().isEmpty() && !notebookOwnerEmail.isEmpty()) {
-        KCalendarCore::Person organizer = event->organizer();
-        organizer.setEmail(notebookOwnerEmail);
-        event->setOrganizer(organizer);
-    }
-
-    if (!newEvent) {
-        // if existing attendees are removed, those should get a cancel update
-        KCalendarCore::Event::Ptr cancelEvent = KCalendarCore::Event::Ptr(event->clone());
-        KCalendarCore::Attendee::List cancelAttendees = cancelEvent->attendees();
-        KCalendarCore::Attendee::List attendees = event->attendees();
-
-        // first remove everyone still listed as included
-        for (int i = 0; i < required.length(); ++i) {
-            const KCalendarCore::Attendee toRemove = cancelEvent->attendeeByMail(required.at(i).email);
-            if (!toRemove.email().isEmpty()) {
-                cancelAttendees.removeOne(toRemove);
-            }
-        }
-        for (int i = 0; i < optional.length(); ++i) {
-            const KCalendarCore::Attendee toRemove = cancelEvent->attendeeByMail(optional.at(i).email);
-            if (!toRemove.email().isEmpty()) {
-                cancelAttendees.removeOne(toRemove);
-            }
-        }
-
-        const QString organizer = cancelEvent->organizer().email();
-        if (!organizer.isEmpty()) {
-            const KCalendarCore::Attendee toRemove = cancelEvent->attendeeByMail(organizer);
-            if (!toRemove.email().isEmpty()) {
-                cancelAttendees.removeOne(toRemove);
-            }
-        }
-
-        bool attendeesChanged = false;
-        for (int i = cancelAttendees.length() - 1; i >= 0; --i) {
-            const KCalendarCore::Attendee attendee = cancelAttendees.at(i);
-
-            // if there are non-participants getting update as FYI, or chair for any reason,
-            // avoid sending them the cancel
-            if (attendee.role() != KCalendarCore::Attendee::ReqParticipant
-                    && attendee.role() != KCalendarCore::Attendee::OptParticipant) {
-                cancelAttendees.removeAt(i);
-                continue;
-            }
-
-            // this one really gets cancel so remove from update event side
-            KCalendarCore::Attendee toRemove = event->attendeeByMail(attendee.email());
-            if (!toRemove.email().isEmpty()) {
-                attendeesChanged = true;
-                attendees.removeOne(toRemove);
-            }
-        }
-
-        if (attendeesChanged) {
-            event->setAttendees(attendees);
-        }
-
-        if (cancelAttendees.size()) {
-            cancelEvent->setAttendees(cancelAttendees);
-            cancelEvent->setStatus(KCalendarCore::Incidence::StatusCanceled);
-            mKCal::ServiceHandler::instance().sendUpdate(cancelEvent, QString(), mCalendar, mStorage, notebook);
-        }
-    }
-
-    if (required.length() > 0 || optional.length() > 0) {
-        for (int i = 0; i < required.length(); ++i) {
-            const KCalendarCore::Attendee existing = event->attendeeByMail(required.at(i).email);
-            if (!existing.email().isEmpty()) {
-                KCalendarCore::Attendee updated = existing;
-                updated.setRole(KCalendarCore::Attendee::ReqParticipant);
-                updateAttendee(event, existing, updated);
-            } else {
-                event->addAttendee(KCalendarCore::Attendee(
-                        required.at(i).name, required.at(i).email, true /* rsvp */,
-                        KCalendarCore::Attendee::NeedsAction,
-                        KCalendarCore::Attendee::ReqParticipant));
-            }
-        }
-        for (int i = 0; i < optional.length(); ++i) {
-            const KCalendarCore::Attendee existing = event->attendeeByMail(optional.at(i).email);
-            if (!existing.email().isEmpty()) {
-                KCalendarCore::Attendee updated = existing;
-                updated.setRole(KCalendarCore::Attendee::OptParticipant);
-                updateAttendee(event, existing, updated);
-            } else {
-                event->addAttendee(KCalendarCore::Attendee(
-                        optional.at(i).name, optional.at(i).email, true,
-                        KCalendarCore::Attendee::NeedsAction,
-                        KCalendarCore::Attendee::OptParticipant));
-            }
-        }
-
-        // The separation between sendInvitation and sendUpdate it not really good,
-        // when modifying an existing event and adding attendees, should it be which?
-        // Probably those should be combined into a single function on the API, but
-        // until that is done, let's just handle new events as invitations and rest as updates.
-        if (newEvent) {
-            mKCal::ServiceHandler::instance().sendInvitation(event, QString(), mCalendar, mStorage, notebook);
-        } else {
-            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage, notebook);
-        }
-    }
-}
-
-QString CalendarWorker::getNotebookAddress(const QString &notebookUid) const
-{
-    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
-                                            : QString();
-}
-
-QString CalendarWorker::getNotebookAddress(const KCalendarCore::Event::Ptr &event) const
-{
-    const QString &notebookUid = mCalendar->notebook(event);
-    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
-                                            : QString();
 }
 
 QList<CalendarData::Notebook> CalendarWorker::notebooks() const
@@ -651,7 +501,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     if (reset)
         mSentEvents.clear();
 
-    QMultiHash<QString, CalendarData::Event> events;
+    QMultiHash<QString, CalendarData::Incidence> events;
     bool orphansDeleted = false;
 
     const KCalendarCore::Event::List list = mCalendar->rawEvents();
@@ -686,12 +536,12 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
 
         const QString id = e->instanceIdentifier();
         if (!mSentEvents.contains(id)) {
-            CalendarData::Event event = createEventStruct(e, notebook);
             mSentEvents.insert(id);
-            events.insert(event.uniqueId, event);
-            if (id != event.uniqueId) {
+            const CalendarData::Incidence data{e, mCalendar->notebook(e)};
+            events.insert(e->uid(), data);
+            if (id != e->uid()) {
                 // Ensures that events can also be retrieved by instanceIdentifier
-                events.insert(id, event);
+                events.insert(id, data);
             }
         }
     }
@@ -704,46 +554,6 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     QHash<QDate, QStringList> dailyOccurrences = dailyEventOccurrences(ranges, occurrences.values());
 
     emit dataLoaded(ranges, instanceList, events, occurrences, dailyOccurrences, reset);
-}
-
-CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event::Ptr &e,
-                                                      mKCal::Notebook::Ptr notebook) const
-{
-    CalendarData::Event event(*e);
-    event.calendarUid = mCalendar->notebook(e);
-    event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
-    bool externalInvitation = false;
-    const QString &calendarOwnerEmail = getNotebookAddress(e);
-
-    KCalendarCore::Person organizer = e->organizer();
-    const QString organizerEmail = organizer.email();
-    if (!organizerEmail.isEmpty() && organizerEmail != calendarOwnerEmail
-            && (notebook.isNull() || !notebook->sharedWith().contains(organizerEmail))) {
-        externalInvitation = true;
-    }
-    event.externalInvitation = externalInvitation;
-
-    // It would be good to set the attendance status directly in the event within the plugin,
-    // however in some cases the account email and owner attendee email won't necessarily match
-    // (e.g. in the case where server-side aliases are defined but unknown to the plugin).
-    // So we handle this here to avoid "missing" some status changes due to owner email mismatch.
-    // This defaults to QString() -> ResponseUnspecified in case the property is undefined
-    event.ownerStatus = CalendarUtils::convertResponseType(e->nonKDECustomProperty("X-EAS-RESPONSE-TYPE"));
-
-    const KCalendarCore::Attendee::List attendees = e->attendees();
-    for (const KCalendarCore::Attendee &calAttendee : attendees) {
-        if (calAttendee.email() == calendarOwnerEmail) {
-            if (CalendarUtils::convertPartStat(calAttendee.status()) != CalendarEvent::ResponseUnspecified) {
-                // Override the ResponseType
-                event.ownerStatus = CalendarUtils::convertPartStat(calAttendee.status());
-            }
-            //TODO: KCalendarCore::Attendee::RSVP() returns false even if response was requested for some accounts like Google.
-            // We can use attendee role until the problem is not fixed (probably in Google plugin).
-            // To be updated later when google account support for responses is added.
-            event.rsvp = calAttendee.RSVP();// || calAttendee->role() != KCalendarCore::Attendee::Chair;
-        }
-    }
-    return event;
 }
 
 static bool serviceIsEnabled(Accounts::Account *account, const QString &syncProfile)
@@ -792,6 +602,7 @@ void CalendarWorker::loadNotebooks()
         notebook.localCalendar = mkNotebook->isMaster()
                 && !mkNotebook->isShared()
                 && mkNotebook->pluginName().isEmpty();
+        notebook.sharedWith = mkNotebook->sharedWith();
 
         notebook.excluded = !mkNotebook->isVisible();
         // To keep backward compatibility:
@@ -860,7 +671,7 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &u
                                                                 const QDateTime &recurrenceId,
                                                                 const QDateTime &start) const
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
+    KCalendarCore::Incidence::Ptr event = mCalendar->incidence(uid, recurrenceId);
     if (!event) {
         qWarning() << "Failed to get next occurrence, event not found. UID = " << uid << recurrenceId;
         return CalendarData::EventOccurrence();
@@ -870,19 +681,6 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &u
         return CalendarData::EventOccurrence();
     }
     return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event) : KCalendarCore::Incidence::List());
-}
-
-QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &uid, const QDateTime &recurrenceId)
-{
-    QList<CalendarData::Attendee> result;
-
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-
-    if (event.isNull()) {
-        return result;
-    }
-
-    return CalendarUtils::getEventAttendees(event);
 }
 
 void CalendarWorker::findMatchingEvent(const QString &invitationFile)
@@ -903,7 +701,7 @@ void CalendarWorker::findMatchingEvent(const QString &invitationFile)
                     if ((!incidence->hasRecurrenceId() && !dbIncidence->hasRecurrenceId())
                             || (incidence->hasRecurrenceId() && dbIncidence->hasRecurrenceId()
                                 && incidence->recurrenceId() == dbIncidence->recurrenceId())) {
-                        emit findMatchingEventFinished(invitationFile, createEventStruct(dbIncidence.staticCast<KCalendarCore::Event>()));
+                        emit findMatchingEventFinished(invitationFile, {dbIncidence, mCalendar->notebook(dbIncidence)});
                         return;
                     }
                 }
@@ -913,5 +711,5 @@ void CalendarWorker::findMatchingEvent(const QString &invitationFile)
     }
 
     // not found.
-    emit findMatchingEventFinished(invitationFile, CalendarData::Event());
+    emit findMatchingEventFinished(invitationFile, {});
 }

@@ -111,9 +111,12 @@ signals:
     void syncFailureResolutionChanged();
 
 private:
+    void updateIncidence() const;
+
+    QString m_ownerEmail;
     bool m_attendeesSet = false;
-    QList<CalendarData::EmailContact> m_requiredAttendees;
-    QList<CalendarData::EmailContact> m_optionalAttendees;
+    KCalendarCore::Person::List m_requiredAttendees;
+    KCalendarCore::Person::List m_optionalAttendees;
 };
 
 #endif

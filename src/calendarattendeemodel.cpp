@@ -87,11 +87,7 @@ void CalendarAttendeeModel::doFill(const QList<QObject*> &people)
         Q_ASSERT_X(person != nullptr,
                    "qobject cast to class Person",
                    "The container doesn't contain an instance of Person class");
-        m_people.push_back(new Person(person->name(),
-                                      person->email(),
-                                      person->isOrganizer(),
-                                      Person::AttendeeRole(person->participationRole()),
-                                      Person::ParticipationStatus(person->participationStatus())));
+        m_people.push_back(new Person(*person));
     }
     std::sort(m_people.begin(), m_people.end(), groupingAndSorting);
     endResetModel();

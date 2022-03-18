@@ -62,21 +62,16 @@ public:
 
     CalendarStoredEvent* eventObject(const QString &eventUid, const QDateTime &recurrenceId);
 
-    void saveModification(CalendarData::Event eventData, bool updateAttendees,
-                          const QList<CalendarData::EmailContact> &required,
-                          const QList<CalendarData::EmailContact> &optional);
+    void saveModification(const KCalendarCore::Incidence::Ptr &incidence,
+                          const QString &calendarUid);
     void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
     void deleteAll(const QString &uid);
     void save();
 
     // Synchronous DB thread access
     QString convertEventToICalendarSync(const QString &uid, const QString &prodId);
-
-    // Event
-    CalendarData::Event getEvent(const QString& instanceIdentifier, bool *loaded = nullptr) const;
-    CalendarData::Event getEvent(const QString& uid, const QDateTime &recurrenceId);
-    CalendarData::Event dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const;
-    bool sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response);
+    KCalendarCore::Incidence::Ptr dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const;
+    bool sendResponse(const QString &uid, const QDateTime &recurrenceId, CalendarEvent::Response response);
 
     // Notebooks
     QList<CalendarData::Notebook> notebooks();
@@ -87,6 +82,7 @@ public:
     void excludeNotebook(const QString &notebookUid, bool exclude);
     void setNotebookColor(const QString &notebookUid, const QString &color);
     QString getNotebookColor(const QString &notebookUid) const;
+    QString getNotebookEmail(const QString &notebookUid) const;
 
     // AgendaModel
     void cancelAgendaRefresh(CalendarAgendaModel *model);
@@ -108,8 +104,7 @@ public:
     // Does synchronous DB thread access - no DB operations, though, fast when no ongoing DB ops
     CalendarEventOccurrence* getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                const QDateTime &start);
-    // return attendees for given event, synchronous call
-    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId, bool *resultValid);
+    CalendarEventOccurrence* getOccurrence(const QString &instanceIdentifier, bool *loaded);
 
 private slots:
     void storageModifiedSlot();
@@ -118,13 +113,13 @@ private slots:
     void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);
     void dataLoadedSlot(const QList<CalendarData::Range> &ranges,
                         const QStringList &instanceList,
-                        const QMultiHash<QString, CalendarData::Event> &events,
+                        const QMultiHash<QString, CalendarData::Incidence> &events,
                         const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                         const QHash<QDate, QStringList> &dailyOccurrences,
                         bool reset);
     void timeout();
     void findMatchingEventFinished(const QString &invitationFile,
-                                   const CalendarData::Event &event);
+                                   const CalendarData::Incidence &event);
 
 signals:
     void excludedNotebooksChanged(QStringList excludedNotebooks);
@@ -144,11 +139,14 @@ private:
     QList<CalendarData::Range> addRanges(const QList<CalendarData::Range> &oldRanges,
                                          const QList<CalendarData::Range> &newRanges);
     void updateAgendaModel(CalendarAgendaModel *model);
-    void sendEventChangeSignals(const CalendarData::Event &newEvent);
+    CalendarStoredEvent* findEventObject(const QString &eventUid, const QDateTime &recurrenceId);
+    void detachIncidence(const QString &uid, const QDateTime &recurrenceId);
+    CalendarData::Incidence getIncidence(const QString& uid, const QDateTime &recurrenceId) const;
+    CalendarData::Incidence getIncidence(const QString& instanceIdentifier, bool *loaded = nullptr) const;
 
     QThread mWorkerThread;
     CalendarWorker *mCalendarWorker;
-    QMultiHash<QString, CalendarData::Event> mEvents;
+    QMultiHash<QString, CalendarData::Incidence> mEvents;
     QMultiHash<QString, CalendarStoredEvent *> mEventObjects;
     QHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
     QHash<QDate, QStringList> mEventOccurrenceForDates;

@@ -51,13 +51,14 @@ CalendarManager::CalendarManager()
     qRegisterMetaType<QList<QDateTime> >("QList<QDateTime>");
     qRegisterMetaType<CalendarEvent::Recur>("CalendarEvent::Recur");
     qRegisterMetaType<QHash<QString,CalendarData::EventOccurrence> >("QHash<QString,CalendarData::EventOccurrence>");
-    qRegisterMetaType<CalendarData::Event>("CalendarData::Event");
-    qRegisterMetaType<QMultiHash<QString,CalendarData::Event> >("QMultiHash<QString,CalendarData::Event>");
+    qRegisterMetaType<CalendarData::Incidence>("CalendarData::Incidence");
+    qRegisterMetaType<QMultiHash<QString,CalendarData::Incidence> >("QMultiHash<QString,CalendarData::Incidence>");
     qRegisterMetaType<QHash<QDate,QStringList> >("QHash<QDate,QStringList>");
     qRegisterMetaType<CalendarData::Range>("CalendarData::Range");
     qRegisterMetaType<QList<CalendarData::Range > >("QList<CalendarData::Range>");
     qRegisterMetaType<QList<CalendarData::Notebook> >("QList<CalendarData::Notebook>");
-    qRegisterMetaType<QList<CalendarData::EmailContact> >("QList<CalendarData::EmailContact>");
+    qRegisterMetaType<KCalendarCore::Person::List>("KCalendarCore::Person::List");
+    qRegisterMetaType<KCalendarCore::Incidence::Ptr>("KCalendarCore::Incidence::Ptr");
 
     mCalendarWorker = new CalendarWorker();
     mCalendarWorker->moveToThread(&mWorkerThread);
@@ -131,7 +132,7 @@ void CalendarManager::setDefaultNotebook(const QString &notebookUid)
                               Q_ARG(QString, notebookUid));
 }
 
-CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const QDateTime &recurrenceId)
+CalendarStoredEvent* CalendarManager::findEventObject(const QString &eventUid, const QDateTime &recurrenceId)
 {
     QMultiHash<QString, CalendarStoredEvent *>::iterator it = mEventObjects.find(eventUid);
     while (it != mEventObjects.end() && it.key() == eventUid) {
@@ -141,39 +142,53 @@ CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const
         ++it;
     }
 
-    CalendarData::Event event = getEvent(eventUid, recurrenceId);
-    if (event.isValid()) {
-        CalendarStoredEvent *calendarEvent = new CalendarStoredEvent(this, &event);
-        mEventObjects.insert(eventUid, calendarEvent);
-        return calendarEvent;
+    return nullptr;
+}
+
+CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const QDateTime &recurrenceId)
+{
+    CalendarStoredEvent *object = findEventObject(eventUid, recurrenceId);
+    if (object)
+        return object;
+
+    CalendarData::Incidence event = getIncidence(eventUid, recurrenceId);
+    if (event.incidence) {
+        CalendarData::Notebook notebook = mNotebooks.value(event.calendarUid);
+        object = new CalendarStoredEvent(this, KCalendarCore::Incidence::Ptr(event.incidence->clone()), notebook);
+        mEventObjects.insert(eventUid, object);
+        return object;
     }
 
     // TODO: maybe attempt to read event from DB? This situation should not happen.
     qWarning() << Q_FUNC_INFO << "No event with uid" << eventUid << recurrenceId << ", returning empty event";
 
-    return new CalendarStoredEvent(this, nullptr);
+    return new CalendarStoredEvent(this, {}, {});
 }
 
-void CalendarManager::saveModification(CalendarData::Event eventData, bool updateAttendees,
-                                       const QList<CalendarData::EmailContact> &required,
-                                       const QList<CalendarData::EmailContact> &optional)
+void CalendarManager::saveModification(const KCalendarCore::Incidence::Ptr &incidence,
+                                       const QString &calendarUid)
 {
+    if (!incidence)
+        return;
+    // The worker will work on a shared KCalendarCore::Incidence with the
+    // manager. Detach this incidence to avoid concurrent access with the
+    // worker. The updated version will be retrieved by the manager after
+    // the storageModified() signal.
+    detachIncidence(incidence->uid(), incidence->recurrenceId());
     QMetaObject::invokeMethod(mCalendarWorker, "saveEvent", Qt::QueuedConnection,
-                              Q_ARG(CalendarData::Event, eventData),
-                              Q_ARG(bool, updateAttendees),
-                              Q_ARG(QList<CalendarData::EmailContact>, required),
-                              Q_ARG(QList<CalendarData::EmailContact>, optional));
+                              Q_ARG(KCalendarCore::Incidence::Ptr, incidence),
+                              Q_ARG(QString, calendarUid));
 }
 
-CalendarData::Event CalendarManager::dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const
+KCalendarCore::Incidence::Ptr CalendarManager::dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const
 {
-    CalendarData::Event event;
+    KCalendarCore::Incidence::Ptr event;
     // Worker method is not calling any storage method that could block.
     // The only blocking possibility here would be to obtain the worker thread
     // availability.
     QMetaObject::invokeMethod(mCalendarWorker, "dissociateSingleOccurrence",
                               Qt::BlockingQueuedConnection,
-                              Q_RETURN_ARG(CalendarData::Event, event),
+                              Q_RETURN_ARG(KCalendarCore::Incidence::Ptr, event),
                               Q_ARG(QString, eventUid),
                               Q_ARG(QDateTime, recurrenceId));
     return event;
@@ -216,6 +231,11 @@ QString CalendarManager::getNotebookColor(const QString &notebookUid) const
         return mNotebooks.value(notebookUid, CalendarData::Notebook()).color;
     else
         return QString();
+}
+
+QString CalendarManager::getNotebookEmail(const QString &notebookUid) const
+{
+    return mNotebooks.value(notebookUid).emailAddress;
 }
 
 void CalendarManager::cancelAgendaRefresh(CalendarAgendaModel *model)
@@ -454,12 +474,12 @@ void CalendarManager::doAgendaAndQueryRefresh()
         missing.setRecurrenceId(recurrenceId);
         const QString id = missing.instanceIdentifier();
         bool loaded = mLoadedQueries.contains(id);
-        CalendarData::Event event = getEvent(eventUid, recurrenceId);
-        if (((!event.isValid() && !loaded) || mResetPending)
+        CalendarData::Incidence event = getIncidence(eventUid, recurrenceId);
+        if (((!event.incidence && !loaded) || mResetPending)
                 && !missingInstanceList.contains(id)) {
             missingInstanceList << id;
         }
-        query->doRefresh(event, !event.isValid() && loaded);
+        query->doRefresh(event.incidence, !event.incidence && loaded);
     }
 
     const QList<CalendarEventListModel *> eventListModels = mEventListRefreshList;
@@ -470,8 +490,8 @@ void CalendarManager::doAgendaAndQueryRefresh()
                 continue;
 
             bool loaded;
-            CalendarData::Event event = getEvent(id, &loaded);
-            if (((!event.isValid() && !loaded) || mResetPending)
+            CalendarData::Incidence event = getIncidence(id, &loaded);
+            if (((!event.incidence && !loaded) || mResetPending)
                 && !missingInstanceList.contains(id)) {
                 missingInstanceList << id;
             }
@@ -501,6 +521,10 @@ void CalendarManager::timeout()
 
 void CalendarManager::deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &time)
 {
+    // In case of adding an exdate, the worker will work on a shared
+    // KCalendarCore::Incidence with the manager. Detach this incidence
+    // to avoid concurrent access with the worker.
+    detachIncidence(uid, recurrenceId);
     QMetaObject::invokeMethod(mCalendarWorker, "deleteEvent", Qt::QueuedConnection,
                               Q_ARG(QString, uid),
                               Q_ARG(QDateTime, recurrenceId),
@@ -528,50 +552,72 @@ QString CalendarManager::convertEventToICalendarSync(const QString &uid, const Q
     return vEvent;
 }
 
-CalendarData::Event CalendarManager::getEvent(const QString &uid, const QDateTime &recurrenceId)
+void CalendarManager::detachIncidence(const QString &uid,
+                                      const QDateTime &recurrenceId)
 {
-    QMultiHash<QString, CalendarData::Event>::iterator it = mEvents.find(uid);
+    QMultiHash<QString, CalendarData::Incidence>::iterator it = mEvents.find(uid);
     while (it != mEvents.end() && it.key() == uid) {
-        if (it.value().recurrenceId == recurrenceId) {
+        if (it->incidence->recurrenceId() == recurrenceId) {
+            it->incidence.reset(it->incidence->clone());
+            const QString identifier = it->incidence->instanceIdentifier();
+            if (identifier != uid) {
+                const KCalendarCore::Incidence::Ptr clone = it->incidence;
+                it = mEvents.find(identifier);
+                if (it != mEvents.end()) {
+                    it->incidence = clone;
+                }
+            }
+            break;
+        }
+        ++it;
+    }
+}
+
+CalendarData::Incidence CalendarManager::getIncidence(const QString &uid, const QDateTime &recurrenceId) const
+{
+    QMultiHash<QString, CalendarData::Incidence>::ConstIterator it = mEvents.find(uid);
+    while (it != mEvents.end() && it.key() == uid) {
+        if (it.value().incidence->recurrenceId() == recurrenceId) {
             return it.value();
         }
         ++it;
     }
 
-    return CalendarData::Event();
+    return CalendarData::Incidence();
 }
 
-CalendarData::Event CalendarManager::getEvent(const QString &instanceIdentifier, bool *loaded) const
+CalendarData::Incidence CalendarManager::getIncidence(const QString &instanceIdentifier, bool *loaded) const
 {
     if (loaded) {
         *loaded = mLoadedQueries.contains(instanceIdentifier);
     }
     // See CalendarWorker::loadData(), in case where instanceIdentifier is not the
     // UID, the event structure is duplicated with the key as the instanceIdentifier.
-    QList<CalendarData::Event> events = mEvents.values(instanceIdentifier);
+    QList<CalendarData::Incidence> events = mEvents.values(instanceIdentifier);
     if (events.count() == 1) {
         // Either the event is not recurring or it's an exception.
         return events[0];
     } else if (events.count() > 1) {
         // The event is recurring with exception, we look for the parent.
-        QList<CalendarData::Event>::ConstIterator it = events.constBegin();
+        QList<CalendarData::Incidence>::ConstIterator it = events.constBegin();
         while (it != events.constEnd()) {
-            if (!it->recurrenceId.isValid()) {
+            if (!it->incidence->hasRecurrenceId()) {
                 return *it;
             }
             ++it;
         }
     }
 
-    return CalendarData::Event();
+    return CalendarData::Incidence();
 }
 
-bool CalendarManager::sendResponse(const CalendarData::Event &eventData, CalendarEvent::Response response)
+bool CalendarManager::sendResponse(const QString &uid, const QDateTime &recurrenceId, CalendarEvent::Response response)
 {
     bool result;
     QMetaObject::invokeMethod(mCalendarWorker, "sendResponse", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(bool, result),
-                              Q_ARG(CalendarData::Event, eventData),
+                              Q_ARG(QString, uid),
+                              Q_ARG(QDateTime, recurrenceId),
                               Q_ARG(CalendarEvent::Response, response));
     return result;
 }
@@ -588,7 +634,8 @@ void CalendarManager::unRegisterInvitationQuery(CalendarInvitationQuery *query)
     mInvitationQueryHash.remove(query);
 }
 
-void CalendarManager::findMatchingEventFinished(const QString &invitationFile, const CalendarData::Event &event)
+void CalendarManager::findMatchingEventFinished(const QString &invitationFile,
+                                                const CalendarData::Incidence &event)
 {
     QHash<CalendarInvitationQuery*, QString>::iterator it = mInvitationQueryHash.begin();
     while (it != mInvitationQueryHash.end()) {
@@ -688,6 +735,15 @@ void CalendarManager::notebooksChangedSlot(const QList<CalendarData::Notebook> &
     }
 }
 
+CalendarEventOccurrence* CalendarManager::getOccurrence(const QString &instanceIdentifier, bool *loaded)
+{
+    CalendarData::Incidence event = getIncidence(instanceIdentifier, loaded);
+    if (event.incidence)
+        return new CalendarEventOccurrence(event.incidence->uid(), event.incidence->recurrenceId(), event.incidence->dtStart(), event.incidence->dateTime(KCalendarCore::Incidence::RoleEnd));
+    else
+        return nullptr;
+}
+
 CalendarEventOccurrence* CalendarManager::getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                             const QDateTime &start)
 {
@@ -706,39 +762,14 @@ CalendarEventOccurrence* CalendarManager::getNextOccurrence(const QString &uid, 
     return new CalendarEventOccurrence(eo.eventUid, eo.recurrenceId, eo.startTime, eo.endTime);
 }
 
-QList<CalendarData::Attendee> CalendarManager::getEventAttendees(const QString &uid, const QDateTime &recurrenceId, bool *resultValid)
-{
-    QList<CalendarData::Attendee> attendees;
-
-    // Not foolproof, since thread interleaving means we might
-    // receive a storageModified() signal on the worker thread
-    // while we're dispatching this call here.
-    // But, this will at least ensure that if we _know_ that
-    // the storage is not in loaded state, that we don't
-    // attempt to read the invalid data.
-    // The other alternative would be to cache all attendee
-    // info in the event struct immediately within
-    // CalendarWorker::createEventStruct(), however it was
-    // decided that it would be better to avoid the memory usage.
-    *resultValid = !(mLoadPending || mResetPending);
-    if (*resultValid) {
-        QMetaObject::invokeMethod(mCalendarWorker, "getEventAttendees", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(QList<CalendarData::Attendee>, attendees),
-                                  Q_ARG(QString, uid),
-                                  Q_ARG(QDateTime, recurrenceId));
-    }
-
-    return attendees;
-}
-
 void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
                                      const QStringList &instanceList,
-                                     const QMultiHash<QString, CalendarData::Event> &events,
+                                     const QMultiHash<QString, CalendarData::Incidence> &events,
                                      const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                                      const QHash<QDate, QStringList> &dailyOccurrences,
                                      bool reset)
 {
-    QList<CalendarData::Event> oldEvents;
+    QList<CalendarData::Incidence> oldEvents;
     foreach (const QString &uid, mEventObjects.keys()) {
         // just add all matching uid, change signal emission will match recurrence ids
         if (events.contains(uid))
@@ -763,30 +794,17 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
         mEventOccurrenceForDates.insert(it.key(), it.value());
     mLoadPending = false;
 
-    foreach (const CalendarData::Event &oldEvent, oldEvents) {
-        const CalendarData::Event &event = getEvent(oldEvent.uniqueId, oldEvent.recurrenceId);
-        if (event.isValid())
-            sendEventChangeSignals(event);
+    foreach (const CalendarData::Incidence &oldEvent, oldEvents) {
+        CalendarStoredEvent *object = findEventObject(oldEvent.incidence->uid(),
+                                                      oldEvent.incidence->recurrenceId());
+        CalendarData::Incidence newEvent = getIncidence(oldEvent.incidence->uid(),
+                                                        oldEvent.incidence->recurrenceId());
+        if (object && newEvent.incidence) {
+            object->setEvent(newEvent.incidence,
+                             mNotebooks.value(newEvent.calendarUid));
+        }
     }
 
     emit dataUpdated();
     mTimer->start();
-}
-
-void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent)
-{
-    CalendarStoredEvent *eventObject = 0;
-    QMultiHash<QString, CalendarStoredEvent *>::iterator it = mEventObjects.find(newEvent.uniqueId);
-    while (it != mEventObjects.end() && it.key() == newEvent.uniqueId) {
-        if (it.value()->recurrenceId() == newEvent.recurrenceId) {
-            eventObject = it.value();
-            break;
-        }
-        ++it;
-    }
-
-    if (!eventObject)
-        return;
-
-    eventObject->setEvent(&newEvent);
 }

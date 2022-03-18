@@ -52,7 +52,6 @@ class CalendarImportEvent : public CalendarEvent
 public:
     CalendarImportEvent(const KCalendarCore::Event::Ptr &event);
 
-    QList<QObject*> attendees() const;
     QString organizer() const;
     QString organizerEmail() const;
 
@@ -72,9 +71,6 @@ signals:
 
 private:
     QString mColor;
-    QString mOrganizer;
-    QString mOrganizerEmail;
-    QList<CalendarData::Attendee> mAttendees;
     CalendarData::EventOccurrence mOccurrence;
 };
 #endif // CALENDARIMPORTEVENT_H
