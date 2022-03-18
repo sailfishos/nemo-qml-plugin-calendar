@@ -160,7 +160,7 @@ bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenc
         qWarning() << "Failed to send response, event not found. UID = " << uid;
         return false;
     }
-    const QString ownerEmail = mNotebooks.value(mCalendar->notebook(event)).emailAddress;
+    const QString ownerEmail = getNotebookAddress(mCalendar->notebook(event));
     const KCalendarCore::Attendee origAttendee = event->attendeeByMail(ownerEmail);
     KCalendarCore::Attendee updated = origAttendee;
     switch (response) {
@@ -349,7 +349,7 @@ bool CalendarWorker::needSendCancellation(KCalendarCore::Event::Ptr &event) cons
         return false;
     }
     // we shouldn't send a response if we are not an organizer
-    if (calOrganizer.email() != getNotebookAddress(event)) {
+    if (calOrganizer.email() != getNotebookAddress(mCalendar->notebook(event))) {
         return false;
     }
     return true;
@@ -483,15 +483,7 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
 
 QString CalendarWorker::getNotebookAddress(const QString &notebookUid) const
 {
-    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
-                                            : QString();
-}
-
-QString CalendarWorker::getNotebookAddress(const KCalendarCore::Event::Ptr &event) const
-{
-    const QString &notebookUid = mCalendar->notebook(event);
-    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
-                                            : QString();
+    return mNotebooks.value(notebookUid).emailAddress;
 }
 
 QList<CalendarData::Notebook> CalendarWorker::notebooks() const
@@ -722,7 +714,7 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
     event.calendarUid = mCalendar->notebook(e);
     event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
     bool externalInvitation = false;
-    const QString &calendarOwnerEmail = getNotebookAddress(e);
+    const QString &calendarOwnerEmail = getNotebookAddress(event.calendarUid);
 
     KCalendarCore::Person organizer = e->organizer();
     const QString organizerEmail = organizer.email();
