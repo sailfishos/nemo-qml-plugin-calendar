@@ -113,7 +113,7 @@ private:
     QStringList excludedNotebooks() const;
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
-    bool needSendCancellation(KCalendarCore::Event::Ptr &event) const;
+    bool needSendCancellation(const KCalendarCore::Incidence::Ptr &event) const;
     void updateEventAttendees(KCalendarCore::Event::Ptr event, bool newEvent,
                               const QList<CalendarData::EmailContact> &required,
                               const QList<CalendarData::EmailContact> &optional,
@@ -130,11 +130,6 @@ private:
 
     mKCal::ExtendedCalendar::Ptr mCalendar;
     mKCal::ExtendedStorage::Ptr mStorage;
-
-    // mDeletedEvents is used to make sure
-    // that we are sending a cancellation email for events only
-    // when user actually saved (so truly deleted) changes by calling of save()
-    QList<QPair<QString, QDateTime>> mDeletedEvents;
 
     QHash<QString, CalendarData::Notebook> mNotebooks;
 

@@ -104,7 +104,22 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
     Q_UNUSED(storage);
     Q_UNUSED(added);
     Q_UNUSED(modified);
-    Q_UNUSED(deleted);
+
+    for (const KCalendarCore::Incidence::Ptr &event: deleted) {
+        // FIXME: should send response update if deleting an event we have responded to.
+        if (needSendCancellation(event)) {
+            // FIXME: should send cancel only if we own the event
+            event->setStatus(KCalendarCore::Incidence::StatusCanceled);
+            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
+        }
+        // if the event was stored in a local (non-synced) notebook, purge it.
+        const CalendarData::Notebook &notebook = mNotebooks.value(mCalendar->notebook(event));
+        if (notebook.localCalendar
+            && !storage->purgeDeletedIncidences(KCalendarCore::Incidence::List() << event)) {
+            qWarning() << "Failed to purge deleted event" << event->uid()
+                       << "from local calendar" << mCalendar->notebook(event);
+        }
+    }
 
     // No smart handling of known updates at the moment.
     emit storageModifiedSignal();
@@ -132,7 +147,6 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
         event->setRevision(event->revision() + 1);
     } else {
         mCalendar->deleteEvent(event);
-        mDeletedEvents.append(QPair<QString, QDateTime>(uid, recurrenceId));
     }
 }
 
@@ -149,7 +163,6 @@ void CalendarWorker::deleteAll(const QString &uid)
 
     mCalendar->deleteEventInstances(event);
     mCalendar->deleteEvent(event);
-    mDeletedEvents.append(QPair<QString, QDateTime>(uid, QDateTime()));
 }
 
 bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenceId,
@@ -204,25 +217,6 @@ QString CalendarWorker::convertEventToICalendar(const QString &uid, const QStrin
 void CalendarWorker::save()
 {
     mStorage->save();
-    // FIXME: should send response update if deleting an even we have responded to.
-    // FIXME: should send cancel only if we own the event
-    if (!mDeletedEvents.isEmpty()) {
-        for (const QPair<QString, QDateTime> &pair: mDeletedEvents) {
-            KCalendarCore::Event::Ptr event = mCalendar->deletedEvent(pair.first, pair.second);
-            if (needSendCancellation(event)) {
-                event->setStatus(KCalendarCore::Incidence::StatusCanceled);
-                mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
-            }
-            // if the event was stored in a local (non-synced) notebook, purge it.
-            const QString notebookUid = mCalendar->notebook(event);
-            const mKCal::Notebook::Ptr notebook = mStorage->notebook(notebookUid);
-            if (!notebook.isNull() && notebook->pluginName().isEmpty() && notebook->account().isEmpty()
-                    && !mStorage->purgeDeletedIncidences(KCalendarCore::Incidence::List() << event)) {
-                qWarning() << "Failed to purge deleted event " << event->uid() << " from local calendar " << notebookUid;
-            }
-        }
-        mDeletedEvents.clear();
-    }
 }
 
 void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
@@ -334,17 +328,16 @@ void CalendarWorker::init()
     loadNotebooks();
 }
 
-bool CalendarWorker::needSendCancellation(KCalendarCore::Event::Ptr &event) const
+bool CalendarWorker::needSendCancellation(const KCalendarCore::Incidence::Ptr &event) const
 {
     if (!event) {
         qWarning() << Q_FUNC_INFO << "event is NULL";
         return false;
     }
-    KCalendarCore::Attendee::List attendees = event->attendees();
-    if (attendees.size() == 0) {
+    if (event->attendeeCount() == 0) {
         return false;
     }
-    KCalendarCore::Person calOrganizer = event->organizer();
+    const KCalendarCore::Person calOrganizer = event->organizer();
     if (calOrganizer.isEmpty()) {
         return false;
     }
