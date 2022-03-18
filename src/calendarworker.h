@@ -141,7 +141,6 @@ private:
 
     // Tracks which events have been already passed to manager, using instanceIdentifiers.
     QSet<QString> mSentEvents;
-    QSet<CalendarData::Range> mLoadedRanges;
 };
 
 #endif // CALENDARWORKER_H

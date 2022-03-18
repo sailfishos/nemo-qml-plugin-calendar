@@ -92,7 +92,6 @@ void CalendarWorker::storageModified(mKCal::ExtendedStorage *storage, const QStr
 
     // External touch of the database. We have no clue what changed.
     // The mCalendar content has been wiped out already.
-    mLoadedRanges.clear();
     loadNotebooks();
     emit storageModifiedSignal();
 }
@@ -639,17 +638,8 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
                               const QStringList &instanceList,
                               bool reset)
 {
-    if (!ranges.isEmpty() && mLoadedRanges.isEmpty()) {
-        // Load all recurring incidences,
-        // we have no other way to detect if they occur within a range
-        mStorage->loadRecurringIncidences();
-    }
-
     for (const CalendarData::Range &range : ranges) {
-        if (!mLoadedRanges.contains(range)) {
-            mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
-            mLoadedRanges.insert(range);
-        }
+        mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
     }
 
     foreach (const QString &id, instanceList) {
