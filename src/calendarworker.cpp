@@ -102,9 +102,36 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
                                     const KCalendarCore::Incidence::List &deleted)
 {
     Q_UNUSED(storage);
-    Q_UNUSED(added);
-    Q_UNUSED(modified);
-    Q_UNUSED(deleted);
+
+    // The separation between sendInvitation and sendUpdate it not really good,
+    // when modifying an existing event and adding attendees, should it be which?
+    // Probably those should be combined into a single function on the API, but
+    // until that is done, let's just handle new events as invitations and rest as updates.
+    for (const KCalendarCore::Incidence::Ptr &event: added) {
+        if (event->attendeeCount() > 0) {
+            mKCal::ServiceHandler::instance().sendInvitation(event, QString(), mCalendar, mStorage);
+        }
+    }
+    for (const KCalendarCore::Incidence::Ptr &event: modified) {
+        if (event->attendeeCount() > 0 && isOrganizer(event)) {
+            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
+        }
+    }
+
+    for (const KCalendarCore::Incidence::Ptr &event: deleted) {
+        // FIXME: should send response update if deleting an event we have responded to.
+        if (event->attendeeCount() > 0 && isOrganizer(event)) {
+            event->setStatus(KCalendarCore::Incidence::StatusCanceled);
+            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
+        }
+        // if the event was stored in a local (non-synced) notebook, purge it.
+        const CalendarData::Notebook &notebook = mNotebooks.value(mCalendar->notebook(event));
+        if (notebook.localCalendar
+            && !storage->purgeDeletedIncidences(KCalendarCore::Incidence::List() << event)) {
+            qWarning() << "Failed to purge deleted event" << event->uid()
+                       << "from local calendar" << mCalendar->notebook(event);
+        }
+    }
 
     // No smart handling of known updates at the moment.
     emit storageModifiedSignal();
@@ -132,7 +159,6 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
         event->setRevision(event->revision() + 1);
     } else {
         mCalendar->deleteEvent(event);
-        mDeletedEvents.append(QPair<QString, QDateTime>(uid, recurrenceId));
     }
 }
 
@@ -149,7 +175,6 @@ void CalendarWorker::deleteAll(const QString &uid)
 
     mCalendar->deleteEventInstances(event);
     mCalendar->deleteEvent(event);
-    mDeletedEvents.append(QPair<QString, QDateTime>(uid, QDateTime()));
 }
 
 bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenceId,
@@ -160,7 +185,7 @@ bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenc
         qWarning() << "Failed to send response, event not found. UID = " << uid;
         return false;
     }
-    const QString ownerEmail = mNotebooks.value(mCalendar->notebook(event)).emailAddress;
+    const QString ownerEmail = getNotebookAddress(mCalendar->notebook(event));
     const KCalendarCore::Attendee origAttendee = event->attendeeByMail(ownerEmail);
     KCalendarCore::Attendee updated = origAttendee;
     switch (response) {
@@ -204,25 +229,6 @@ QString CalendarWorker::convertEventToICalendar(const QString &uid, const QStrin
 void CalendarWorker::save()
 {
     mStorage->save();
-    // FIXME: should send response update if deleting an even we have responded to.
-    // FIXME: should send cancel only if we own the event
-    if (!mDeletedEvents.isEmpty()) {
-        for (const QPair<QString, QDateTime> &pair: mDeletedEvents) {
-            KCalendarCore::Event::Ptr event = mCalendar->deletedEvent(pair.first, pair.second);
-            if (needSendCancellation(event)) {
-                event->setStatus(KCalendarCore::Incidence::StatusCanceled);
-                mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
-            }
-            // if the event was stored in a local (non-synced) notebook, purge it.
-            const QString notebookUid = mCalendar->notebook(event);
-            const mKCal::Notebook::Ptr notebook = mStorage->notebook(notebookUid);
-            if (!notebook.isNull() && notebook->pluginName().isEmpty() && notebook->account().isEmpty()
-                    && !mStorage->purgeDeletedIncidences(KCalendarCore::Incidence::List() << event)) {
-                qWarning() << "Failed to purge deleted event " << event->uid() << " from local calendar " << notebookUid;
-            }
-        }
-        mDeletedEvents.clear();
-    }
 }
 
 void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
@@ -334,25 +340,15 @@ void CalendarWorker::init()
     loadNotebooks();
 }
 
-bool CalendarWorker::needSendCancellation(KCalendarCore::Event::Ptr &event) const
+bool CalendarWorker::isOrganizer(const KCalendarCore::Incidence::Ptr &event) const
 {
-    if (!event) {
+    if (event) {
+        const KCalendarCore::Person calOrganizer = event->organizer();
+        return (!calOrganizer.isEmpty() && calOrganizer.email() == getNotebookAddress(mCalendar->notebook(event)));
+    } else {
         qWarning() << Q_FUNC_INFO << "event is NULL";
         return false;
     }
-    KCalendarCore::Attendee::List attendees = event->attendees();
-    if (attendees.size() == 0) {
-        return false;
-    }
-    KCalendarCore::Person calOrganizer = event->organizer();
-    if (calOrganizer.isEmpty()) {
-        return false;
-    }
-    // we shouldn't send a response if we are not an organizer
-    if (calOrganizer.email() != getNotebookAddress(event)) {
-        return false;
-    }
-    return true;
 }
 
 // use explicit notebook uid so we don't need to assume the events involved being added there.
@@ -468,30 +464,12 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
                         KCalendarCore::Attendee::OptParticipant));
             }
         }
-
-        // The separation between sendInvitation and sendUpdate it not really good,
-        // when modifying an existing event and adding attendees, should it be which?
-        // Probably those should be combined into a single function on the API, but
-        // until that is done, let's just handle new events as invitations and rest as updates.
-        if (newEvent) {
-            mKCal::ServiceHandler::instance().sendInvitation(event, QString(), mCalendar, mStorage, notebook);
-        } else {
-            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage, notebook);
-        }
     }
 }
 
 QString CalendarWorker::getNotebookAddress(const QString &notebookUid) const
 {
-    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
-                                            : QString();
-}
-
-QString CalendarWorker::getNotebookAddress(const KCalendarCore::Event::Ptr &event) const
-{
-    const QString &notebookUid = mCalendar->notebook(event);
-    return mNotebooks.contains(notebookUid) ? mNotebooks.value(notebookUid).emailAddress
-                                            : QString();
+    return mNotebooks.value(notebookUid).emailAddress;
 }
 
 QList<CalendarData::Notebook> CalendarWorker::notebooks() const
@@ -722,7 +700,7 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
     event.calendarUid = mCalendar->notebook(e);
     event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
     bool externalInvitation = false;
-    const QString &calendarOwnerEmail = getNotebookAddress(e);
+    const QString &calendarOwnerEmail = getNotebookAddress(event.calendarUid);
 
     KCalendarCore::Person organizer = e->organizer();
     const QString organizerEmail = organizer.email();
