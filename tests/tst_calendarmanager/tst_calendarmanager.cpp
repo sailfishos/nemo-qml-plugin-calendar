@@ -532,13 +532,7 @@ void tst_CalendarManager::test_notebookApi()
     QSignalSpy notebookSpy(mManager, SIGNAL(notebooksChanged(QList<CalendarData::Notebook>)));
 
     // Wait for the manager to open the calendar database, etc
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 0)
-            break;
-
-        QTest::qWait(100);
-    }
-    QCOMPARE(notebookSpy.count(), 1);
+    QTRY_COMPARE(notebookSpy.count(), 1);
     int notebookCount = mManager->notebooks().count();
     mDefaultNotebook = mManager->defaultNotebook();
 
@@ -549,25 +543,13 @@ void tst_CalendarManager::test_notebookApi()
     mAddedNotebooks << createNotebook();
     QVERIFY(mStorage->addNotebook(mAddedNotebooks.last()));
     mStorage->save();
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 1)
-            break;
-
-        QTest::qWait(100);
-    }
-    QCOMPARE(notebookSpy.count(), 2);
+    QTRY_COMPARE(notebookSpy.count(), 2);
     QCOMPARE(mManager->notebooks().count(), notebookCount + 1);
 
     mAddedNotebooks << createNotebook();
     QVERIFY(mStorage->addNotebook(mAddedNotebooks.last()));
     mStorage->save();
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 2)
-            break;
-
-        QTest::qWait(100);
-    }
-    QCOMPARE(notebookSpy.count(), 3);
+    QTRY_COMPARE(notebookSpy.count(), 3);
     QCOMPARE(mManager->notebooks().count(), notebookCount + 2);
 
     QStringList uidList;
@@ -580,17 +562,13 @@ void tst_CalendarManager::test_notebookApi()
     QSignalSpy defaultNotebookSpy(mManager, SIGNAL(defaultNotebookChanged(QString)));
     notebookSpy.clear();
     mManager->setDefaultNotebook(mAddedNotebooks.first()->uid());
-    QVERIFY(notebookSpy.wait());
+    QTRY_VERIFY(!notebookSpy.empty());
     QCOMPARE(mManager->defaultNotebook(), mAddedNotebooks.first()->uid());
     QCOMPARE(defaultNotebookSpy.count(), 1);
 
+    notebookSpy.clear();
     mManager->setDefaultNotebook(mAddedNotebooks.last()->uid());
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 4)
-            break;
-
-        QTest::qWait(100);
-    }
+    QTRY_VERIFY(!notebookSpy.empty());
     QCOMPARE(mManager->defaultNotebook(), mAddedNotebooks.last()->uid());
     QCOMPARE(defaultNotebookSpy.count(), 2);
 }
