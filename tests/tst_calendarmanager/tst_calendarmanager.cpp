@@ -86,7 +86,7 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     QList<CalendarData::Range> loadedRanges;
     loadedRanges.append(CalendarData::Range(march01, march31));
     QList<CalendarData::Range> correctNewRanges;
-    foreach (const CalendarData::Range &testRange, rangeList)
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Range loaded") << loadedRanges << testRange << true << correctNewRanges;
 
     // Range not loaded
@@ -94,7 +94,7 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     // |-----------------------|
     //    llllll
     loadedRanges.clear();
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList) {
         correctNewRanges.clear();
         correctNewRanges.append(testRange);
         QTest::newRow("Range not loaded") << loadedRanges << testRange << false << correctNewRanges;
@@ -117,7 +117,7 @@ void tst_CalendarManager::test_isRangeLoaded_data()
               << CalendarData::Range(march05, march21)
               << CalendarData::Range(march05, march29);
 
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList) {
         correctNewRanges.clear();
         correctNewRanges.append(testRange);
         QTest::newRow("Range not loaded 2") << loadedRanges << testRange << false << correctNewRanges;
@@ -142,7 +142,7 @@ void tst_CalendarManager::test_isRangeLoaded_data()
               << CalendarData::Range(march05, march31)
               << CalendarData::Range(march19, march31);
 
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList) {
         correctNewRanges.clear();
         correctNewRanges.append(CalendarData::Range(testRange.first, march19));
         QTest::newRow("Beginning missing 1") << loadedRanges << testRange << false << correctNewRanges;
@@ -165,7 +165,7 @@ void tst_CalendarManager::test_isRangeLoaded_data()
               << CalendarData::Range(march05, march30)
               << CalendarData::Range(march19, march30)
               << CalendarData::Range(march20, march30);
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList) {
         correctNewRanges.clear();
         correctNewRanges.append(CalendarData::Range(march20, testRange.second));
         QTest::newRow("End missing 1") << loadedRanges << testRange << false << correctNewRanges;
@@ -190,9 +190,8 @@ void tst_CalendarManager::test_isRangeLoaded_data()
               << CalendarData::Range(march05, march31);
     correctNewRanges.clear();
     correctNewRanges.append(CalendarData::Range(march06, march19));
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Middle missing") << loadedRanges << testRange << false << correctNewRanges;
-    }
 
     // Two periods missing
     //      nnnnnnnnnn
@@ -208,9 +207,8 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     correctNewRanges.clear();
     correctNewRanges.append(CalendarData::Range(march03, march18));
     correctNewRanges.append(CalendarData::Range(march21, march30));
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Two periods missing 1") << loadedRanges << testRange << false << correctNewRanges;
-    }
 
     // Two periods missing
     //   nnnnnnnnnnnn
@@ -226,9 +224,8 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     correctNewRanges.clear();
     correctNewRanges.append(CalendarData::Range(march01, march18));
     correctNewRanges.append(CalendarData::Range(march21, march29));
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Two periods missing 2") << loadedRanges << testRange << false << correctNewRanges;
-    }
 
     // Two periods missing
     //   nnnnnnnnnn
@@ -241,9 +238,8 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     correctNewRanges.clear();
     correctNewRanges.append(CalendarData::Range(march01, march18));
     correctNewRanges.append(CalendarData::Range(march21, march29));
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Two periods missing 3") << loadedRanges << testRange << false << correctNewRanges;
-    }
 
     // Two periods missing
     //     nnnnnn
@@ -256,9 +252,8 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     correctNewRanges.clear();
     correctNewRanges.append(CalendarData::Range(march18, march18));
     correctNewRanges.append(CalendarData::Range(march21, march21));
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Two periods missing 4") << loadedRanges << testRange << false << correctNewRanges;
-    }
 
     // Three periods missing
     //   nnnnnnnnnnnnnnnn
@@ -273,9 +268,8 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     correctNewRanges.append(CalendarData::Range(march01, march04));
     correctNewRanges.append(CalendarData::Range(march06, march18));
     correctNewRanges.append(CalendarData::Range(march21, march31));
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Three periods missing 1") << loadedRanges << testRange << false << correctNewRanges;
-    }
 
     // Three periods missing
     //   nnnnnnnnnnnnnnnnnnn
@@ -300,9 +294,8 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     correctNewRanges.append(CalendarData::Range(march03, march04));
     correctNewRanges.append(CalendarData::Range(march06, march18));
     correctNewRanges.append(CalendarData::Range(march21, march29));
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Three periods missing 2") << loadedRanges << testRange << false << correctNewRanges;
-    }
 
     // Five periods missing
     //   nnnnnnnnnnnnnnnnnnnnnnnnnnnn
@@ -322,9 +315,8 @@ void tst_CalendarManager::test_isRangeLoaded_data()
     correctNewRanges.append(CalendarData::Range(march06, march18));
     correctNewRanges.append(CalendarData::Range(march21, march29));
     correctNewRanges.append(CalendarData::Range(march31, april17));
-    foreach (const CalendarData::Range &testRange, rangeList) {
+    for (const CalendarData::Range &testRange : rangeList)
         QTest::newRow("Five periods missing") << loadedRanges << testRange << false << correctNewRanges;
-    }
 }
 
 void tst_CalendarManager::test_isRangeLoaded()
@@ -342,7 +334,7 @@ void tst_CalendarManager::test_isRangeLoaded()
     QCOMPARE(result, loaded);
     QCOMPARE(newRanges.count(), correctNewRanges.count());
 
-    foreach (const CalendarData::Range &range, newRanges)
+    for (const CalendarData::Range &range : newRanges)
         QVERIFY(correctNewRanges.contains(range));
 }
 
@@ -540,13 +532,7 @@ void tst_CalendarManager::test_notebookApi()
     QSignalSpy notebookSpy(mManager, SIGNAL(notebooksChanged(QList<CalendarData::Notebook>)));
 
     // Wait for the manager to open the calendar database, etc
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 0)
-            break;
-
-        QTest::qWait(100);
-    }
-    QCOMPARE(notebookSpy.count(), 1);
+    QTRY_COMPARE(notebookSpy.count(), 1);
     int notebookCount = mManager->notebooks().count();
     mDefaultNotebook = mManager->defaultNotebook();
 
@@ -557,48 +543,32 @@ void tst_CalendarManager::test_notebookApi()
     mAddedNotebooks << createNotebook();
     QVERIFY(mStorage->addNotebook(mAddedNotebooks.last()));
     mStorage->save();
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 1)
-            break;
-
-        QTest::qWait(100);
-    }
-    QCOMPARE(notebookSpy.count(), 2);
+    QTRY_COMPARE(notebookSpy.count(), 2);
     QCOMPARE(mManager->notebooks().count(), notebookCount + 1);
 
     mAddedNotebooks << createNotebook();
     QVERIFY(mStorage->addNotebook(mAddedNotebooks.last()));
     mStorage->save();
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 2)
-            break;
-
-        QTest::qWait(100);
-    }
-    QCOMPARE(notebookSpy.count(), 3);
+    QTRY_COMPARE(notebookSpy.count(), 3);
     QCOMPARE(mManager->notebooks().count(), notebookCount + 2);
 
     QStringList uidList;
-    foreach (const CalendarData::Notebook &notebook, mManager->notebooks())
+    for (const CalendarData::Notebook &notebook : mManager->notebooks())
         uidList << notebook.uid;
 
-    foreach (const mKCal::Notebook::Ptr &notebookPtr, mAddedNotebooks)
+    for (const mKCal::Notebook::Ptr &notebookPtr : mAddedNotebooks)
         QVERIFY(uidList.contains(notebookPtr->uid()));
 
     QSignalSpy defaultNotebookSpy(mManager, SIGNAL(defaultNotebookChanged(QString)));
     notebookSpy.clear();
     mManager->setDefaultNotebook(mAddedNotebooks.first()->uid());
-    QVERIFY(notebookSpy.wait());
+    QTRY_VERIFY(!notebookSpy.empty());
     QCOMPARE(mManager->defaultNotebook(), mAddedNotebooks.first()->uid());
     QCOMPARE(defaultNotebookSpy.count(), 1);
 
+    notebookSpy.clear();
     mManager->setDefaultNotebook(mAddedNotebooks.last()->uid());
-    for (int i = 0; i < 30; i++) {
-        if (notebookSpy.count() > 4)
-            break;
-
-        QTest::qWait(100);
-    }
+    QTRY_VERIFY(!notebookSpy.empty());
     QCOMPARE(mManager->defaultNotebook(), mAddedNotebooks.last()->uid());
     QCOMPARE(defaultNotebookSpy.count(), 2);
 }
@@ -611,7 +581,7 @@ void tst_CalendarManager::cleanupTestCase()
     mManager = nullptr;
 
     if (mStorage) {
-        foreach (const mKCal::Notebook::Ptr &notebookPtr, mAddedNotebooks)
+        for (const mKCal::Notebook::Ptr &notebookPtr : mAddedNotebooks)
             mStorage->deleteNotebook(notebookPtr);
         mStorage->save();
         mStorage->close();
