@@ -705,16 +705,42 @@ void tst_CalendarEvent::testAttendees()
     defaultNotebook->setCustomProperty("TEST_EMAIL", QString::fromLatin1("alice@example.org"));
     QVERIFY(storage->updateNotebook(defaultNotebook));
 
+    // Test first the case without attendee.
+    CalendarEventModification *eventMod = calendarApi->createNewEvent();
+    QVERIFY(eventMod != 0);
+
+    eventMod->setStartTime(QDateTime(QDate(2022, 3, 29), QTime(11, 7)), Qt::LocalTime);
+    eventMod->setEndTime(eventMod->startTime().addSecs(600), Qt::LocalTime);
+    eventMod->setDescription(QString::fromLatin1("Test without attendee"));
+
+    QString uid;
+    bool ok = saveEvent(eventMod, &uid);
+    if (!ok) {
+        QFAIL("Failed to fetch new event uid");
+    }
+    QVERIFY(!uid.isEmpty());
+    mSavedEvents.insert(uid);
+    delete eventMod;
+
+    CalendarEventQuery query;
+    QSignalSpy eventSpy(&query, &CalendarEventQuery::attendeesChanged);
+    query.setUniqueId(uid);
+    QVERIFY(!eventSpy.wait(250));
+
+    QVERIFY(query.attendees().isEmpty());
+
+    // Test the case with attendees
     TestInvitationPlugin *plugin = static_cast<TestInvitationPlugin*>(mKCal::ServiceHandler::instance().service(defaultNotebook->pluginName()));
     QVERIFY(plugin);
+    QVERIFY(!plugin->sentInvitation());
 
-    CalendarEventModification *eventMod = calendarApi->createNewEvent();
+    eventMod = calendarApi->createNewEvent();
     QVERIFY(eventMod != 0);
 
     eventMod->setStartTime(QDateTime::currentDateTime(), Qt::LocalTime);
     eventMod->setEndTime(eventMod->startTime().addSecs(600), Qt::LocalTime);
     const QString initialDescr = QString::fromLatin1("Test attendees");
-    eventMod->setDisplayLabel(initialDescr);
+    eventMod->setDescription(initialDescr);
     CalendarContactModel required, optional;
     const QString alice = QString::fromLatin1("Alice");
     const QString bob = QString::fromLatin1("Bob");
@@ -730,8 +756,7 @@ void tst_CalendarEvent::testAttendees()
     Person Bob(bob, bobEmail, false, Person::RequiredParticipant, Person::UnknownParticipation);
     Person Carl(carl, carlEmail, false, Person::OptionalParticipant, Person::UnknownParticipation);
 
-    QString uid;
-    bool ok = saveEvent(eventMod, &uid);
+    ok = saveEvent(eventMod, &uid);
     if (!ok) {
         QFAIL("Failed to fetch new event uid");
     }
@@ -739,7 +764,7 @@ void tst_CalendarEvent::testAttendees()
     mSavedEvents.insert(uid);
     delete eventMod;
 
-    // Check that the sendInvitation() service as received the right data.
+    // Check that the sendInvitation() service has received the right data.
     const KCalendarCore::Incidence::Ptr sentInvitation = plugin->sentInvitation();
     QVERIFY(sentInvitation);
     QCOMPARE(sentInvitation->uid(), uid);
@@ -753,8 +778,6 @@ void tst_CalendarEvent::testAttendees()
     QVERIFY(sentAttendees.contains(attCarl));
 
     // Check that saved event locally is presenting the right data.
-    CalendarEventQuery query;
-    QSignalSpy eventSpy(&query, &CalendarEventQuery::attendeesChanged);
     query.setUniqueId(uid);
     QVERIFY(eventSpy.wait());
 

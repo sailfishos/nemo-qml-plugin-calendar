@@ -361,7 +361,8 @@ QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalendarCo
     for (const KCalendarCore::Attendee &calAttendee : attendees) {
         attendee.name = calAttendee.name();
         attendee.email = calAttendee.email();
-        attendee.isOrganizer = (attendee.email == calOrganizer.email());
+        attendee.isOrganizer = (!calOrganizer.email().isEmpty()
+                                && attendee.email == calOrganizer.email());
         if (attendee.isOrganizer) {
             // If organizer is in the attendee list, we prioritize the
             // details from the attendee structure.
@@ -374,7 +375,8 @@ QList<CalendarData::Attendee> CalendarUtils::getEventAttendees(const KCalendarCo
         }
     }
 
-    if (result.isEmpty() || !result.first().isOrganizer) {
+    if (!calOrganizer.email().isEmpty()
+        && (result.isEmpty() || !result.first().isOrganizer)) {
         // We always prepend the organizer in the list returned to QML.
         // If it was not present in the attendee list, we create one attendee
         // from the data in the ::Person structure.
