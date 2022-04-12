@@ -774,7 +774,8 @@ void CalendarWorker::loadNotebooks()
         notebook.uid = mkNotebook->uid();
         notebook.description = mkNotebook->description();
         notebook.emailAddress = mKCal::ServiceHandler::instance().emailAddress(mkNotebook, mStorage);
-        notebook.isDefault = mkNotebook->isDefault();
+        notebook.isDefault = mStorage->defaultNotebook()
+                && (mkNotebook->uid() == mStorage->defaultNotebook()->uid());
         notebook.readOnly = mkNotebook->isReadOnly();
         notebook.localCalendar = mkNotebook->isMaster()
                 && !mkNotebook->isShared()
