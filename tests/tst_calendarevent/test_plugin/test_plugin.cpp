@@ -98,17 +98,17 @@ bool TestInvitationPlugin::multiCalendar() const
     return false;
 }
 
-QString TestInvitationPlugin::emailAddress(const mKCal::Notebook::Ptr &notebook)
+QString TestInvitationPlugin::emailAddress(const mKCal::Notebook &notebook)
 {
-    return notebook->customProperty("TEST_EMAIL");
+    return notebook.customProperty("TEST_EMAIL");
 }
 
-QString TestInvitationPlugin::displayName(const mKCal::Notebook::Ptr &notebook) const
+QString TestInvitationPlugin::displayName(const mKCal::Notebook &notebook) const
 {
-    return notebook->name();
+    return notebook.name();
 }
 
-bool TestInvitationPlugin::downloadAttachment(const mKCal::Notebook::Ptr &notebook, const QString &uri,
+bool TestInvitationPlugin::downloadAttachment(const mKCal::Notebook &notebook, const QString &uri,
                                                  const QString &path)
 {
     Q_UNUSED(notebook);
@@ -117,7 +117,7 @@ bool TestInvitationPlugin::downloadAttachment(const mKCal::Notebook::Ptr &notebo
     return false;
 }
 
-bool TestInvitationPlugin::deleteAttachment(const mKCal::Notebook::Ptr &notebook, const KCalendarCore::Incidence::Ptr &incidence,
+bool TestInvitationPlugin::deleteAttachment(const mKCal::Notebook &notebook, const KCalendarCore::Incidence::Ptr &incidence,
                                                const QString &uri)
 {
     Q_UNUSED(notebook);
@@ -126,15 +126,16 @@ bool TestInvitationPlugin::deleteAttachment(const mKCal::Notebook::Ptr &notebook
     return false;
 }
 
-bool TestInvitationPlugin::shareNotebook(const mKCal::Notebook::Ptr &notebook, const QStringList &sharedWith)
+bool TestInvitationPlugin::shareNotebook(const mKCal::Notebook &notebook, const QStringList &sharedWith)
 {
-    notebook->setSharedWith(sharedWith);
-    return true;
+    Q_UNUSED(notebook);
+    Q_UNUSED(sharedWith);
+    return false;
 }
 
-QStringList TestInvitationPlugin::sharedWith(const mKCal::Notebook::Ptr &notebook)
+QStringList TestInvitationPlugin::sharedWith(const mKCal::Notebook &notebook)
 {
-    return notebook->sharedWith();
+    return notebook.sharedWith();
 }
 
 QString TestInvitationPlugin::TestInvitationPlugin::serviceName() const
