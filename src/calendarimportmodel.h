@@ -45,6 +45,7 @@ class CalendarImportModel : public QAbstractListModel
     Q_PROPERTY(QString fileName READ fileName WRITE setFileName NOTIFY fileNameChanged)
     Q_PROPERTY(QString icsString READ icsString WRITE setIcsString NOTIFY icsStringChanged)
     Q_PROPERTY(bool hasDuplicates READ hasDuplicates NOTIFY hasDuplicatesChanged)
+    Q_PROPERTY(bool hasInvitations READ hasInvitations NOTIFY hasInvitationsChanged)
     Q_PROPERTY(bool error READ error NOTIFY errorChanged)
 
 public:
@@ -57,6 +58,7 @@ public:
         LocationRole,
         UidRole,
         DuplicateRole,
+        InvitationRole,
     };
 
     explicit CalendarImportModel(QObject *parent = 0);
@@ -72,6 +74,8 @@ public:
 
     bool hasDuplicates() const;
 
+    bool hasInvitations() const;
+
     bool error() const;
 
     virtual int rowCount(const QModelIndex &index) const;
@@ -85,10 +89,11 @@ signals:
     void fileNameChanged();
     void icsStringChanged();
     void hasDuplicatesChanged();
+    void hasInvitationsChanged();
     bool errorChanged();
 
 public slots:
-    bool importToNotebook(const QString &notebookUid = QString()) const;
+    bool importToNotebook(const QString &notebookUid = QString(), bool discardInvitation = false) const;
 
 protected:
     virtual QHash<int, QByteArray> roleNames() const;
@@ -102,6 +107,7 @@ private:
     KCalendarCore::Event::List mEventList;
     mKCal::ExtendedStorage::Ptr mStorage;
     QSet<QString> mDuplicates;
+    QSet<QString> mInvitations;
     bool mError;
 };
 
