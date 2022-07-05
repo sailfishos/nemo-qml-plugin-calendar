@@ -11,6 +11,9 @@
       <case manual="false" name="calendaragendamodel">
         <step>rm -f /tmp/testdb; SQLITESTORAGEDB=/tmp/testdb /usr/sbin/run-blts-root /bin/su $USER -g privileged -c /opt/tests/nemo-qml-plugins-qt5/calendar/tst_calendaragendamodel</step>
       </case>
+      <case manual="false" name="calendarimportmodel">
+        <step>rm -f /tmp/testdb; SQLITESTORAGEDB=/tmp/testdb /usr/sbin/run-blts-root /bin/su $USER -g privileged -c /opt/tests/nemo-qml-plugins-qt5/calendar/tst_calendarimportmodel</step>
+      </case>
     </set>
   </suite>
 </testdefinition>
