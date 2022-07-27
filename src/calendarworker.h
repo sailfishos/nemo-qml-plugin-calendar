@@ -121,7 +121,7 @@ private:
     QString getNotebookAddress(const QString &notebookUid) const;
 
     CalendarData::Event createEventStruct(const KCalendarCore::Event::Ptr &event,
-                                          mKCal::Notebook::Ptr notebook = mKCal::Notebook::Ptr()) const;
+                                          const mKCal::Notebook &notebook = mKCal::Notebook()) const;
     QHash<QString, CalendarData::EventOccurrence> eventOccurrences(const QList<CalendarData::Range> &ranges) const;
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
                                                     const QList<CalendarData::EventOccurrence> &occurrences) const;

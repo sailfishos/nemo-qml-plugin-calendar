@@ -699,10 +699,10 @@ void tst_CalendarEvent::testAttendees()
     QVERIFY(storage->open());
     const QString defaultNotebookUid = CalendarManager::instance()->defaultNotebook();
     QVERIFY(!defaultNotebookUid.isEmpty());
-    mKCal::Notebook::Ptr defaultNotebook = storage->notebook(defaultNotebookUid);
-    QVERIFY(defaultNotebook);
-    defaultNotebook->setPluginName(QString::fromLatin1("TestInvitationPlugin"));
-    defaultNotebook->setCustomProperty("TEST_EMAIL", QString::fromLatin1("alice@example.org"));
+    mKCal::Notebook defaultNotebook = storage->notebook(defaultNotebookUid);
+    QVERIFY(defaultNotebook.isValid());
+    defaultNotebook.setPluginName(QString::fromLatin1("TestInvitationPlugin"));
+    defaultNotebook.setCustomProperty("TEST_EMAIL", QString::fromLatin1("alice@example.org"));
     QVERIFY(storage->updateNotebook(defaultNotebook));
 
     // Test first the case without attendee.
@@ -730,7 +730,7 @@ void tst_CalendarEvent::testAttendees()
     QVERIFY(query.attendees().isEmpty());
 
     // Test the case with attendees
-    TestInvitationPlugin *plugin = static_cast<TestInvitationPlugin*>(mKCal::ServiceHandler::instance().service(defaultNotebook->pluginName()));
+    TestInvitationPlugin *plugin = static_cast<TestInvitationPlugin*>(mKCal::ServiceHandler::instance().service(defaultNotebook.pluginName()));
     QVERIFY(plugin);
     QVERIFY(!plugin->sentInvitation());
 

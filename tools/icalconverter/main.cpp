@@ -76,17 +76,17 @@
 }
 
 namespace {
-    mKCal::Notebook::Ptr defaultLocalCalendarNotebook(mKCal::ExtendedStorage::Ptr storage)
+    mKCal::Notebook defaultLocalCalendarNotebook(mKCal::ExtendedStorage::Ptr storage)
     {
-        mKCal::Notebook::List notebooks = storage->notebooks();
-        Q_FOREACH (const mKCal::Notebook::Ptr nb, notebooks) {
-            if (nb->isMaster() && !nb->isShared() && nb->pluginName().isEmpty()) {
+        const QList<mKCal::Notebook> notebooks = storage->notebooks();
+        for (const mKCal::Notebook &nb : notebooks) {
+            if (nb.isMaster() && !nb.isShared() && nb.pluginName().isEmpty()) {
                 // assume that this is the default local calendar notebook.
                 return nb;
             }
         }
         qWarning() << "No default local calendar notebook found!";
-        return mKCal::Notebook::Ptr();
+        return mKCal::Notebook();
     }
 }
 
@@ -443,8 +443,9 @@ namespace CalendarImportExport {
         storage->load();
         QTextStream qStdout(stdout);
         qStdout << "List of known notebooks on device:" << endl;
-        Q_FOREACH (mKCal::Notebook::Ptr notebook, storage->notebooks()) {
-            qStdout << "- " << notebook->uid() << ": " << notebook->name() << endl;
+        const QList<mKCal::Notebook> notebooks = storage->notebooks();
+        for (const mKCal::Notebook &notebook : notebooks) {
+            qStdout << "- " << notebook.uid() << ": " << notebook.name() << endl;
         }
         storage->close();
     }
@@ -516,18 +517,18 @@ namespace CalendarImportExport {
         mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(calendar);
         storage->open();
         storage->load();
-        mKCal::Notebook::Ptr notebook = notebookUid.isEmpty() ? defaultLocalCalendarNotebook(storage) : storage->notebook(notebookUid);
-        if (!notebook) {
+        const mKCal::Notebook notebook = notebookUid.isEmpty() ? defaultLocalCalendarNotebook(storage) : storage->notebook(notebookUid);
+        if (!notebook.isValid()) {
             qWarning() << "No default notebook exists or invalid notebook uid specified:" << notebookUid;
             storage->close();
             return QString();
         }
-        LOG_DEBUG("Exporting notebook:" << notebook->uid());
+        LOG_DEBUG("Exporting notebook:" << notebook.uid());
 
         KCalendarCore::Incidence::List incidencesToExport;
         if (incidenceUid.isEmpty()) {
-            storage->loadNotebookIncidences(notebook->uid());
-            storage->allIncidences(&incidencesToExport, notebook->uid());
+            storage->loadNotebookIncidences(notebook.uid());
+            storage->allIncidences(&incidencesToExport, notebook.uid());
         } else {
             storage->load(incidenceUid);
             incidencesToExport << calendar->incidence(incidenceUid, recurrenceId);
@@ -539,7 +540,7 @@ namespace CalendarImportExport {
         return retn;
     }
 
-    bool updateIncidence(mKCal::ExtendedCalendar::Ptr calendar, mKCal::Notebook::Ptr notebook, KCalendarCore::Incidence::Ptr incidence, bool *criticalError, bool printDebug)
+    bool updateIncidence(mKCal::ExtendedCalendar::Ptr calendar, const mKCal::Notebook &notebook, KCalendarCore::Incidence::Ptr incidence, bool *criticalError, bool printDebug)
     {
         if (incidence.isNull()) {
             return false;
@@ -609,7 +610,7 @@ namespace CalendarImportExport {
 
                 IncidenceHandler::prepareImportedIncidence(incidence, printDebug);
                 IncidenceHandler::copyIncidenceProperties(occurrence, incidence);
-                if (!calendar->addEvent(occurrence.staticCast<KCalendarCore::Event>(), notebook->uid())) {
+                if (!calendar->addEvent(occurrence.staticCast<KCalendarCore::Event>(), notebook.uid())) {
                     qWarning() << "error: could not add dissociated occurrence to calendar";
                     return false;
                 }
@@ -620,13 +621,13 @@ namespace CalendarImportExport {
                 bool added = false;
                 switch (incidence->type()) {
                 case KCalendarCore::IncidenceBase::TypeEvent:
-                    added = calendar->addEvent(incidence.staticCast<KCalendarCore::Event>(), notebook->uid());
+                    added = calendar->addEvent(incidence.staticCast<KCalendarCore::Event>(), notebook.uid());
                     break;
                 case KCalendarCore::IncidenceBase::TypeTodo:
-                    added = calendar->addTodo(incidence.staticCast<KCalendarCore::Todo>(), notebook->uid());
+                    added = calendar->addTodo(incidence.staticCast<KCalendarCore::Todo>(), notebook.uid());
                     break;
                 case KCalendarCore::IncidenceBase::TypeJournal:
-                    added = calendar->addJournal(incidence.staticCast<KCalendarCore::Journal>(), notebook->uid());
+                    added = calendar->addJournal(incidence.staticCast<KCalendarCore::Journal>(), notebook.uid());
                     break;
                 case KCalendarCore::IncidenceBase::TypeFreeBusy:
                 case KCalendarCore::IncidenceBase::TypeUnknown:
@@ -636,7 +637,7 @@ namespace CalendarImportExport {
                 if (added) {
                     LOG_DEBUG("Added new incidence:" << incidence->uid() << incidence->recurrenceId().toString());
                 } else {
-                    qWarning() << "Unable to add incidence" << incidence->uid() << incidence->recurrenceId().toString() << "to notebook" << notebook->uid();
+                    qWarning() << "Unable to add incidence" << incidence->uid() << incidence->recurrenceId().toString() << "to notebook" << notebook.uid();
                     *criticalError = true;
                     return false;
                 }
@@ -674,15 +675,15 @@ namespace CalendarImportExport {
         mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(calendar);
         storage->open();
         storage->load();
-        mKCal::Notebook::Ptr notebook = notebookUid.isEmpty() ? defaultLocalCalendarNotebook(storage) : storage->notebook(notebookUid);
-        if (!notebook) {
+        const mKCal::Notebook notebook = notebookUid.isEmpty() ? defaultLocalCalendarNotebook(storage) : storage->notebook(notebookUid);
+        if (!notebook.isValid()) {
             qWarning() << "No default notebook exists or invalid notebook uid specified:" << notebookUid;
             storage->close();
             return false;
         }
         KCalendarCore::Incidence::List notebookIncidences;
-        storage->loadNotebookIncidences(notebook->uid());
-        storage->allIncidences(&notebookIncidences, notebook->uid());
+        storage->loadNotebookIncidences(notebook.uid());
+        storage->allIncidences(&notebookIncidences, notebook.uid());
 
         if (destructiveImport) {
             // Any incidences which don't exist in the import list should be deleted.
