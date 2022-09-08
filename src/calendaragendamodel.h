@@ -60,7 +60,8 @@ public:
     enum FilterMode {
         FilterNone,
         FilterNonAllDay = 0x1,
-        FilterMultipleEventsPerNotebook = 0x2
+        FilterMultipleEventsPerNotebook = 0x2,
+        FilterAllDay = 0x4
     };
     Q_ENUM(FilterMode)
     Q_DECLARE_FLAGS(FilterModes, FilterMode)

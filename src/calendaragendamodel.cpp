@@ -147,6 +147,9 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
             if (mFilterMode & FilterNonAllDay && !(*it)->eventObject()->allDay()) {
                 skip = true;
             }
+            if (mFilterMode & FilterAllDay && (*it)->eventObject()->allDay()) {
+                skip = true;
+            }
             if (mFilterMode & FilterMultipleEventsPerNotebook) {
                 QString uid = (*it)->eventObject()->calendarUid();
                 if (alreadyAddedCalendarUids.contains(uid)) {
