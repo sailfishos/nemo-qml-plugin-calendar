@@ -410,6 +410,24 @@ void tst_CalendarEvent::testRecurrenceException()
     calendarApi->remove(savedEvent->uniqueId(), QString(), fourth);
     QVERIFY(dataUpdated.wait());
 
+    // Create an exception on the fifth occurrence
+    QSignalSpy occurrenceChanged(&query, &CalendarEventQuery::occurrenceChanged);
+    QDateTime fifthStart = startTime.addDays(28);
+    query.setStartTime(fifthStart);
+    QVERIFY(occurrenceChanged.wait());
+    savedEvent = (CalendarStoredEvent*)query.event();
+    QVERIFY(query.event());
+    QVERIFY(query.occurrence());
+    CalendarEventModification *recurrenceSecondException =
+        calendarApi->createModification
+        (qobject_cast<CalendarStoredEvent*>(query.event()),
+         qobject_cast<CalendarEventOccurrence*>(query.occurrence()));
+    QVERIFY(recurrenceSecondException != 0);
+    QVERIFY(!recurrenceSecondException->recurrenceIdString().isEmpty());
+    recurrenceSecondException->setDisplayLabel("Modified recurring event fifth instance");
+    recurrenceSecondException->save();
+    QVERIFY(dataUpdated.wait());
+
     // Test and do actions in another time zone
     qputenv("TZ", "Europe/Paris");
 
@@ -428,10 +446,10 @@ void tst_CalendarEvent::testRecurrenceException()
                                                                 startTime.addDays(1));
     QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), modifiedSecond);
-    // fourth has been deleted
+    // fourth has been deleted and fifth is an exception
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(15));
     QVERIFY(occurrence);
-    QCOMPARE(occurrence->startTime(), startTime.addDays(28));
+    QCOMPARE(occurrence->startTime(), startTime.addDays(35));
 
     // update the exception time
     QSignalSpy eventChangeSpy(&query, SIGNAL(eventChanged()));
@@ -466,6 +484,15 @@ void tst_CalendarEvent::testRecurrenceException()
 
     QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), modifiedSecond);
+
+    // Delete the second exception and check that no
+    // occurrence of the parent is present.
+    calendarApi->remove(uid, recurrenceSecondException->recurrenceIdString(), QDateTime());
+    QVERIFY(dataUpdated.wait());
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, QDateTime(), startTime.addDays(15));
+    QVERIFY(occurrence);
+    // Fourth (+21 days) and fifth (+28) are now deleted.
+    QCOMPARE(occurrence->startTime(), startTime.addDays(35));
 
     ///////
     // update the main event time within a day, exception stays intact
@@ -516,6 +543,7 @@ void tst_CalendarEvent::testRecurrenceException()
     mSavedEvents.remove(uid);
 
     delete recurrenceException;
+    delete recurrenceSecondException;
     delete mod;
 
     if (TZenv.isEmpty()) {
