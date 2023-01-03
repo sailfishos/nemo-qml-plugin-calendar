@@ -386,6 +386,7 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
         event->setOrganizer(organizer);
     }
 
+    event->startUpdates();
     if (!newEvent) {
         // if existing attendees are removed, those should get a cancel update
         KCalendarCore::Event::Ptr cancelEvent = KCalendarCore::Event::Ptr(event->clone());
@@ -473,6 +474,7 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
             }
         }
     }
+    event->endUpdates();
 }
 
 QString CalendarWorker::getNotebookAddress(const QString &notebookUid) const
