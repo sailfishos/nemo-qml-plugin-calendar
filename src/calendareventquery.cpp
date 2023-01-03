@@ -39,7 +39,7 @@
 #include <QDebug>
 
 CalendarEventQuery::CalendarEventQuery()
-    : mIsComplete(true), mOccurrence(0), mAttendeesCached(false), mEventError(false)
+    : mIsComplete(true), mOccurrence(0), mAttendeesCached(false), mEventError(false), mUpdateOccurrence(false)
 {
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
@@ -114,6 +114,7 @@ void CalendarEventQuery::setStartTime(const QDateTime &t)
     if (t == mStartTime)
         return;
     mStartTime = t;
+    mUpdateOccurrence = true;
     emit startTimeChanged();
 
     refresh();
@@ -167,7 +168,7 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
     if (event.isValid() && (event.uniqueId != mUid || event.recurrenceId != mRecurrenceId))
         return;
 
-    bool updateOccurrence = false;
+    bool updateOccurrence = mUpdateOccurrence;
     bool signalEventChanged = false;
 
     if (event.uniqueId != mEvent.uniqueId || event.recurrenceId != mEvent.recurrenceId) {
@@ -197,6 +198,7 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
                 mOccurrence->setParent(this);
             }
         }
+        mUpdateOccurrence = false;
         emit occurrenceChanged();
     }
 
