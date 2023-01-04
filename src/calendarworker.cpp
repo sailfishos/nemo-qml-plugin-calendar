@@ -140,7 +140,7 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
 void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime)
 {
     KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-    if (!event && mStorage->load(uid, recurrenceId)) {
+    if (!event && mStorage->loadSeries(uid)) {
         event = mCalendar->event(uid, recurrenceId);
     }
     if (!event) {
@@ -157,6 +157,14 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
         else
             event->recurrence()->addExDateTime(dateTime);
         event->setRevision(event->revision() + 1);
+    } else if (event->hasRecurrenceId()) {
+        // We consider that deleting an exception implies to create an exdate for the parent.
+        KCalendarCore::Event::Ptr parent = mCalendar->event(uid);
+        if (parent) {
+            parent->recurrence()->addExDateTime(event->recurrenceId());
+            parent->setRevision(parent->revision() + 1);
+        }
+        mCalendar->deleteEvent(event);
     } else {
         mCalendar->deleteEvent(event);
     }
@@ -378,6 +386,7 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
         event->setOrganizer(organizer);
     }
 
+    event->startUpdates();
     if (!newEvent) {
         // if existing attendees are removed, those should get a cancel update
         KCalendarCore::Event::Ptr cancelEvent = KCalendarCore::Event::Ptr(event->clone());
@@ -465,6 +474,7 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
             }
         }
     }
+    event->endUpdates();
 }
 
 QString CalendarWorker::getNotebookAddress(const QString &notebookUid) const

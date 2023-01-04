@@ -161,6 +161,7 @@ private:
     CalendarEventOccurrence *mOccurrence;
     bool mAttendeesCached;
     bool mEventError;
+    bool mUpdateOccurrence;
     QList<CalendarData::Attendee> mAttendees;
 };
 
