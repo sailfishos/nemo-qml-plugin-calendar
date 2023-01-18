@@ -26,7 +26,8 @@ Module {
             values: {
                 "FilterNone": 0,
                 "FilterNonAllDay": 1,
-                "FilterMultipleEventsPerNotebook": 2
+                "FilterMultipleEventsPerNotebook": 2,
+                "FilterAllDay": 4
             }
         }
         Enum {
@@ -34,7 +35,8 @@ Module {
             values: {
                 "FilterNone": 0,
                 "FilterNonAllDay": 1,
-                "FilterMultipleEventsPerNotebook": 2
+                "FilterMultipleEventsPerNotebook": 2,
+                "FilterAllDay": 4
             }
         }
         Property { name: "count"; type: "int"; isReadonly: true }
@@ -62,7 +64,13 @@ Module {
         Method {
             name: "createModification"
             type: "CalendarEventModification*"
-            Parameter { name: "sourceEvent"; type: "CalendarEvent"; isPointer: true }
+            Parameter { name: "sourceEvent"; type: "CalendarStoredEvent"; isPointer: true }
+            Parameter { name: "occurrence"; type: "CalendarEventOccurrence"; isPointer: true }
+        }
+        Method {
+            name: "createModification"
+            type: "CalendarEventModification*"
+            Parameter { name: "sourceEvent"; type: "CalendarStoredEvent"; isPointer: true }
         }
         Method {
             name: "remove"
@@ -104,16 +112,6 @@ Module {
             name: "doFill"
             Parameter { name: "people"; type: "QList<QObject*>" }
         }
-    }
-    Component {
-        name: "CalendarChangeInformation"
-        prototype: "QObject"
-        exports: ["org.nemomobile.calendar/CalendarChangeInformation 1.0"]
-        isCreatable: false
-        exportMetaObjectRevisions: [0]
-        Property { name: "pending"; type: "bool"; isReadonly: true }
-        Property { name: "uniqueId"; type: "string"; isReadonly: true }
-        Property { name: "recurrenceId"; type: "string"; isReadonly: true }
     }
     Component {
         name: "CalendarContactModel"
@@ -206,9 +204,28 @@ Module {
             name: "SyncFailure"
             values: {
                 "NoSyncFailure": 0,
-                "UploadFailure": 1,
-                "UpdateFailure": 2,
-                "DeleteFailure": 3
+                "CreationFailure": 1,
+                "UploadFailure": 2,
+                "UpdateFailure": 3,
+                "DeleteFailure": 4
+            }
+        }
+        Enum {
+            name: "SyncFailureResolution"
+            values: {
+                "RetrySync": 0,
+                "KeepOutOfSync": 1,
+                "PushDeviceData": 2,
+                "PullServerData": 3
+            }
+        }
+        Enum {
+            name: "Status"
+            values: {
+                "StatusNone": 0,
+                "StatusTentative": 1,
+                "StatusConfirmed": 2,
+                "StatusCancelled": 3
             }
         }
         Property { name: "displayLabel"; type: "string"; isReadonly: true }
@@ -228,27 +245,20 @@ Module {
         Property { name: "reminderDateTime"; type: "QDateTime"; isReadonly: true }
         Property { name: "uniqueId"; type: "string"; isReadonly: true }
         Property { name: "recurrenceId"; type: "string"; isReadonly: true }
-        Property { name: "color"; type: "string"; isReadonly: true }
         Property { name: "readOnly"; type: "bool"; isReadonly: true }
         Property { name: "calendarUid"; type: "string"; isReadonly: true }
         Property { name: "location"; type: "string"; isReadonly: true }
         Property { name: "secrecy"; type: "CalendarEvent::Secrecy"; isReadonly: true }
+        Property { name: "status"; type: "CalendarEvent::Status"; isReadonly: true }
         Property { name: "syncFailure"; type: "CalendarEvent::SyncFailure"; isReadonly: true }
+        Property {
+            name: "syncFailureResolution"
+            type: "CalendarEvent::SyncFailureResolution"
+            isReadonly: true
+        }
         Property { name: "ownerStatus"; type: "CalendarEvent::Response"; isReadonly: true }
         Property { name: "rsvp"; type: "bool"; isReadonly: true }
         Property { name: "externalInvitation"; type: "bool"; isReadonly: true }
-        Method {
-            name: "sendResponse"
-            type: "bool"
-            Parameter { name: "response"; type: "int" }
-        }
-        Method {
-            name: "iCalendar"
-            type: "string"
-            Parameter { name: "prodId"; type: "string" }
-        }
-        Method { name: "iCalendar"; type: "string" }
-        Method { name: "deleteEvent" }
     }
     Component {
         name: "CalendarEventListModel"
@@ -259,7 +269,8 @@ Module {
             name: "EventListRoles"
             values: {
                 "EventObjectRole": 256,
-                "OccurrenceObjectRole": 257
+                "OccurrenceObjectRole": 257,
+                "IdentifierRole": 258
             }
         }
         Property { name: "count"; type: "int"; isReadonly: true }
@@ -268,24 +279,24 @@ Module {
     }
     Component {
         name: "CalendarEventModification"
-        prototype: "QObject"
+        prototype: "CalendarEvent"
         exports: ["org.nemomobile.calendar/CalendarEventModification 1.0"]
         isCreatable: false
         exportMetaObjectRevisions: [0]
         Property { name: "displayLabel"; type: "string" }
         Property { name: "description"; type: "string" }
-        Property { name: "startTime"; type: "QDateTime"; isReadonly: true }
-        Property { name: "endTime"; type: "QDateTime"; isReadonly: true }
         Property { name: "allDay"; type: "bool" }
         Property { name: "recur"; type: "CalendarEvent::Recur" }
-        Property { name: "recurEndDate"; type: "QDateTime"; isReadonly: true }
         Property { name: "recurWeeklyDays"; type: "CalendarEvent::Days" }
-        Property { name: "hasRecurEndDate"; type: "bool"; isReadonly: true }
-        Property { name: "recurrenceId"; type: "string"; isReadonly: true }
         Property { name: "reminder"; type: "int" }
         Property { name: "reminderDateTime"; type: "QDateTime" }
         Property { name: "location"; type: "string" }
         Property { name: "calendarUid"; type: "string" }
+        Property { name: "syncFailureResolution"; type: "CalendarEvent::SyncFailureResolution" }
+        Signal { name: "startTimeChanged" }
+        Signal { name: "endTimeChanged" }
+        Signal { name: "recurEndDateChanged" }
+        Signal { name: "hasRecurEndDateChanged" }
         Method {
             name: "setStartTime"
             Parameter { name: "startTime"; type: "QDateTime" }
@@ -319,11 +330,18 @@ Module {
             Parameter { name: "optional"; type: "CalendarContactModel"; isPointer: true }
         }
         Method { name: "save" }
-        Method {
-            name: "replaceOccurrence"
-            type: "CalendarChangeInformation*"
-            Parameter { name: "occurrence"; type: "CalendarEventOccurrence"; isPointer: true }
-        }
+    }
+    Component {
+        name: "CalendarEventOccurrence"
+        prototype: "QObject"
+        exports: ["org.nemomobile.calendar/CalendarEventOccurrence 1.0"]
+        isCreatable: false
+        exportMetaObjectRevisions: [0]
+        Property { name: "startTime"; type: "QDateTime"; isReadonly: true }
+        Property { name: "endTime"; type: "QDateTime"; isReadonly: true }
+        Property { name: "startTimeInTz"; type: "QDateTime"; isReadonly: true }
+        Property { name: "endTimeInTz"; type: "QDateTime"; isReadonly: true }
+        Property { name: "event"; type: "CalendarStoredEvent"; isReadonly: true; isPointer: true }
     }
     Component {
         name: "CalendarEventQuery"
@@ -352,12 +370,19 @@ Module {
         Property { name: "fileName"; type: "string" }
         Property { name: "icsString"; type: "string" }
         Property { name: "hasDuplicates"; type: "bool"; isReadonly: true }
+        Property { name: "hasInvitations"; type: "bool"; isReadonly: true }
         Property { name: "error"; type: "bool"; isReadonly: true }
         Signal { name: "errorChanged"; type: "bool" }
         Method {
             name: "getEvent"
             type: "QObject*"
             Parameter { name: "index"; type: "int" }
+        }
+        Method {
+            name: "importToNotebook"
+            type: "bool"
+            Parameter { name: "notebookUid"; type: "string" }
+            Parameter { name: "discardInvitation"; type: "bool" }
         }
         Method {
             name: "importToNotebook"
@@ -403,6 +428,26 @@ Module {
         Property { name: "isDefault"; type: "bool"; isReadonly: true }
         Property { name: "localCalendar"; type: "bool"; isReadonly: true }
         Property { name: "isReadOnly"; type: "bool"; isReadonly: true }
+    }
+    Component {
+        name: "CalendarStoredEvent"
+        prototype: "CalendarEvent"
+        exports: ["org.nemomobile.calendar/CalendarStoredEvent 1.0"]
+        isCreatable: false
+        exportMetaObjectRevisions: [0]
+        Property { name: "color"; type: "string"; isReadonly: true }
+        Method {
+            name: "sendResponse"
+            type: "bool"
+            Parameter { name: "response"; type: "int" }
+        }
+        Method {
+            name: "iCalendar"
+            type: "string"
+            Parameter { name: "prodId"; type: "string" }
+        }
+        Method { name: "iCalendar"; type: "string" }
+        Method { name: "deleteEvent" }
     }
     Component {
         name: "Person"
