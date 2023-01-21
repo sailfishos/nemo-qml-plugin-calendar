@@ -356,7 +356,7 @@ QList<CalendarData::Range> CalendarManager::addRanges(const QList<CalendarData::
     QList<CalendarData::Range> sortedRanges;
     sortedRanges.append(oldRanges);
     sortedRanges.append(newRanges);
-    qSort(sortedRanges.begin(), sortedRanges.end(), range_lessThan);
+    std::sort(sortedRanges.begin(), sortedRanges.end(), range_lessThan);
 
     // combine
     QList<CalendarData::Range> combinedRanges;

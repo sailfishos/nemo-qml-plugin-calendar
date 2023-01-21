@@ -168,7 +168,7 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
         }
     }
 
-    qSort(newEvents.begin(), newEvents.end(), eventsLessThan);
+    std::sort(newEvents.begin(), newEvents.end(), eventsLessThan);
 
     int oldEventCount = mEvents.count();
     int newEventsCounter = 0;
