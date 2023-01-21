@@ -652,7 +652,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     bool orphansDeleted = false;
 
     const KCalendarCore::Event::List list = mCalendar->rawEvents();
-    for (const KCalendarCore::Event::Ptr e : list) {
+    for (const KCalendarCore::Event::Ptr &e : list) {
         if (!mCalendar->isVisible(e)) {
             continue;
         }
