@@ -584,8 +584,13 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
     const QStringList excluded = excludedNotebooks();
     QHash<QString, CalendarData::EventOccurrence> filtered;
     for (const CalendarData::Range range : ranges) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+        KCalendarCore::OccurrenceIterator it(*mCalendar, range.first.addDays(-1).startOfDay(),
+                                             range.second.endOfDay());
+#else
         KCalendarCore::OccurrenceIterator it(*mCalendar, QDateTime(range.first.addDays(-1)),
                                              QDateTime(range.second.addDays(1)).addSecs(-1));
+#endif
         while (it.hasNext()) {
             it.next();
             if (mCalendar->isVisible(it.incidence())

@@ -130,7 +130,11 @@ CalendarEvent::Recur CalendarEvent::recur() const
 
 QDateTime CalendarEvent::recurEndDate() const
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+    return mData->recurEndDate.endOfDay();
+#else
     return QDateTime(mData->recurEndDate);
+#endif
 }
 
 bool CalendarEvent::hasRecurEndDate() const
