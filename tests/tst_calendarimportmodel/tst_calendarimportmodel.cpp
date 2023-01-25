@@ -109,9 +109,17 @@ void tst_CalendarImportModel::testByString()
              QString::fromLatin1("Test 1"));
     QVERIFY(model->data(at, int(CalendarImportModel::DescriptionRole)).toString().isEmpty());
     QCOMPARE(model->data(at, int(CalendarImportModel::StartTimeRole)).toDateTime(),
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+             QDate(2019, 6, 7).startOfDay());
+#else
              QDateTime(QDate(2019, 6, 7)));
+#endif
     QCOMPARE(model->data(at, int(CalendarImportModel::EndTimeRole)).toDateTime(),
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+             QDate(2019, 6, 7).startOfDay());
+#else
              QDateTime(QDate(2019, 6, 7)));
+#endif
     QVERIFY(model->data(at, int(CalendarImportModel::AllDayRole)).toBool());
     QVERIFY(model->data(at, int(CalendarImportModel::LocationRole)).toString().isEmpty());
     QCOMPARE(model->data(at, int(CalendarImportModel::UidRole)).toString(),
@@ -146,7 +154,11 @@ void tst_CalendarImportModel::testByString()
     QVERIFY(storage->load());
     const KCalendarCore::Incidence::Ptr ev1 = calendar->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A73"));
     QVERIFY(ev1);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+    QCOMPARE(ev1->dtStart(), QDate(2019, 6, 7).startOfDay());
+#else
     QCOMPARE(ev1->dtStart(), QDateTime(QDate(2019, 6, 7)));
+#endif
     const KCalendarCore::Incidence::Ptr ev2 = calendar->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A74"));
     QVERIFY(ev2);
     QVERIFY(!ev2->organizer().isEmpty());

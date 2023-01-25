@@ -158,7 +158,7 @@ QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
 
 bool CalendarImportModel::importToNotebook(const QString &notebookUid, bool discardInvitation) const
 {
-    for (const KCalendarCore::Incidence::Ptr &incidence : mEventList) {
+    for (const KCalendarCore::Event::Ptr& incidence : mEventList) {
         const KCalendarCore::Incidence::Ptr old =
             mStorage->calendar()->incidence(incidence->uid(), incidence->recurrenceId());
         if (old) {

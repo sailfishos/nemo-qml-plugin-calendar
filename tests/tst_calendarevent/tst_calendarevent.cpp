@@ -154,7 +154,11 @@ void tst_CalendarEvent::modSetters()
     QDateTime recurEnd = QDateTime::currentDateTime().addDays(100);
     eventMod->setRecurEndDate(recurEnd);
     QCOMPARE(recurEndSpy.count(), 1);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+    QCOMPARE(eventMod->recurEndDate(), recurEnd.date().startOfDay()); // day precision
+#else
     QCOMPARE(eventMod->recurEndDate(), QDateTime(recurEnd.date())); // day precision
+#endif
 
     QSignalSpy reminderSpy(eventMod, SIGNAL(reminderChanged()));
     QVERIFY(eventMod->reminder() < 0); // default is ReminderNone == negative reminder.
@@ -209,7 +213,11 @@ void tst_CalendarEvent::testSave()
 
     QDateTime recurEnd = endTime.addDays(100);
     eventMod->setRecurEndDate(recurEnd);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+    QCOMPARE(eventMod->recurEndDate(), recurEnd.date().startOfDay());
+#else
     QCOMPARE(eventMod->recurEndDate(), QDateTime(recurEnd.date()));
+#endif
 
     int reminder = 0; // at the time of the event
     eventMod->setReminder(reminder);
@@ -248,7 +256,11 @@ void tst_CalendarEvent::testSave()
     QCOMPARE(eventB->displayLabel(), displayLabel);
     QCOMPARE(eventB->location(), location);
     QCOMPARE(eventB->recur(), recur);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+    QCOMPARE(eventB->recurEndDate(), recurEnd.date().startOfDay());
+#else
     QCOMPARE(eventB->recurEndDate(), QDateTime(recurEnd.date()));
+#endif
     QCOMPARE(eventB->reminder(), reminder);
 
     eventB->deleteEvent();

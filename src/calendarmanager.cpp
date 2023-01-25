@@ -356,7 +356,7 @@ QList<CalendarData::Range> CalendarManager::addRanges(const QList<CalendarData::
     QList<CalendarData::Range> sortedRanges;
     sortedRanges.append(oldRanges);
     sortedRanges.append(newRanges);
-    qSort(sortedRanges.begin(), sortedRanges.end(), range_lessThan);
+    std::sort(sortedRanges.begin(), sortedRanges.end(), range_lessThan);
 
     // combine
     QList<CalendarData::Range> combinedRanges;
@@ -394,12 +394,17 @@ void CalendarManager::updateAgendaModel(CalendarAgendaModel *model)
                 continue;
             }
 
-            const QDateTime startDt(model->startDate()); // To be replaced later by start.startOfDay()
-            const QDateTime endDt(model->endDate()); // To be replaced later by start.startOfDay()
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+            const QDateTime startDt(model->startDate().startOfDay());
+            const QDateTime endDt(model->endDate().endOfDay());
+#else
+            const QDateTime startDt(model->startDate());
+            const QDateTime endDt(QDateTime(model->endDate()).addDays(1));
+#endif
             // on all day events the end time is inclusive, otherwise not
             if ((eo.eventAllDay && eo.startTime.date() <= model->endDate()
                  && eo.endTime.date() >= model->startDate())
-                || (!eo.eventAllDay && eo.startTime < endDt.addDays(1)
+                || (!eo.eventAllDay && eo.startTime < endDt
                     && eo.endTime >= startDt)) {
                 filtered.append(new CalendarEventOccurrence(eo.eventUid, eo.recurrenceId,
                                                             eo.startTime, eo.endTime));
