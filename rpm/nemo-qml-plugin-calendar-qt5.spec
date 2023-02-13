@@ -1,7 +1,7 @@
 Name:       nemo-qml-plugin-calendar-qt5
 
 Summary:    Calendar plugin for Nemo Mobile
-Version:    0.6.48
+Version:    0.6.53
 Release:    1
 License:    BSD
 URL:        https://github.com/sailfishos/nemo-qml-plugin-calendar
@@ -10,7 +10,7 @@ BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Gui)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Concurrent)
-BuildRequires:  pkgconfig(libmkcal-qt5) >= 0.6.2
+BuildRequires:  pkgconfig(libmkcal-qt5) >= 0.7.4
 BuildRequires:  pkgconfig(KF5CalendarCore)
 BuildRequires:  pkgconfig(accounts-qt5)
 

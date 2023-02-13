@@ -226,6 +226,11 @@ QString CalendarEvent::recurrenceIdString() const
     }
 }
 
+bool CalendarEvent::thisAndFuture() const
+{
+    return mData->thisAndFuture;
+}
+
 CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data)
     : CalendarEvent(data, manager)
     , mManager(manager)
@@ -328,6 +333,8 @@ void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
         emit ownerStatusChanged();
     if (mData->syncFailure != old.syncFailure)
         emit syncFailureChanged();
+    if (mData->thisAndFuture != old.thisAndFuture)
+        emit thisAndFutureChanged();
 }
 
 CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const

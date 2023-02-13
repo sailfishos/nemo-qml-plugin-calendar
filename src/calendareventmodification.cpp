@@ -139,6 +139,14 @@ void CalendarEventModification::setRecur(CalendarEvent::Recur recur)
     }
 }
 
+void CalendarEventModification::setThisAndFuture(bool thisAndFuture)
+{
+    if (mData->thisAndFuture != thisAndFuture) {
+        mData->thisAndFuture = thisAndFuture;
+        emit thisAndFutureChanged();
+    }
+}
+
 void CalendarEventModification::setRecurEndDate(const QDateTime &dateTime)
 {
     bool wasValid = mData->recurEndDate.isValid();

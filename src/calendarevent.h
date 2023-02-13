@@ -64,6 +64,7 @@ class CalendarEvent : public QObject
     Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime NOTIFY reminderDateTimeChanged)
     Q_PROPERTY(QString uniqueId READ uniqueId NOTIFY uniqueIdChanged)
     Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
+    Q_PROPERTY(bool thisAndFuture READ thisAndFuture NOTIFY thisAndFutureChanged)
     Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
@@ -166,6 +167,7 @@ public:
     QString location() const;
     QDateTime recurrenceId() const;
     QString recurrenceIdString() const;
+    bool thisAndFuture() const;
     Secrecy secrecy() const;
     Status status() const;
     SyncFailure syncFailure() const;
@@ -185,6 +187,7 @@ signals:
     void reminderDateTimeChanged();
     void uniqueIdChanged();
     void calendarUidChanged();
+    void thisAndFutureChanged();
     void locationChanged();
     void recurEndDateChanged();
     void hasRecurEndDateChanged();

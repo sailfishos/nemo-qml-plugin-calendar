@@ -275,6 +275,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         } else {
             event->setUid(eventData.uniqueId);
             event->setRecurrenceId(eventData.recurrenceId);
+            event->setThisAndFuture(eventData.thisAndFuture);
         }
     } else {
         if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
