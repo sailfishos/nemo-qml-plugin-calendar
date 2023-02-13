@@ -73,6 +73,7 @@ struct Event {
     QString instanceId; // A unique ID, used to identify an instance (incidence or exception) throughout calendars
     QString incidenceUid; // The uid of the incidence, shared between parent and exceptions
     QDateTime recurrenceId; // An id identifying an exception
+    bool thisAndFuture = false; // Used only when recurrenceId is valid.
     QString calendarUid; // The uid of the calendar the instance belong to
     QString location;
     CalendarEvent::Secrecy secrecy = CalendarEvent::SecrecyPublic;

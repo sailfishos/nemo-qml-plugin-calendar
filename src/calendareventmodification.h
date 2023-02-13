@@ -55,6 +55,7 @@ class CalendarEventModification : public CalendarEvent
     Q_PROPERTY(QString location READ location WRITE setLocation NOTIFY locationChanged)
     Q_PROPERTY(QString calendarUid READ calendarUid WRITE setCalendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(CalendarEvent::SyncFailureResolution syncFailureResolution READ syncFailureResolution WRITE setSyncFailureResolution NOTIFY syncFailureResolutionChanged)
+    Q_PROPERTY(bool thisAndFuture READ thisAndFuture WRITE setThisAndFuture NOTIFY thisAndFutureChanged)
 
 public:
     CalendarEventModification(const CalendarStoredEvent *source, const CalendarEventOccurrence *occurrence = 0, QObject *parent = 0);
@@ -74,6 +75,8 @@ public:
     void setAllDay(bool);
 
     void setRecur(CalendarEvent::Recur);
+
+    void setThisAndFuture(bool thisAndFuture);
 
     Q_INVOKABLE void setRecurEndDate(const QDateTime &dateTime);
     Q_INVOKABLE void unsetRecurEndDate();
@@ -109,6 +112,7 @@ signals:
     void hasRecurEndDateChanged();
     void calendarUidChanged();
     void syncFailureResolutionChanged();
+    void thisAndFutureChanged();
 
 private:
     bool m_attendeesSet = false;

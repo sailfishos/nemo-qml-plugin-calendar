@@ -56,6 +56,7 @@ CalendarData::Event::Event(const KCalendarCore::Event &event)
     , instanceId(event.instanceIdentifier())
     , incidenceUid(event.uid())
     , recurrenceId(event.recurrenceId())
+    , thisAndFuture(event.thisAndFuture())
     , location(event.location())
 {
     switch (event.secrecy()) {

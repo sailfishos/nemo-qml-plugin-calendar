@@ -306,6 +306,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
             }
             event = KCalendarCore::Event::Ptr(parent->clone());
             event->setRecurrenceId(eventData.recurrenceId);
+            event->setThisAndFuture(eventData.thisAndFuture);
         } else {
             // The event was removed while changes were edited.
             // Options to either skip, as done now, or resurrect the event.

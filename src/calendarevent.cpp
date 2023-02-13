@@ -219,6 +219,11 @@ bool CalendarEvent::externalInvitation() const
     return m_data->externalInvitation;
 }
 
+bool CalendarEvent::thisAndFuture() const
+{
+    return m_data->thisAndFuture;
+}
+
 CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data)
     : CalendarEvent(data, manager)
     , m_manager(manager)
@@ -334,6 +339,8 @@ void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
         emit ownerStatusChanged();
     if (m_data->syncFailure != old.syncFailure)
         emit syncFailureChanged();
+    if (m_data->thisAndFuture != old.thisAndFuture)
+        emit thisAndFutureChanged();
 }
 
 CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
