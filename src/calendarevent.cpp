@@ -345,5 +345,13 @@ void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
 
 CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
 {
-    return occurrence ? m_manager->dissociateSingleOccurrence(m_data->instanceId, occurrence->startTime()) : CalendarData::Event();
+    if (occurrence && m_data->thisAndFuture) {
+        const QDateTime recId = occurrence->startTime().addSecs(m_data->startTime.secsTo(m_data->recurrenceId));
+        return m_manager->dissociateSingleOccurrence(m_data->instanceId, recId);
+    } else if (occurrence) {
+        return m_manager->dissociateSingleOccurrence(m_data->instanceId,
+                                                     occurrence->startTime());
+    } else {
+        return CalendarData::Event();
+    }
 }
