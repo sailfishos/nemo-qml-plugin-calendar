@@ -73,6 +73,7 @@ struct Event {
     QDateTime reminderDateTime; // Valid when reminder is at a given date and time.
     QString uniqueId;
     QDateTime recurrenceId;
+    bool thisAndFuture = false; // Used only when recurrenceId is valid.
     QString location;
     CalendarEvent::Secrecy secrecy = CalendarEvent::SecrecyPublic;
     QString calendarUid;
