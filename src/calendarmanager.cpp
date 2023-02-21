@@ -514,8 +514,10 @@ void CalendarManager::deleteEvent(const QString &uid, const QDateTime &recurrenc
 
 void CalendarManager::deleteAll(const QString &uid)
 {
-    QMetaObject::invokeMethod(mCalendarWorker, "deleteAll", Qt::QueuedConnection,
-                              Q_ARG(QString, uid));
+    QMetaObject::invokeMethod(mCalendarWorker, "deleteEvent", Qt::QueuedConnection,
+                              Q_ARG(QString, uid),
+                              Q_ARG(QDateTime, QDateTime()),
+                              Q_ARG(QDateTime, QDateTime()));
 }
 
 void CalendarManager::save()

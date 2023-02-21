@@ -70,7 +70,6 @@ public slots:
                    const QList<CalendarData::EmailContact> &optional);
     CalendarData::Event dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId);
     void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
-    void deleteAll(const QString &uid);
     bool sendResponse(const QString &uid, const QDateTime &recurrenceId, const CalendarEvent::Response response);
     QString convertEventToICalendar(const QString &uid, const QString &prodId) const;
 

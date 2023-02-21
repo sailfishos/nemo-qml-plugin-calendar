@@ -140,7 +140,7 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
 void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime)
 {
     KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-    if (!event && mStorage->loadSeries(uid)) {
+    if (!event && mStorage->load(uid)) {
         event = mCalendar->event(uid, recurrenceId);
     }
     if (!event) {
@@ -168,21 +168,6 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
     } else {
         mCalendar->deleteEvent(event);
     }
-}
-
-void CalendarWorker::deleteAll(const QString &uid)
-{
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid);
-    if (!event && mStorage->loadSeries(uid)) {
-        event = mCalendar->event(uid);
-    }
-    if (!event) {
-        qDebug() << uid << "event already deleted from DB";
-        return;
-    }
-
-    mCalendar->deleteEventInstances(event);
-    mCalendar->deleteEvent(event);
 }
 
 bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenceId,
@@ -669,11 +654,9 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
             // doesn't delete events which belong to a deleted notebook, then the
             // events will be "orphan" and need to be deleted.
             if (mStorage->load(e->uid())) {
-                KCalendarCore::Incidence::Ptr orphan = mCalendar->incidence(e->uid(), QDateTime());
-                if (!orphan.isNull()) {
-                    bool deletedOrphanOccurrences = mCalendar->deleteIncidenceInstances(orphan);
-                    bool deletedOrphanSeries = mCalendar->deleteIncidence(orphan);
-                    if (deletedOrphanOccurrences || deletedOrphanSeries) {
+                KCalendarCore::Incidence::Ptr orphan = mCalendar->incidence(e->uid());
+                if (orphan) {
+                    if (mCalendar->deleteIncidence(orphan)) {
                         qWarning() << "Deleted orphan calendar event:" << orphan->uid()
                                    << orphan->summary() << orphan->description() << orphan->location();
                         orphansDeleted = true;
@@ -865,11 +848,11 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &u
 {
     KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
     if (!event) {
-        qWarning() << "Failed to get next occurrence, event not found. UID = " << uid << recurrenceId;
-        return CalendarData::EventOccurrence();
+        mStorage->load(uid);
+        event = mCalendar->event(uid, recurrenceId);
     }
-    if (event->recurs() && !mStorage->loadSeries(uid)) {
-        qWarning() << "Failed to load series of event. UID = " << uid << recurrenceId;
+    if (!event) {
+        qWarning() << "Failed to get next occurrence, event not found. UID = " << uid << recurrenceId;
         return CalendarData::EventOccurrence();
     }
     return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event) : KCalendarCore::Incidence::List());

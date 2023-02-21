@@ -208,7 +208,7 @@ bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArr
     mEventList = cal->events(KCalendarCore::EventSortStartDate);
     // To avoid detach here, use qAsConst when available.
     for (const KCalendarCore::Event::Ptr &event : mEventList) {
-        mStorage->load(event->uid(), event->recurrenceId());
+        mStorage->load(event->uid());
         const KCalendarCore::Event::Ptr old =
             mStorage->calendar()->event(event->uid(), event->recurrenceId());
         if (old) {
