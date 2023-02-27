@@ -85,6 +85,8 @@ public slots:
     void loadData(const QList<CalendarData::Range> &ranges,
                   const QStringList &instanceList, bool reset);
 
+    void search(const QString &searchString);
+
     CalendarData::EventOccurrence getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                     const QDateTime &startTime) const;
     QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId);
@@ -108,6 +110,8 @@ signals:
                     const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                     const QHash<QDate, QStringList> &dailyOccurrences,
                     bool reset);
+
+    void searchResults(const QString &searchString, const QStringList &identifiers);
 
     void findMatchingEventFinished(const QString &invitationFile,
                                    const CalendarData::Event &eventData);

@@ -752,6 +752,39 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
     return event;
 }
 
+void CalendarWorker::search(const QString &searchString)
+{
+    QStringList identifiers;
+    QMultiHash<QString, CalendarData::Event> events;
+
+    if (mStorage->search(searchString, &identifiers)) {
+        emit searchResults(searchString, identifiers);
+    }
+
+    for (int i = 0; i < identifiers.length(); i++) {
+        if (!mSentEvents.contains(identifiers[i])) {
+            KCalendarCore::Incidence::Ptr incidence = mCalendar->instance(identifiers[i]);
+            if (incidence
+                && incidence->type() == KCalendarCore::IncidenceBase::TypeEvent
+                && mCalendar->isVisible(incidence)) {
+                mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(incidence));
+                CalendarData::Event event = createEventStruct(incidence.staticCast<KCalendarCore::Event>(), notebook);
+                mSentEvents.insert(identifiers[i]);
+                events.insert(event.uniqueId, event);
+                if (identifiers[i] != event.uniqueId) {
+                    // Ensures that events can also be retrieved by instanceIdentifier
+                    events.insert(identifiers[i], event);
+                }
+            }
+        }
+    }
+    if (!events.isEmpty()) {
+        emit dataLoaded(QList<CalendarData::Range>(), identifiers, events,
+                        QHash<QString, CalendarData::EventOccurrence>(),
+                        QHash<QDate, QStringList>(), false);
+    }
+}
+
 static bool serviceIsEnabled(Accounts::Account *account, const QString &syncProfile)
 {
     account->selectService();

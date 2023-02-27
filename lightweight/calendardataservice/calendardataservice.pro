@@ -14,6 +14,7 @@ HEADERS += \
     ../common/eventdata.h \
     ../../src/calendaragendamodel.h \
     ../../src/calendareventlistmodel.h \
+    ../../src/calendarsearchmodel.h \
     ../../src/calendarmanager.h \
     ../../src/calendarworker.h \
     ../../src/calendareventoccurrence.h \
@@ -28,6 +29,7 @@ SOURCES += \
     ../common/eventdata.cpp \
     ../../src/calendaragendamodel.cpp \
     ../../src/calendareventlistmodel.cpp \
+    ../../src/calendarsearchmodel.cpp \
     ../../src/calendarmanager.cpp \
     ../../src/calendarworker.cpp \
     ../../src/calendareventoccurrence.cpp \
