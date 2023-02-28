@@ -100,6 +100,7 @@ public:
     // SearchModel
     void cancelSearch(CalendarSearchModel *model);
     void search(CalendarSearchModel *model);
+    bool isSearching(const CalendarSearchModel *model) const;
 
     // EventQuery
     void scheduleEventQueryRefresh(CalendarEventQuery *query);

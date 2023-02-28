@@ -54,10 +54,23 @@ void CalendarSearchModel::setSearchString(const QString &searchString)
     setIdentifiers(QStringList());
     if (!mSearchString.isEmpty()) {
         CalendarManager::instance()->search(this);
+        emit loadingChanged();
     }
 }
 
 QString CalendarSearchModel::searchString() const
 {
     return mSearchString;
+}
+
+void CalendarSearchModel::setIdentifiers(const QStringList &ids)
+{
+    CalendarEventListModel::setIdentifiers(ids);
+    emit loadingChanged();
+}
+
+bool CalendarSearchModel::loading() const
+{
+    return CalendarManager::instance()->isSearching(this)
+        || CalendarEventListModel::loading();
 }

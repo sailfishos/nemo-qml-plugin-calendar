@@ -260,6 +260,11 @@ void CalendarManager::onSearchResults(const QString &searchString,
     }
 }
 
+bool CalendarManager::isSearching(const CalendarSearchModel *model) const
+{
+    return mSearchList.contains(const_cast<CalendarSearchModel*>(model));
+}
+
 void CalendarManager::cancelAgendaRefresh(CalendarAgendaModel *model)
 {
     mAgendaRefreshList.removeOne(model);
