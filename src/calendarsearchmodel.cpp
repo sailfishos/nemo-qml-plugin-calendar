@@ -30,8 +30,11 @@
  */
 
 #include "calendarsearchmodel.h"
-
 #include "calendarmanager.h"
+#include "calendareventoccurrence.h"
+#include "logging_p.h"
+
+#include <QDebug>
 
 CalendarSearchModel::CalendarSearchModel(QObject *parent)
     : CalendarEventListModel(parent)
@@ -41,6 +44,35 @@ CalendarSearchModel::CalendarSearchModel(QObject *parent)
 CalendarSearchModel::~CalendarSearchModel()
 {
     CalendarManager::instance()->cancelSearch(this);
+}
+
+QHash<int, QByteArray> CalendarSearchModel::roleNames() const
+{
+    QHash<int, QByteArray> roleNames = CalendarEventListModel::roleNames();
+    roleNames[YearRole] = "year";
+    return roleNames;
+}
+
+QVariant CalendarSearchModel::data(const QModelIndex &index, int role) const
+{
+    if (role < YearRole)
+        return CalendarEventListModel::data(index, role);
+
+    QVariant data = CalendarEventListModel::data(index, CalendarEventListModel::OccurrenceObjectRole);
+    if (!data.isValid())
+        return QVariant();
+
+    CalendarEventOccurrence *occurrence = qobject_cast<CalendarEventOccurrence*>(data.value<QObject*>());
+    if (!occurrence)
+        return QVariant();
+
+    switch (role) {
+    case YearRole:
+        return QVariant(occurrence->startTime().date().year());
+    default:
+        qWarning() << "CalendarSearchModel: Unknown role asked";
+        return QVariant();
+    }
 }
 
 void CalendarSearchModel::setSearchString(const QString &searchString)

@@ -42,6 +42,11 @@ class CalendarSearchModel : public CalendarEventListModel
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
 public:
+    enum SearchRoles {
+        YearRole = CalendarEventListModel::LastRole
+    };
+    Q_ENUM(SearchRoles)
+
     CalendarSearchModel(QObject *parent = 0);
     ~CalendarSearchModel();
 
@@ -55,10 +60,15 @@ public:
 
     bool loading() const;
 
+    virtual QVariant data(const QModelIndex &index, int role) const;
+
 signals:
     void searchStringChanged();
     void loadingChanged();
     void limitChanged();
+
+protected:
+    virtual QHash<int, QByteArray> roleNames() const;
 
 private:
     QString mSearchString;

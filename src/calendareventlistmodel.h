@@ -50,7 +50,8 @@ public:
     enum EventListRoles {
         EventObjectRole = Qt::UserRole,
         OccurrenceObjectRole,
-        IdentifierRole
+        IdentifierRole,
+        LastRole // Used by classes inheriting CalendarEventListModel
     };
     Q_ENUM(EventListRoles)
 
@@ -67,7 +68,7 @@ public:
     bool loading() const;
 
     int rowCount(const QModelIndex &index) const;
-    QVariant data(const QModelIndex &index, int role) const;
+    virtual QVariant data(const QModelIndex &index, int role) const;
 
     virtual void classBegin();
     virtual void componentComplete();
