@@ -242,7 +242,8 @@ void CalendarManager::search(CalendarSearchModel *model)
             return;
     }
     QMetaObject::invokeMethod(mCalendarWorker, "search", Qt::QueuedConnection,
-                              Q_ARG(QString, model->searchString()));
+                              Q_ARG(QString, model->searchString()),
+                              Q_ARG(int, model->limit()));
 }
 
 void CalendarManager::onSearchResults(const QString &searchString,

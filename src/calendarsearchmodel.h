@@ -38,6 +38,7 @@ class CalendarSearchModel : public CalendarEventListModel
 {
     Q_OBJECT
     Q_PROPERTY(QString searchString READ searchString WRITE setSearchString NOTIFY searchStringChanged)
+    Q_PROPERTY(int limit READ limit WRITE setLimit NOTIFY limitChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
 public:
@@ -47,6 +48,9 @@ public:
     QString searchString() const;
     void setSearchString(const QString &pattern);
 
+    int limit() const;
+    void setLimit(int limit);
+
     void setIdentifiers(const QStringList &ids);
 
     bool loading() const;
@@ -54,9 +58,11 @@ public:
 signals:
     void searchStringChanged();
     void loadingChanged();
+    void limitChanged();
 
 private:
     QString mSearchString;
+    int mLimit = 0;
 };
 
 #endif

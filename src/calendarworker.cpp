@@ -752,12 +752,12 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
     return event;
 }
 
-void CalendarWorker::search(const QString &searchString)
+void CalendarWorker::search(const QString &searchString, int limit)
 {
     QStringList identifiers;
     QMultiHash<QString, CalendarData::Event> events;
 
-    if (mStorage->search(searchString, &identifiers)) {
+    if (mStorage->search(searchString, &identifiers, limit)) {
         emit searchResults(searchString, identifiers);
     }
 

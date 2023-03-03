@@ -63,6 +63,25 @@ QString CalendarSearchModel::searchString() const
     return mSearchString;
 }
 
+int CalendarSearchModel::limit() const
+{
+    return mLimit;
+}
+
+void CalendarSearchModel::setLimit(int limit)
+{
+    if (limit == mLimit)
+        return;
+
+    mLimit = limit;
+    emit limitChanged();
+
+    if (!mSearchString.isEmpty()) {
+        CalendarManager::instance()->search(this);
+        emit loadingChanged();
+    }
+}
+
 void CalendarSearchModel::setIdentifiers(const QStringList &ids)
 {
     CalendarEventListModel::setIdentifiers(ids);

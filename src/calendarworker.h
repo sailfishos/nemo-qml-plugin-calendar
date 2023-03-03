@@ -85,7 +85,7 @@ public slots:
     void loadData(const QList<CalendarData::Range> &ranges,
                   const QStringList &instanceList, bool reset);
 
-    void search(const QString &searchString);
+    void search(const QString &searchString, int limit);
 
     CalendarData::EventOccurrence getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
                                                     const QDateTime &startTime) const;
