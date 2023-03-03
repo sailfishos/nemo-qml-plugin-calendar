@@ -330,7 +330,6 @@ namespace CalendarImportExport {
             COPY_IF_NOT_EQUAL(dest, src, description(), setDescription);
             COPY_IF_NOT_EQUAL(dest, src, geoLatitude(), setGeoLatitude);
             COPY_IF_NOT_EQUAL(dest, src, geoLongitude(), setGeoLongitude);
-            COPY_IF_NOT_EQUAL(dest, src, hasGeo(), setHasGeo);
             COPY_IF_NOT_EQUAL(dest, src, location(), setLocation);
             COPY_IF_NOT_EQUAL(dest, src, resources(), setResources);
             COPY_IF_NOT_EQUAL(dest, src, secrecy(), setSecrecy);
