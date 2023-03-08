@@ -42,8 +42,8 @@ class CalendarEventOccurrence : public QObject
 {
     Q_OBJECT
     // startTime and endTime are givent in local time.
-    Q_PROPERTY(QDateTime startTime READ startTime CONSTANT)
-    Q_PROPERTY(QDateTime endTime READ endTime CONSTANT)
+    Q_PROPERTY(QDateTime startTime READ startTime NOTIFY startTimeChanged)
+    Q_PROPERTY(QDateTime endTime READ endTime NOTIFY endTimeChanged)
     // startTimeInTz and endTimeInTz are given in event startTime / endTime timezone
     Q_PROPERTY(QDateTime startTimeInTz READ startTimeInTz CONSTANT)
     Q_PROPERTY(QDateTime endTimeInTz READ endTimeInTz CONSTANT)
@@ -62,6 +62,10 @@ public:
     QDateTime startTimeInTz() const;
     QDateTime endTimeInTz() const;
     CalendarStoredEvent *eventObject() const;
+
+signals:
+    void startTimeChanged();
+    void endTimeChanged();
 
 private slots:
     void eventUidChanged(QString oldUid, QString newUid);

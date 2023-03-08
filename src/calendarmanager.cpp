@@ -67,6 +67,9 @@ CalendarManager::CalendarManager()
     connect(mCalendarWorker, &CalendarWorker::storageModifiedSignal,
             this, &CalendarManager::storageModifiedSlot);
 
+    connect(mCalendarWorker, &CalendarWorker::calendarTimezoneChanged,
+            this, &CalendarManager::calendarTimezoneChangedSlot);
+
     connect(mCalendarWorker, &CalendarWorker::eventNotebookChanged,
             this, &CalendarManager::eventNotebookChanged);
 
@@ -613,6 +616,21 @@ void CalendarManager::storageModifiedSlot()
 {
     mResetPending = true;
     emit storageModified();
+}
+
+void CalendarManager::calendarTimezoneChangedSlot()
+{
+    QMultiHash<QString, CalendarStoredEvent *>::ConstIterator it;
+    for (it = mEventObjects.constBegin(); it != mEventObjects.constEnd(); it++) {
+        // Actually, the date times have not changed, but
+        // their representation in local time (as used in QML)
+        // have changed.
+        if ((*it)->startTimeSpec() != Qt::LocalTime)
+            (*it)->startTimeChanged();
+        if ((*it)->endTimeSpec() != Qt::LocalTime)
+            (*it)->endTimeChanged();
+    }
+    emit timezoneChanged();
 }
 
 void CalendarManager::eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid,

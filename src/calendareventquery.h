@@ -150,6 +150,7 @@ signals:
 
 private slots:
     void refresh();
+    void onTimezoneChanged();
     void eventUidChanged(QString oldUid, QString newUid);
 
 private:

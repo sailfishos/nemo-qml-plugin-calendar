@@ -44,6 +44,9 @@
 // libaccounts-qt
 namespace Accounts { class Manager; }
 
+// To get notified about timezone changes
+#include <timed-qt5/wall-declarations.h>
+
 class CalendarInvitationQuery;
 
 class CalendarWorker : public QObject, public mKCal::ExtendedStorageObserver
@@ -87,9 +90,11 @@ public slots:
     QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId);
 
     void findMatchingEvent(const QString &invitationFile);
+    void onTimedSignal(const Maemo::Timed::WallClock::Info &info, bool time_changed);
 
 signals:
     void storageModifiedSignal();
+    void calendarTimezoneChanged();
 
     void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
 

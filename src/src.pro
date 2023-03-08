@@ -2,7 +2,7 @@ TARGET = nemocalendar
 PLUGIN_IMPORT_PATH = org/nemomobile/calendar
 
 TEMPLATE = lib
-CONFIG += qt plugin hide_symbols
+CONFIG += qt plugin hide_symbols timed-qt5
 
 QT += qml concurrent
 QT -= gui

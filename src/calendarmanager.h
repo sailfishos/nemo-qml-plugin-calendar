@@ -113,6 +113,7 @@ public:
 
 private slots:
     void storageModifiedSlot();
+    void calendarTimezoneChangedSlot();
     void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
     void excludedNotebooksChangedSlot(const QStringList &excludedNotebooks);
     void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);
@@ -133,6 +134,7 @@ signals:
     void notebookColorChanged(QString notebookUid);
     void defaultNotebookChanged(QString notebookUid);
     void storageModified();
+    void timezoneChanged();
     void dataUpdated();
     void eventUidChanged(QString oldUid, QString newUid);
 

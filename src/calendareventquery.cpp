@@ -43,6 +43,8 @@ CalendarEventQuery::CalendarEventQuery()
 {
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
+    connect(CalendarManager::instance(), &CalendarManager::timezoneChanged,
+            this, &CalendarEventQuery::onTimezoneChanged);
 
     connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
             this, SLOT(eventUidChanged(QString,QString)));
@@ -237,6 +239,17 @@ void CalendarEventQuery::refresh()
         return;
 
     CalendarManager::instance()->scheduleEventQueryRefresh(this);
+}
+
+void CalendarEventQuery::onTimezoneChanged()
+{
+    if (mOccurrence) {
+        // Actually, the date times have not changed, but
+        // their representations in local time (as used in QML)
+        // have changed.
+        mOccurrence->startTimeChanged();
+        mOccurrence->endTimeChanged();
+    }
 }
 
 void CalendarEventQuery::eventUidChanged(QString oldUid, QString newUid)

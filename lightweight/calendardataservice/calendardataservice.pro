@@ -5,7 +5,7 @@ target.path = /usr/bin
 QT += qml dbus
 QT -= gui
 
-CONFIG += link_pkgconfig
+CONFIG += link_pkgconfig timed-qt5
 PKGCONFIG += KF5CalendarCore libmkcal-qt5 accounts-qt5
 
 HEADERS += \
