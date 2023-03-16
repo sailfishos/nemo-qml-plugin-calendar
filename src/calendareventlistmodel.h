@@ -79,6 +79,7 @@ protected:
 
 private slots:
     void doRefresh();
+    void onTimezoneChanged();
 
 private:
     void refresh();

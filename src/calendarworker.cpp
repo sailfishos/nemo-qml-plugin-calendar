@@ -55,6 +55,9 @@
 #include <Accounts/Provider>
 #include <Accounts/Account>
 
+// To get notified about timezone changes
+#include <timed-qt5/interface>
+
 namespace {
     void updateAttendee(KCalendarCore::Event::Ptr event,
                         const KCalendarCore::Attendee &attendee,
@@ -331,6 +334,24 @@ void CalendarWorker::init()
     mStorage->open();
     mStorage->registerObserver(this);
     loadNotebooks();
+
+    Maemo::Timed::Interface *timed = new Maemo::Timed::Interface(this);
+    if (!timed->settings_changed_connect(this, SLOT(onTimedSignal(const Maemo::Timed::WallClock::Info &, bool)))) {
+        qWarning() << "Connection to timed signal failed:" << Maemo::Timed::bus().lastError().message();
+    }
+}
+
+void CalendarWorker::onTimedSignal(const Maemo::Timed::WallClock::Info &info,
+                                   bool time_changed)
+{
+    Q_UNUSED(time_changed);
+
+    QTimeZone newTimezone(info.humanReadableTz().toUtf8());
+    if (newTimezone.isValid() && newTimezone != mCalendar->timeZone()) {
+        mCalendar->setTimeZone(newTimezone);
+        emit storageModifiedSignal();
+        emit calendarTimezoneChanged();
+    }
 }
 
 bool CalendarWorker::isOrganizer(const KCalendarCore::Incidence::Ptr &event) const

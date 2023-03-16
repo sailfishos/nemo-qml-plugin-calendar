@@ -103,6 +103,7 @@ protected:
 
 private slots:
     void refresh();
+    void onTimezoneChanged();
 
 private:
     QDate mStartDate;

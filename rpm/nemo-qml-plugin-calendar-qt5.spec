@@ -13,6 +13,7 @@ BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(libmkcal-qt5) >= 0.7.6
 BuildRequires:  pkgconfig(KF5CalendarCore)
 BuildRequires:  pkgconfig(accounts-qt5)
+BuildRequires:  pkgconfig(timed-qt5)
 
 %description
 %{summary}.

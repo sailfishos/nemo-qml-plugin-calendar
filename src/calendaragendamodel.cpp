@@ -44,6 +44,8 @@ CalendarAgendaModel::CalendarAgendaModel(QObject *parent)
 {
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
+    connect(CalendarManager::instance(), &CalendarManager::timezoneChanged,
+            this, &CalendarAgendaModel::onTimezoneChanged);
 }
 
 CalendarAgendaModel::~CalendarAgendaModel()
@@ -283,6 +285,18 @@ QVariant CalendarAgendaModel::get(int index, int role) const
     default:
         qWarning() << "CalendarAgendaModel: Unknown role asked";
         return QVariant();
+    }
+}
+
+void CalendarAgendaModel::onTimezoneChanged()
+{
+    QList<CalendarEventOccurrence *>::ConstIterator it;
+    for (it = mEvents.constBegin(); it != mEvents.constEnd(); it++) {
+        // Actually, the date times have not changed, but
+        // their representations in local time (as used in QML)
+        // have changed.
+        (*it)->startTimeChanged();
+        (*it)->endTimeChanged();
     }
 }
 
