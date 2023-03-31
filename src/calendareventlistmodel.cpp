@@ -96,6 +96,11 @@ QStringList CalendarEventListModel::missingItems() const
     return mMissingItems;
 }
 
+bool CalendarEventListModel::loading() const
+{
+    return (mEventIdentifiers.count() + mMissingItems.count()) < mIdentifiers.count();
+}
+
 int CalendarEventListModel::count() const
 {
     return mEvents.size();
@@ -131,6 +136,7 @@ void CalendarEventListModel::doRefresh()
     endResetModel();
     emit countChanged();
     emit missingItemsChanged();
+    emit loadingChanged();
 }
 
 QVariant CalendarEventListModel::data(const QModelIndex &index, int role) const

@@ -38,6 +38,7 @@
 #include "calendarevent.h"
 #include "calendaragendamodel.h"
 #include "calendareventlistmodel.h"
+#include "calendarsearchmodel.h"
 #include "calendareventoccurrence.h"
 #include "calendareventquery.h"
 #include "calendarinvitationquery.h"
@@ -80,6 +81,9 @@ CalendarManager::CalendarManager()
 
     connect(mCalendarWorker, &CalendarWorker::dataLoaded,
             this, &CalendarManager::dataLoadedSlot);
+
+    connect(mCalendarWorker, &CalendarWorker::searchResults,
+            this, &CalendarManager::onSearchResults);
 
     connect(mCalendarWorker, &CalendarWorker::findMatchingEventFinished,
             this, &CalendarManager::findMatchingEventFinished);
@@ -219,6 +223,47 @@ QString CalendarManager::getNotebookColor(const QString &notebookUid) const
         return mNotebooks.value(notebookUid, CalendarData::Notebook()).color;
     else
         return QString();
+}
+
+void CalendarManager::cancelSearch(CalendarSearchModel *model)
+{
+    mSearchList.removeOne(model);
+}
+
+void CalendarManager::search(CalendarSearchModel *model)
+{
+    if (mSearchList.contains(model))
+        return;
+
+    mSearchList.append(model);
+    QList<CalendarSearchModel*>::ConstIterator it;
+    for (it = mSearchList.constBegin(); it != mSearchList.constEnd(); it++) {
+        if (model != *it && model->searchString() == (*it)->searchString())
+            return;
+    }
+    QMetaObject::invokeMethod(mCalendarWorker, "search", Qt::QueuedConnection,
+                              Q_ARG(QString, model->searchString()),
+                              Q_ARG(int, model->limit()));
+}
+
+void CalendarManager::onSearchResults(const QString &searchString,
+                                      const QStringList &identifiers)
+{
+    QList<CalendarSearchModel*>::Iterator it = mSearchList.begin();
+    while (it != mSearchList.end()) {
+        CalendarSearchModel *model = *it;
+        if (model->searchString() == searchString) {
+            it = mSearchList.erase(it);
+            model->setIdentifiers(identifiers);
+        } else {
+            it++;
+        }
+    }
+}
+
+bool CalendarManager::isSearching(const CalendarSearchModel *model) const
+{
+    return mSearchList.contains(const_cast<CalendarSearchModel*>(model));
 }
 
 void CalendarManager::cancelAgendaRefresh(CalendarAgendaModel *model)

@@ -49,6 +49,7 @@ class CalendarEventListModel;
 class CalendarEventOccurrence;
 class CalendarEventQuery;
 class CalendarInvitationQuery;
+class CalendarSearchModel;
 
 class CalendarManager : public QObject
 {
@@ -96,6 +97,11 @@ public:
     void cancelEventListRefresh(CalendarEventListModel *model);
     void scheduleEventListRefresh(CalendarEventListModel *model);
 
+    // SearchModel
+    void cancelSearch(CalendarSearchModel *model);
+    void search(CalendarSearchModel *model);
+    bool isSearching(const CalendarSearchModel *model) const;
+
     // EventQuery
     void scheduleEventQueryRefresh(CalendarEventQuery *query);
     void cancelEventQueryRefresh(CalendarEventQuery *query);
@@ -126,6 +132,7 @@ private slots:
     void timeout();
     void findMatchingEventFinished(const QString &invitationFile,
                                    const CalendarData::Event &event);
+    void onSearchResults(const QString &searchString, const QStringList &identifiers);
 
 signals:
     void excludedNotebooksChanged(QStringList excludedNotebooks);
@@ -157,6 +164,7 @@ private:
     QList<CalendarAgendaModel *> mAgendaRefreshList;
     QList<CalendarEventListModel *> mEventListRefreshList;
     QList<CalendarEventQuery *> mQueryRefreshList;
+    QList<CalendarSearchModel *> mSearchList;
     QHash<CalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
     QStringList mExcludedNotebooks;
     QHash<QString, CalendarData::Notebook> mNotebooks;

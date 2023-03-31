@@ -44,6 +44,7 @@ class CalendarEventListModel : public QAbstractListModel, public QQmlParserStatu
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QStringList identifiers READ identifiers WRITE setIdentifiers NOTIFY identifiersChanged)
     Q_PROPERTY(QStringList missingItems READ missingItems NOTIFY missingItemsChanged)
+    Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
 public:
     enum EventListRoles {
@@ -63,6 +64,8 @@ public:
 
     QStringList missingItems() const;
 
+    bool loading() const;
+
     int rowCount(const QModelIndex &index) const;
     QVariant data(const QModelIndex &index, int role) const;
 
@@ -73,6 +76,7 @@ signals:
     void countChanged();
     void identifiersChanged();
     void missingItemsChanged();
+    virtual void loadingChanged();
 
 protected:
     virtual QHash<int, QByteArray> roleNames() const;

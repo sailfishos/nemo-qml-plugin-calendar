@@ -43,6 +43,7 @@
 #include "calendareventmodification.h"
 #include "calendaragendamodel.h"
 #include "calendareventlistmodel.h"
+#include "calendarsearchmodel.h"
 #include "calendarmanager.h"
 #include "calendarnotebookquery.h"
 #include "calendarimportmodel.h"
@@ -124,6 +125,7 @@ public:
                                                                   "Create CalendarEventModification instances through Calendar API");
         qmlRegisterType<CalendarAgendaModel>(uri, 1, 0, "AgendaModel");
         qmlRegisterType<CalendarEventListModel>(uri, 1, 0, "EventListModel");
+        qmlRegisterType<CalendarSearchModel>(uri, 1, 0, "EventSearchModel");
         qmlRegisterType<CalendarEventQuery>(uri, 1, 0, "EventQuery");
         qmlRegisterType<CalendarInvitationQuery>(uri, 1, 0, "InvitationQuery");
         qmlRegisterUncreatableType<Person>(uri, 1, 0, "Person", "Persons reachable only through EventQuery");

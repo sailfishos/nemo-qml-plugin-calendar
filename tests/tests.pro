@@ -3,7 +3,8 @@ SUBDIRS = \
     tst_calendarmanager \
     tst_calendarevent \
     tst_calendaragendamodel \
-    tst_calendarimportmodel
+    tst_calendarimportmodel \
+    tst_calendarsearchmodel
 
 tests_xml.path = /opt/tests/nemo-qml-plugins-qt5/calendar
 tests_xml.files = tests.xml
