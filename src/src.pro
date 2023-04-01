@@ -4,7 +4,7 @@ PLUGIN_IMPORT_PATH = org/nemomobile/calendar
 TEMPLATE = lib
 CONFIG += qt plugin hide_symbols timed-qt5
 
-QT += qml concurrent
+QT += qml concurrent dbus
 QT -= gui
 QMAKE_CXXFLAGS += -Werror
 
