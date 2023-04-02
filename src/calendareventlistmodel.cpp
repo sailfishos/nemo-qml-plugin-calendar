@@ -96,9 +96,32 @@ QStringList CalendarEventListModel::missingItems() const
     return mMissingItems;
 }
 
+// For recurring events, if mStartTime is valid, the stored occurrence
+// is the closest to mStartTime. When mStartTime is invalid, the
+// initial occurrence is used.
+QDateTime CalendarEventListModel::startTime() const
+{
+    return mStartTime;
+}
+
+void CalendarEventListModel::setStartTime(const QDateTime &time)
+{
+    if (time == mStartTime)
+        return;
+    mStartTime = time;
+    emit startTimeChanged();
+
+    doRefresh();
+}
+
+void CalendarEventListModel::resetStartTime()
+{
+    setStartTime(QDateTime());
+}
+
 bool CalendarEventListModel::loading() const
 {
-    return (mEventIdentifiers.count() + mMissingItems.count()) < mIdentifiers.count();
+    return (mEvents.count() + mMissingItems.count()) < mIdentifiers.count();
 }
 
 int CalendarEventListModel::count() const
@@ -119,18 +142,38 @@ void CalendarEventListModel::doRefresh()
     beginResetModel();
     qDeleteAll(mEvents);
     mEvents.clear();
-    mEventIdentifiers.clear();
     mMissingItems.clear();
 
     for (const QString &id : mIdentifiers) {
         bool loaded;
         CalendarData::Event event = CalendarManager::instance()->getEvent(id, &loaded);
         if (event.isValid()) {
-            mEvents.append(new CalendarEventOccurrence(event.uniqueId, event.recurrenceId, event.startTime, event.endTime, this));
-            mEventIdentifiers.append(id);
+            CalendarEventOccurrence *occurrence;
+            if (event.recur != CalendarEvent::RecurOnce && mStartTime.isValid()) {
+                occurrence = CalendarManager::instance()->getNextOccurrence
+                    (event.uniqueId, event.recurrenceId, mStartTime);
+            } else {
+                occurrence = new CalendarEventOccurrence(event.uniqueId, event.recurrenceId,
+                                                         event.startTime, event.endTime, this);
+            }
+            if (occurrence->startTime().isValid()) {
+                occurrence->setProperty("identifier", id);
+                mEvents.append(occurrence);
+            } else {
+                delete occurrence;
+                mMissingItems.append(id);
+            }
         } else if (loaded) {
             mMissingItems.append(id);
         }
+    }
+
+    if (mStartTime.isValid()) {
+        std::sort(mEvents.begin(), mEvents.end(),
+                  [](CalendarEventOccurrence *a, CalendarEventOccurrence *b) {
+                      // Inverse sort: earlier first
+                      return a && b && (*b < *a);
+                  });
     }
 
     endResetModel();
@@ -155,7 +198,7 @@ QVariant CalendarEventListModel::data(const QModelIndex &index, int role) const
     case OccurrenceObjectRole:
         return QVariant::fromValue<QObject *>(mEvents.at(index.row()));
     case IdentifierRole:
-        return QVariant::fromValue<QString>(mEventIdentifiers.at(index.row()));
+        return mEvents.at(index.row())->property("identifier");
     default:
         qWarning() << "CalendarEventListModel: Unknown role asked";
         return QVariant();

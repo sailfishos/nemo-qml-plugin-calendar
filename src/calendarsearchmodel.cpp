@@ -39,6 +39,7 @@
 CalendarSearchModel::CalendarSearchModel(QObject *parent)
     : CalendarEventListModel(parent)
 {
+    setStartTime(QDateTime::currentDateTimeUtc());
 }
 
 CalendarSearchModel::~CalendarSearchModel()
