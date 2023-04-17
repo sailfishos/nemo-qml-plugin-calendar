@@ -233,7 +233,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
 {
     QString notebookUid = eventData.calendarUid;
 
-    if (!notebookUid.isEmpty() && !mStorage->isValidNotebook(notebookUid)) {
+    if (!notebookUid.isEmpty() && !mCalendar->hasValidNotebook(notebookUid)) {
         qWarning() << "Invalid notebook uid:" << notebookUid;
         return;
     }
