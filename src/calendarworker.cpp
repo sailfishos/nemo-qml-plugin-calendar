@@ -130,7 +130,7 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
         // if the event was stored in a local (non-synced) notebook, purge it.
         const CalendarData::Notebook &notebook = mNotebooks.value(mCalendar->notebook(event));
         if (notebook.localCalendar
-            && !storage->purgeDeletedIncidences(KCalendarCore::Incidence::List() << event)) {
+            && !storage->purgeDeletedIncidences(KCalendarCore::Incidence::List() << event, notebook.uid)) {
             qWarning() << "Failed to purge deleted event" << event->uid()
                        << "from local calendar" << mCalendar->notebook(event);
         }
