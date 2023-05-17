@@ -112,12 +112,22 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
     // until that is done, let's just handle new events as invitations and rest as updates.
     for (const KCalendarCore::Incidence::Ptr &event: added) {
         if (event->attendeeCount() > 0) {
-            mKCal::ServiceHandler::instance().sendInvitation(event, QString(), mCalendar, mStorage);
+            mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+            if (notebook) {
+                mKCal::ServiceHandler::instance().sendInvitation(notebook, event, QString());
+            } else {
+                qWarning() << "Failed to load notebook for incidence" << event->instanceIdentifier();
+            }
         }
     }
     for (const KCalendarCore::Incidence::Ptr &event: modified) {
         if (event->attendeeCount() > 0 && isOrganizer(event)) {
-            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
+            mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+            if (notebook) {
+                mKCal::ServiceHandler::instance().sendUpdate(notebook, event, QString());
+            } else {
+                qWarning() << "Failed to load notebook for incidence" << event->instanceIdentifier();
+            }
         }
     }
 
@@ -125,7 +135,12 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
         // FIXME: should send response update if deleting an event we have responded to.
         if (event->attendeeCount() > 0 && isOrganizer(event)) {
             event->setStatus(KCalendarCore::Incidence::StatusCanceled);
-            mKCal::ServiceHandler::instance().sendUpdate(event, QString(), mCalendar, mStorage);
+            mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+            if (notebook) {
+                mKCal::ServiceHandler::instance().sendUpdate(notebook, event, QString());
+            } else {
+                qWarning() << "Failed to load notebook for incidence" << event->instanceIdentifier();
+            }
         }
         // if the event was stored in a local (non-synced) notebook, purge it.
         const CalendarData::Notebook &notebook = mNotebooks.value(mCalendar->notebook(event));
@@ -199,10 +214,15 @@ bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenc
     }
     updateAttendee(event, origAttendee, updated);
 
-    bool sent = mKCal::ServiceHandler::instance().sendResponse(event, event->description(), mCalendar, mStorage);
-
-    if (!sent)
-        updateAttendee(event, updated, origAttendee);
+    bool sent = false;
+    mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+    if (notebook) {
+        sent = mKCal::ServiceHandler::instance().sendResponse(notebook, event, event->description());
+        if (!sent)
+            updateAttendee(event, updated, origAttendee);
+    } else {
+        qWarning() << "Failed to load notebook for incidence" << event->instanceIdentifier();
+    }
 
     return sent;
 }
@@ -448,7 +468,7 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
         if (cancelAttendees.size()) {
             cancelEvent->setAttendees(cancelAttendees);
             cancelEvent->setStatus(KCalendarCore::Incidence::StatusCanceled);
-            mKCal::ServiceHandler::instance().sendUpdate(cancelEvent, QString(), mCalendar, mStorage, notebook);
+            mKCal::ServiceHandler::instance().sendUpdate(notebook, cancelEvent, QString());
         }
     }
 
@@ -825,7 +845,7 @@ void CalendarWorker::loadNotebooks()
         notebook.name = mkNotebook->name();
         notebook.uid = mkNotebook->uid();
         notebook.description = mkNotebook->description();
-        notebook.emailAddress = mKCal::ServiceHandler::instance().emailAddress(mkNotebook, mStorage);
+        notebook.emailAddress = mKCal::ServiceHandler::instance().emailAddress(mkNotebook);
         notebook.isDefault = mStorage->defaultNotebook()
                 && (mkNotebook->uid() == mStorage->defaultNotebook()->uid());
         notebook.readOnly = mkNotebook->isReadOnly();
