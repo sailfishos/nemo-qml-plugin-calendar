@@ -34,6 +34,7 @@
 
 #include <QAbstractListModel>
 #include <QQmlParserStatus>
+#include <QDateTime>
 
 class CalendarEventOccurrence;
 
@@ -43,6 +44,7 @@ class CalendarEventListModel : public QAbstractListModel, public QQmlParserStatu
     Q_INTERFACES(QQmlParserStatus)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QStringList identifiers READ identifiers WRITE setIdentifiers NOTIFY identifiersChanged)
+    Q_PROPERTY(QDateTime startTime READ startTime WRITE setStartTime RESET resetStartTime NOTIFY startTimeChanged)
     Q_PROPERTY(QStringList missingItems READ missingItems NOTIFY missingItemsChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
@@ -50,7 +52,8 @@ public:
     enum EventListRoles {
         EventObjectRole = Qt::UserRole,
         OccurrenceObjectRole,
-        IdentifierRole
+        IdentifierRole,
+        LastRole // Used by classes inheriting CalendarEventListModel
     };
     Q_ENUM(EventListRoles)
 
@@ -62,12 +65,16 @@ public:
     QStringList identifiers() const;
     void setIdentifiers(const QStringList &ids);
 
+    QDateTime startTime() const;
+    void setStartTime(const QDateTime &);
+    void resetStartTime();
+
     QStringList missingItems() const;
 
     bool loading() const;
 
     int rowCount(const QModelIndex &index) const;
-    QVariant data(const QModelIndex &index, int role) const;
+    virtual QVariant data(const QModelIndex &index, int role) const;
 
     virtual void classBegin();
     virtual void componentComplete();
@@ -76,6 +83,7 @@ signals:
     void countChanged();
     void identifiersChanged();
     void missingItemsChanged();
+    void startTimeChanged();
     virtual void loadingChanged();
 
 protected:
@@ -91,8 +99,8 @@ private:
     bool mIsComplete;
     QStringList mIdentifiers;
     QStringList mMissingItems;
+    QDateTime mStartTime;
     QList<CalendarEventOccurrence*> mEvents;
-    QStringList mEventIdentifiers; // contains a subset of mIdentifiers corresponding to events in mEvents
 };
 
 #endif // CALENDAREVENTLISTMODEL_H

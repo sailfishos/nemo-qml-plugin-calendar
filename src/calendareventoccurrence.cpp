@@ -52,6 +52,11 @@ CalendarEventOccurrence::~CalendarEventOccurrence()
 {
 }
 
+bool CalendarEventOccurrence::operator<(const CalendarEventOccurrence &other)
+{
+    return (mStartTime == other.mStartTime) ? (mEndTime < other.mEndTime) : (mStartTime < other.mStartTime);
+}
+
 QDateTime CalendarEventOccurrence::startTime() const
 {
     return mStartTime;

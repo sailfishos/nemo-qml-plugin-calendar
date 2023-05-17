@@ -57,6 +57,8 @@ public:
                             QObject *parent = 0);
     ~CalendarEventOccurrence();
 
+    bool operator<(const CalendarEventOccurrence &other);
+
     QDateTime startTime() const;
     QDateTime endTime() const;
     QDateTime startTimeInTz() const;
