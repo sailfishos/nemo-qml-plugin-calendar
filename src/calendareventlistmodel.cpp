@@ -148,14 +148,9 @@ void CalendarEventListModel::doRefresh()
         bool loaded;
         CalendarData::Event event = CalendarManager::instance()->getEvent(id, &loaded);
         if (event.isValid()) {
-            CalendarEventOccurrence *occurrence;
-            if (event.recur != CalendarEvent::RecurOnce && mStartTime.isValid()) {
-                occurrence = CalendarManager::instance()->getNextOccurrence
-                    (event.uniqueId, event.recurrenceId, mStartTime);
-            } else {
-                occurrence = new CalendarEventOccurrence(event.uniqueId, event.recurrenceId,
-                                                         event.startTime, event.endTime, this);
-            }
+            CalendarEventOccurrence *occurrence =
+                CalendarManager::instance()->getNextOccurrence
+                (event.uniqueId, event.recurrenceId, mStartTime);
             if (occurrence->startTime().isValid()) {
                 occurrence->setProperty("identifier", id);
                 mEvents.append(occurrence);

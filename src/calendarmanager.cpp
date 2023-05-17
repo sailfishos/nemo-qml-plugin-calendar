@@ -763,11 +763,20 @@ CalendarEventOccurrence* CalendarManager::getNextOccurrence(const QString &uid, 
                                                             const QDateTime &start)
 {
     CalendarData::EventOccurrence eo;
-    QMetaObject::invokeMethod(mCalendarWorker, "getNextOccurrence", Qt::BlockingQueuedConnection,
-                              Q_RETURN_ARG(CalendarData::EventOccurrence, eo),
-                              Q_ARG(QString, uid),
-                              Q_ARG(QDateTime, recurrenceId),
-                              Q_ARG(QDateTime, start));
+    const CalendarData::Event event = getEvent(uid, recurrenceId);
+    if (event.recur == CalendarEvent::RecurOnce) {
+        const QTimeZone systemTimeZone = QTimeZone::systemTimeZone();
+        eo.eventUid = event.uniqueId;
+        eo.recurrenceId = event.recurrenceId;
+        eo.startTime = event.startTime.toTimeZone(systemTimeZone);
+        eo.endTime = event.endTime.toTimeZone(systemTimeZone);
+    } else {
+        QMetaObject::invokeMethod(mCalendarWorker, "getNextOccurrence", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(CalendarData::EventOccurrence, eo),
+                                  Q_ARG(QString, uid),
+                                  Q_ARG(QDateTime, recurrenceId),
+                                  Q_ARG(QDateTime, start));
+    }
 
     if (!eo.startTime.isValid()) {
         qWarning() << Q_FUNC_INFO << "Unable to find occurrence for event" << uid << recurrenceId;
