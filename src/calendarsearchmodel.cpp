@@ -32,7 +32,6 @@
 #include "calendarsearchmodel.h"
 #include "calendarmanager.h"
 #include "calendareventoccurrence.h"
-#include "logging_p.h"
 
 #include <QDebug>
 
