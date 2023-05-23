@@ -679,7 +679,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     if (reset)
         mSentEvents.clear();
 
-    QMultiHash<QString, CalendarData::Event> events;
+    QHash<QString, CalendarData::Event> events;
     bool orphansDeleted = false;
 
     const KCalendarCore::Event::List list = mCalendar->rawEvents();
@@ -714,11 +714,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
         if (!mSentEvents.contains(id)) {
             CalendarData::Event event = createEventStruct(e, notebook);
             mSentEvents.insert(id);
-            events.insert(event.uniqueId, event);
-            if (id != event.uniqueId) {
-                // Ensures that events can also be retrieved by instanceIdentifier
-                events.insert(id, event);
-            }
+            events.insert(id, event);
         }
     }
 
@@ -775,7 +771,7 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
 void CalendarWorker::search(const QString &searchString, int limit)
 {
     QStringList identifiers;
-    QMultiHash<QString, CalendarData::Event> events;
+    QHash<QString, CalendarData::Event> events;
 
     if (mStorage->search(searchString, &identifiers, limit)) {
         emit searchResults(searchString, identifiers);
@@ -790,11 +786,7 @@ void CalendarWorker::search(const QString &searchString, int limit)
                 mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(incidence));
                 CalendarData::Event event = createEventStruct(incidence.staticCast<KCalendarCore::Event>(), notebook);
                 mSentEvents.insert(identifiers[i]);
-                events.insert(event.uniqueId, event);
-                if (identifiers[i] != event.uniqueId) {
-                    // Ensures that events can also be retrieved by instanceIdentifier
-                    events.insert(identifiers[i], event);
-                }
+                events.insert(identifiers[i], event);
             }
         }
     }
