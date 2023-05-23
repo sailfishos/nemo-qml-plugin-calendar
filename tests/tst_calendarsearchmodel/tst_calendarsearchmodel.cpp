@@ -40,6 +40,7 @@ void tst_CalendarSearchModel::initTestCase()
                         &CalendarManager::storageModified);
     CalendarEventModification *event = calendarApi->createNewEvent();
     QVERIFY(event != 0);
+    event->setStartTime(QDateTime(QDate(2023,5,22), QTime(15,31)), Qt::LocalTime);
     event->setDisplayLabel(QString::fromLatin1("Summary with string 'azerty' %plop."));
     event->save();
     QVERIFY(modified.wait());

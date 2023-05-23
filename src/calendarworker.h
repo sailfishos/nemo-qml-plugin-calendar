@@ -71,10 +71,11 @@ public slots:
     void saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
                    const QList<CalendarData::EmailContact> &required,
                    const QList<CalendarData::EmailContact> &optional);
-    CalendarData::Event dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId);
-    void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
-    bool sendResponse(const QString &uid, const QDateTime &recurrenceId, const CalendarEvent::Response response);
-    QString convertEventToICalendar(const QString &uid, const QString &prodId) const;
+    CalendarData::Event dissociateSingleOccurrence(const QString &instanceId, const QDateTime &datetime);
+    void deleteEvent(const QString &instanceId, const QDateTime &dateTime);
+    void deleteAll(const QString &instanceId);
+    bool sendResponse(const QString &instanceId, const CalendarEvent::Response response);
+    QString convertEventToICalendar(const QString &instanceId, const QString &prodId) const;
 
     QList<CalendarData::Notebook> notebooks() const;
     void setNotebookColor(const QString &notebookUid, const QString &color);
@@ -87,9 +88,9 @@ public slots:
 
     void search(const QString &searchString, int limit);
 
-    CalendarData::EventOccurrence getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
+    CalendarData::EventOccurrence getNextOccurrence(const QString &instanceId,
                                                     const QDateTime &startTime) const;
-    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId);
+    QList<CalendarData::Attendee> getEventAttendees(const QString &instanceId);
 
     void findMatchingEvent(const QString &invitationFile);
     void onTimedSignal(const Maemo::Timed::WallClock::Info &info, bool time_changed);
@@ -127,6 +128,7 @@ private:
                               const QList<CalendarData::EmailContact> &optional,
                               const QString &notebookUid);
     QString getNotebookAddress(const QString &notebookUid) const;
+    KCalendarCore::Incidence::Ptr getInstance(const QString &instanceId) const;
 
     CalendarData::Event createEventStruct(const KCalendarCore::Event::Ptr &event,
                                           mKCal::Notebook::Ptr notebook = mKCal::Notebook::Ptr()) const;

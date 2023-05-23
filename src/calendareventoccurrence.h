@@ -50,8 +50,7 @@ class CalendarEventOccurrence : public QObject
     Q_PROPERTY(CalendarStoredEvent *event READ eventObject CONSTANT)
 
 public:
-    CalendarEventOccurrence(const QString &eventUid,
-                            const QDateTime &recurrenceId,
+    CalendarEventOccurrence(const QString &instanceId,
                             const QDateTime &startTime,
                             const QDateTime &endTime,
                             QObject *parent = 0);
@@ -73,8 +72,7 @@ private slots:
     void eventUidChanged(QString oldUid, QString newUid);
 
 private:
-    QString mEventUid;
-    QDateTime mRecurrenceId;
+    QString mInstanceId;
     QDateTime mStartTime;
     QDateTime mEndTime;
 };

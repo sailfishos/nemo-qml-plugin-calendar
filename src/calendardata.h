@@ -45,15 +45,14 @@
 namespace CalendarData {
 
 struct EventOccurrence {
-    QString eventUid;
-    QDateTime recurrenceId;
+    QString instanceId;
     QDateTime startTime;
     QDateTime endTime;
     bool eventAllDay;
 
     QString getId() const
     {
-        return QString("%1-%2").arg(eventUid).arg(startTime.toMSecsSinceEpoch());
+        return QString("%1-%2").arg(instanceId).arg(startTime.toMSecsSinceEpoch());
     }
 };
 
@@ -71,11 +70,12 @@ struct Event {
     CalendarEvent::Days recurWeeklyDays;
     int reminder = -1; // seconds; 15 minutes before event = +900, at time of event = 0, no reminder = negative value.
     QDateTime reminderDateTime; // Valid when reminder is at a given date and time.
-    QString uniqueId;
-    QDateTime recurrenceId;
+    QString instanceId; // A unique ID, used to identify an instance (incidence or exception) throughout calendars
+    QString incidenceUid; // The uid of the incidence, shared between parent and exceptions
+    QDateTime recurrenceId; // An id identifying an exception
+    QString calendarUid; // The uid of the calendar the instance belong to
     QString location;
     CalendarEvent::Secrecy secrecy = CalendarEvent::SecrecyPublic;
-    QString calendarUid;
     CalendarEvent::Response ownerStatus = CalendarEvent::ResponseUnspecified;
     CalendarEvent::Status status = CalendarEvent::StatusNone;
     CalendarEvent::SyncFailure syncFailure = CalendarEvent::NoSyncFailure;
@@ -88,12 +88,12 @@ struct Event {
 
     bool operator==(const Event& other) const
     {
-        return uniqueId == other.uniqueId;
+        return instanceId == other.instanceId;
     }
 
     bool isValid() const
     {
-        return !uniqueId.isEmpty();
+        return !instanceId.isEmpty();
     }
 
 private:

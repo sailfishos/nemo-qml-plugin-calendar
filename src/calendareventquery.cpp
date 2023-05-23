@@ -58,18 +58,18 @@ CalendarEventQuery::~CalendarEventQuery()
     }
 }
 
-// The uid of the matched event
-QString CalendarEventQuery::uniqueId() const
+// The instanceId of the matched event
+QString CalendarEventQuery::instanceId() const
 {
-    return mUid;
+    return mInstanceId;
 }
 
-void CalendarEventQuery::setUniqueId(const QString &uid)
+void CalendarEventQuery::setInstanceId(const QString &instanceId)
 {
-    if (uid == mUid)
+    if (instanceId == mInstanceId)
         return;
-    mUid = uid;
-    emit uniqueIdChanged();
+    mInstanceId = instanceId;
+    emit instanceIdChanged();
 
     if (mEvent.isValid()) {
         mEvent = CalendarData::Event();
@@ -80,28 +80,6 @@ void CalendarEventQuery::setUniqueId(const QString &uid)
         mOccurrence = 0;
         emit occurrenceChanged();
     }
-
-    refresh();
-}
-
-QString CalendarEventQuery::recurrenceIdString()
-{
-    if (mRecurrenceId.isValid()) {
-        return CalendarUtils::recurrenceIdToString(mRecurrenceId);
-    } else {
-        return QString();
-    }
-}
-
-void CalendarEventQuery::setRecurrenceIdString(const QString &recurrenceId)
-{
-    QDateTime recurrenceIdTime = QDateTime::fromString(recurrenceId, Qt::ISODate);
-    if (mRecurrenceId == recurrenceIdTime) {
-        return;
-    }
-
-    mRecurrenceId = recurrenceIdTime;
-    emit recurrenceIdStringChanged();
 
     refresh();
 }
@@ -132,8 +110,8 @@ void CalendarEventQuery::resetStartTime()
 
 QObject *CalendarEventQuery::event() const
 {
-    if (mEvent.isValid() && mEvent.uniqueId == mUid)
-        return CalendarManager::instance()->eventObject(mUid, mRecurrenceId);
+    if (mEvent.isValid() && mEvent.instanceId == mInstanceId)
+        return CalendarManager::instance()->eventObject(mInstanceId);
     else
         return nullptr;
 }
@@ -147,7 +125,7 @@ QList<QObject*> CalendarEventQuery::attendees()
 {
     if (!mAttendeesCached) {
         bool resultValid = false;
-        mAttendees = CalendarManager::instance()->getEventAttendees(mUid, mRecurrenceId, &resultValid);
+        mAttendees = CalendarManager::instance()->getEventAttendees(mInstanceId, &resultValid);
         if (resultValid) {
             mAttendeesCached = true;
         }
@@ -169,14 +147,14 @@ void CalendarEventQuery::componentComplete()
 
 void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
 {
-    // The value of mUid may have changed, verify that we got what we asked for
-    if (event.isValid() && (event.uniqueId != mUid || event.recurrenceId != mRecurrenceId))
+    // The value of mInstanceId may have changed, verify that we got what we asked for
+    if (event.isValid() && event.instanceId != mInstanceId)
         return;
 
     bool updateOccurrence = mUpdateOccurrence;
     bool signalEventChanged = false;
 
-    if (event.uniqueId != mEvent.uniqueId || event.recurrenceId != mEvent.recurrenceId) {
+    if (event.instanceId != mEvent.instanceId) {
         mEvent = event;
         signalEventChanged = true;
         updateOccurrence = true;
@@ -197,7 +175,7 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
 
         if (mEvent.isValid()) {
             CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(
-                    mUid, mRecurrenceId, mStartTime);
+                    mInstanceId, mStartTime);
             if (occurrence) {
                 mOccurrence = occurrence;
                 mOccurrence->setParent(this);
@@ -213,7 +191,7 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
     // check if attendees have changed.
     bool resultValid = false;
     QList<CalendarData::Attendee> attendees = CalendarManager::instance()->getEventAttendees(
-            mUid, mRecurrenceId, &resultValid);
+            mInstanceId, &resultValid);
     if (resultValid && mAttendees != attendees) {
         mAttendees = attendees;
         mAttendeesCached = true;
@@ -231,14 +209,9 @@ bool CalendarEventQuery::eventError() const
     return mEventError;
 }
 
-QDateTime CalendarEventQuery::recurrenceId()
-{
-    return mRecurrenceId;
-}
-
 void CalendarEventQuery::refresh()
 {
-    if (!mIsComplete || mUid.isEmpty())
+    if (!mIsComplete || mInstanceId.isEmpty())
         return;
 
     CalendarManager::instance()->scheduleEventQueryRefresh(this);
@@ -257,7 +230,7 @@ void CalendarEventQuery::onTimezoneChanged()
 
 void CalendarEventQuery::eventUidChanged(QString oldUid, QString newUid)
 {
-    if (mUid == oldUid) {
+    if (mInstanceId == oldUid) {
         emit newUniqueId(newUid);
         refresh();
     }

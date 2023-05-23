@@ -37,12 +37,11 @@
 #include "calendarevent.h"
 #include "calendarmanager.h"
 
-CalendarEventOccurrence::CalendarEventOccurrence(const QString &eventUid,
-                                                 const QDateTime &recurrenceId,
+CalendarEventOccurrence::CalendarEventOccurrence(const QString &instanceId,
                                                  const QDateTime &startTime,
                                                  const QDateTime &endTime,
                                                  QObject *parent)
-    : QObject(parent), mEventUid(eventUid), mRecurrenceId(recurrenceId), mStartTime(startTime), mEndTime(endTime)
+    : QObject(parent), mInstanceId(instanceId), mStartTime(startTime), mEndTime(endTime)
 {
     connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
             this, SLOT(eventUidChanged(QString,QString)));
@@ -69,13 +68,13 @@ QDateTime CalendarEventOccurrence::endTime() const
 
 CalendarStoredEvent *CalendarEventOccurrence::eventObject() const
 {
-    return CalendarManager::instance()->eventObject(mEventUid, mRecurrenceId);
+    return CalendarManager::instance()->eventObject(mInstanceId);
 }
 
 void CalendarEventOccurrence::eventUidChanged(QString oldUid, QString newUid)
 {
-    if (mEventUid == oldUid)
-        mEventUid = newUid;
+    if (mInstanceId == oldUid)
+        mInstanceId = newUid;
 }
 
 static QDateTime toEventDateTime(const QDateTime &dateTime,

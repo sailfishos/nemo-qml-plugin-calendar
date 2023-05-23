@@ -157,9 +157,9 @@ QDateTime CalendarEvent::reminderDateTime() const
     return mData->reminderDateTime;
 }
 
-QString CalendarEvent::uniqueId() const
+QString CalendarEvent::instanceId() const
 {
-    return mData->uniqueId;
+    return mData->instanceId;
 }
 
 bool CalendarEvent::readOnly() const
@@ -248,9 +248,9 @@ void CalendarStoredEvent::notebookColorChanged(QString notebookUid)
 
 void CalendarStoredEvent::eventUidChanged(QString oldUid, QString newUid)
 {
-    if (mData->uniqueId == oldUid) {
-        mData->uniqueId = newUid;
-        emit uniqueIdChanged();
+    if (mData->instanceId == oldUid) {
+        mData->instanceId = newUid;
+        emit instanceIdChanged();
         // Event uid changes when the event is moved between notebooks, calendar uid has changed
         emit calendarUidChanged();
     }
@@ -258,7 +258,7 @@ void CalendarStoredEvent::eventUidChanged(QString oldUid, QString newUid)
 
 bool CalendarStoredEvent::sendResponse(int response)
 {
-    if (mManager->sendResponse(mData->uniqueId, mData->recurrenceId, (Response)response)) {
+    if (mManager->sendResponse(mData->instanceId, (Response)response)) {
         mManager->save();
         return true;
     } else {
@@ -268,7 +268,7 @@ bool CalendarStoredEvent::sendResponse(int response)
 
 void CalendarStoredEvent::deleteEvent()
 {
-    mManager->deleteEvent(mData->uniqueId, mData->recurrenceId, QDateTime());
+    mManager->deleteEvent(mData->instanceId, QDateTime());
     mManager->save();
 }
 
@@ -276,13 +276,13 @@ void CalendarStoredEvent::deleteEvent()
 QString CalendarStoredEvent::iCalendar(const QString &prodId) const
 {
     Q_UNUSED(prodId);
-    if (mData->uniqueId.isEmpty()) {
+    if (mData->instanceId.isEmpty()) {
         qWarning() << "Event has no uid, returning empty iCalendar string."
                    << "Save event before calling this function";
         return QString();
     }
 
-    return mManager->convertEventToICalendarSync(mData->uniqueId, prodId);
+    return mManager->convertEventToICalendarSync(mData->instanceId, prodId);
 }
 
 QString CalendarStoredEvent::color() const
@@ -332,5 +332,5 @@ void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
 
 CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
 {
-    return occurrence ? mManager->dissociateSingleOccurrence(mData->uniqueId, occurrence->startTime()) : CalendarData::Event();
+    return occurrence ? mManager->dissociateSingleOccurrence(mData->instanceId, occurrence->startTime()) : CalendarData::Event();
 }

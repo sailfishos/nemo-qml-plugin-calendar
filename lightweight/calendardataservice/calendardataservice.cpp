@@ -105,8 +105,7 @@ void CalendarDataService::updated()
             }
             eventStruct.allDay = event->allDay();
             eventStruct.color = event->color();
-            eventStruct.recurrenceId = event->recurrenceIdString();
-            eventStruct.uniqueId = event->uniqueId();
+            eventStruct.instanceId = event->instanceId();
             eventStruct.cancelled = event->status() == CalendarEvent::StatusCancelled;
             reply << eventStruct;
         }

@@ -99,8 +99,7 @@ class CalendarEventQuery : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
-    Q_PROPERTY(QString uniqueId READ uniqueId WRITE setUniqueId NOTIFY uniqueIdChanged)
-    Q_PROPERTY(QString recurrenceId READ recurrenceIdString WRITE setRecurrenceIdString NOTIFY recurrenceIdStringChanged)
+    Q_PROPERTY(QString instanceId READ instanceId WRITE setInstanceId NOTIFY instanceIdChanged)
     Q_PROPERTY(QDateTime startTime READ startTime WRITE setStartTime RESET resetStartTime NOTIFY startTimeChanged)
     Q_PROPERTY(QObject *event READ event NOTIFY eventChanged)
     Q_PROPERTY(QObject *occurrence READ occurrence NOTIFY occurrenceChanged)
@@ -111,12 +110,8 @@ public:
     CalendarEventQuery();
     ~CalendarEventQuery();
 
-    QString uniqueId() const;
-    void setUniqueId(const QString &);
-
-    QString recurrenceIdString();
-    void setRecurrenceIdString(const QString &recurrenceId);
-    QDateTime recurrenceId();
+    QString instanceId() const;
+    void setInstanceId(const QString &);
 
     QDateTime startTime() const;
     void setStartTime(const QDateTime &);
@@ -135,8 +130,7 @@ public:
     void doRefresh(CalendarData::Event event, bool eventError);
 
 signals:
-    void uniqueIdChanged();
-    void recurrenceIdStringChanged();
+    void instanceIdChanged();
     void eventChanged();
     void occurrenceChanged();
     void attendeesChanged();
@@ -144,7 +138,7 @@ signals:
     void eventErrorChanged();
 
     // Indicates that the event UID has changed in database, event has been moved between notebooks.
-    // The property uniqueId will not be changed, the data pointer properties event and occurrence
+    // The property instanceId will not be changed, the data pointer properties event and occurrence
     // will reset to null pointers.
     void newUniqueId(QString newUid);
 
@@ -155,8 +149,7 @@ private slots:
 
 private:
     bool mIsComplete;
-    QString mUid;
-    QDateTime mRecurrenceId;
+    QString mInstanceId;
     QDateTime mStartTime;
     CalendarData::Event mEvent;
     CalendarEventOccurrence *mOccurrence;
