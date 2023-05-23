@@ -75,7 +75,6 @@ public:
 
     // Event
     CalendarData::Event getEvent(const QString& instanceIdentifier, bool *loaded = nullptr) const;
-    CalendarData::Event getEvent(const QString& uid, const QDateTime &recurrenceId);
     CalendarData::Event dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const;
     bool sendResponse(const QString &uid, const QDateTime &recurrenceId, CalendarEvent::Response response);
 
@@ -125,7 +124,7 @@ private slots:
     void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);
     void dataLoadedSlot(const QList<CalendarData::Range> &ranges,
                         const QStringList &instanceList,
-                        const QMultiHash<QString, CalendarData::Event> &events,
+                        const QHash<QString, CalendarData::Event> &events,
                         const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                         const QHash<QDate, QStringList> &dailyOccurrences,
                         bool reset);
@@ -153,12 +152,11 @@ private:
     QList<CalendarData::Range> addRanges(const QList<CalendarData::Range> &oldRanges,
                                          const QList<CalendarData::Range> &newRanges);
     void updateAgendaModel(CalendarAgendaModel *model);
-    void sendEventChangeSignals(const CalendarData::Event &newEvent);
 
     QThread mWorkerThread;
     CalendarWorker *mCalendarWorker;
-    QMultiHash<QString, CalendarData::Event> mEvents;
-    QMultiHash<QString, CalendarStoredEvent *> mEventObjects;
+    QHash<QString, CalendarData::Event> mEvents;
+    QHash<QString, CalendarStoredEvent *> mEventObjects;
     QHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
     QHash<QDate, QStringList> mEventOccurrenceForDates;
     QList<CalendarAgendaModel *> mAgendaRefreshList;

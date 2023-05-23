@@ -53,7 +53,7 @@ CalendarManager::CalendarManager()
     qRegisterMetaType<CalendarEvent::Recur>("CalendarEvent::Recur");
     qRegisterMetaType<QHash<QString,CalendarData::EventOccurrence> >("QHash<QString,CalendarData::EventOccurrence>");
     qRegisterMetaType<CalendarData::Event>("CalendarData::Event");
-    qRegisterMetaType<QMultiHash<QString,CalendarData::Event> >("QMultiHash<QString,CalendarData::Event>");
+    qRegisterMetaType<QHash<QString,CalendarData::Event> >("QHash<QString,CalendarData::Event>");
     qRegisterMetaType<QHash<QDate,QStringList> >("QHash<QDate,QStringList>");
     qRegisterMetaType<CalendarData::Range>("CalendarData::Range");
     qRegisterMetaType<QList<CalendarData::Range > >("QList<CalendarData::Range>");
@@ -138,20 +138,26 @@ void CalendarManager::setDefaultNotebook(const QString &notebookUid)
                               Q_ARG(QString, notebookUid));
 }
 
+static QString instanceIdentifier(const QString &uid, const QDateTime &recurrenceId)
+{
+    KCalendarCore::Event inc;
+    inc.setUid(uid);
+    inc.setRecurrenceId(recurrenceId);
+    return inc.instanceIdentifier();
+}
+
 CalendarStoredEvent* CalendarManager::eventObject(const QString &eventUid, const QDateTime &recurrenceId)
 {
-    QMultiHash<QString, CalendarStoredEvent *>::iterator it = mEventObjects.find(eventUid);
-    while (it != mEventObjects.end() && it.key() == eventUid) {
-        if ((*it)->recurrenceId() == recurrenceId) {
-            return *it;
-        }
-        ++it;
+    const QString id = instanceIdentifier(eventUid, recurrenceId);
+    const QHash<QString, CalendarStoredEvent *>::ConstIterator it = mEventObjects.find(id);
+    if (it != mEventObjects.constEnd()) {
+        return *it;
     }
 
-    CalendarData::Event event = getEvent(eventUid, recurrenceId);
+    CalendarData::Event event = mEvents.value(id);
     if (event.isValid()) {
         CalendarStoredEvent *calendarEvent = new CalendarStoredEvent(this, &event);
-        mEventObjects.insert(eventUid, calendarEvent);
+        mEventObjects.insert(id, calendarEvent);
         return calendarEvent;
     }
 
@@ -501,13 +507,9 @@ void CalendarManager::doAgendaAndQueryRefresh()
         if (eventUid.isEmpty())
             continue;
 
-        const QDateTime recurrenceId = query->recurrenceId();
-        KCalendarCore::Event missing;
-        missing.setUid(eventUid);
-        missing.setRecurrenceId(recurrenceId);
-        const QString id = missing.instanceIdentifier();
+        const QString id = instanceIdentifier(eventUid, query->recurrenceId());
         bool loaded = mLoadedQueries.contains(id);
-        CalendarData::Event event = getEvent(eventUid, recurrenceId);
+        CalendarData::Event event = mEvents.value(id);
         if (((!event.isValid() && !loaded) || mResetPending)
                 && !missingInstanceList.contains(id)) {
             missingInstanceList << id;
@@ -522,8 +524,8 @@ void CalendarManager::doAgendaAndQueryRefresh()
             if (id.isEmpty())
                 continue;
 
-            bool loaded;
-            CalendarData::Event event = getEvent(id, &loaded);
+            bool loaded = mLoadedQueries.contains(id);
+            CalendarData::Event event = mEvents.value(id);
             if (((!event.isValid() && !loaded) || mResetPending)
                 && !missingInstanceList.contains(id)) {
                 missingInstanceList << id;
@@ -583,42 +585,12 @@ QString CalendarManager::convertEventToICalendarSync(const QString &uid, const Q
     return vEvent;
 }
 
-CalendarData::Event CalendarManager::getEvent(const QString &uid, const QDateTime &recurrenceId)
-{
-    QMultiHash<QString, CalendarData::Event>::iterator it = mEvents.find(uid);
-    while (it != mEvents.end() && it.key() == uid) {
-        if (it.value().recurrenceId == recurrenceId) {
-            return it.value();
-        }
-        ++it;
-    }
-
-    return CalendarData::Event();
-}
-
 CalendarData::Event CalendarManager::getEvent(const QString &instanceIdentifier, bool *loaded) const
 {
     if (loaded) {
         *loaded = mLoadedQueries.contains(instanceIdentifier);
     }
-    // See CalendarWorker::loadData(), in case where instanceIdentifier is not the
-    // UID, the event structure is duplicated with the key as the instanceIdentifier.
-    QList<CalendarData::Event> events = mEvents.values(instanceIdentifier);
-    if (events.count() == 1) {
-        // Either the event is not recurring or it's an exception.
-        return events[0];
-    } else if (events.count() > 1) {
-        // The event is recurring with exception, we look for the parent.
-        QList<CalendarData::Event>::ConstIterator it = events.constBegin();
-        while (it != events.constEnd()) {
-            if (!it->recurrenceId.isValid()) {
-                return *it;
-            }
-            ++it;
-        }
-    }
-
-    return CalendarData::Event();
+    return mEvents.value(instanceIdentifier);
 }
 
 bool CalendarManager::sendResponse(const QString &uid, const QDateTime &recurrenceId, CalendarEvent::Response response)
@@ -665,7 +637,7 @@ void CalendarManager::storageModifiedSlot()
 
 void CalendarManager::calendarTimezoneChangedSlot()
 {
-    QMultiHash<QString, CalendarStoredEvent *>::ConstIterator it;
+    QHash<QString, CalendarStoredEvent *>::ConstIterator it;
     for (it = mEventObjects.constBegin(); it != mEventObjects.constEnd(); it++) {
         // Actually, the date times have not changed, but
         // their representation in local time (as used in QML)
@@ -763,7 +735,7 @@ CalendarEventOccurrence* CalendarManager::getNextOccurrence(const QString &uid, 
                                                             const QDateTime &start)
 {
     CalendarData::EventOccurrence eo;
-    const CalendarData::Event event = getEvent(uid, recurrenceId);
+    const CalendarData::Event event = mEvents.value(instanceIdentifier(uid, recurrenceId));
     if (event.recur == CalendarEvent::RecurOnce) {
         const QTimeZone systemTimeZone = QTimeZone::systemTimeZone();
         eo.eventUid = event.uniqueId;
@@ -813,18 +785,11 @@ QList<CalendarData::Attendee> CalendarManager::getEventAttendees(const QString &
 
 void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
                                      const QStringList &instanceList,
-                                     const QMultiHash<QString, CalendarData::Event> &events,
+                                     const QHash<QString, CalendarData::Event> &events,
                                      const QHash<QString, CalendarData::EventOccurrence> &occurrences,
                                      const QHash<QDate, QStringList> &dailyOccurrences,
                                      bool reset)
 {
-    QList<CalendarData::Event> oldEvents;
-    foreach (const QString &uid, mEventObjects.keys()) {
-        // just add all matching uid, change signal emission will match recurrence ids
-        if (events.contains(uid))
-            oldEvents.append(mEvents.values(uid));
-    }
-
     if (reset) {
         mEvents.clear();
         mEventOccurrences.clear();
@@ -843,30 +808,14 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
         mEventOccurrenceForDates.insert(it.key(), it.value());
     mLoadPending = false;
 
-    foreach (const CalendarData::Event &oldEvent, oldEvents) {
-        const CalendarData::Event &event = getEvent(oldEvent.uniqueId, oldEvent.recurrenceId);
-        if (event.isValid())
-            sendEventChangeSignals(event);
+    for (QHash<QString, CalendarStoredEvent *>::ConstIterator it = mEventObjects.constBegin();
+         it != mEventObjects.constEnd(); it++) {
+        const QHash<QString, CalendarData::Event>::ConstIterator event = mEvents.find(it.key());
+        if (event != mEvents.constEnd()) {
+            it.value()->setEvent(&(*event));
+        }
     }
 
     emit dataUpdated();
     mTimer->start();
-}
-
-void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent)
-{
-    CalendarStoredEvent *eventObject = 0;
-    QMultiHash<QString, CalendarStoredEvent *>::iterator it = mEventObjects.find(newEvent.uniqueId);
-    while (it != mEventObjects.end() && it.key() == newEvent.uniqueId) {
-        if (it.value()->recurrenceId() == newEvent.recurrenceId) {
-            eventObject = it.value();
-            break;
-        }
-        ++it;
-    }
-
-    if (!eventObject)
-        return;
-
-    eventObject->setEvent(&newEvent);
 }
