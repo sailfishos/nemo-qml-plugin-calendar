@@ -52,7 +52,10 @@ CalendarEventQuery::CalendarEventQuery()
 
 CalendarEventQuery::~CalendarEventQuery()
 {
-    CalendarManager::instance()->cancelEventQueryRefresh(this);
+    CalendarManager *manager = CalendarManager::instance(false);
+    if (manager) {
+        manager->cancelEventQueryRefresh(this);
+    }
 }
 
 // The uid of the matched event

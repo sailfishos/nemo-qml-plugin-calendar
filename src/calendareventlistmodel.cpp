@@ -49,7 +49,10 @@ CalendarEventListModel::CalendarEventListModel(QObject *parent)
 
 CalendarEventListModel::~CalendarEventListModel()
 {
-    CalendarManager::instance()->cancelEventListRefresh(this);
+    CalendarManager *manager = CalendarManager::instance(false);
+    if (manager) {
+        manager->cancelEventListRefresh(this);
+    }
     qDeleteAll(mEvents);
     mEvents.clear();
 }
