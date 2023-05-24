@@ -424,8 +424,7 @@ void CalendarManager::updateAgendaModel(CalendarAgendaModel *model)
     if (model->startDate() == model->endDate() || !model->endDate().isValid()) {
         foreach (const QString &id, mEventOccurrenceForDates.value(model->startDate())) {
             if (mEventOccurrences.contains(id)) {
-                CalendarData::EventOccurrence eo = mEventOccurrences.value(id);
-                filtered.append(new CalendarEventOccurrence(eo.uniqueId, eo.startTime, eo.endTime));
+                filtered.append(new CalendarEventOccurrence(mEventOccurrences.value(id)));
             } else {
                 qWarning() << "no occurrence with id" << id;
             }
@@ -450,7 +449,7 @@ void CalendarManager::updateAgendaModel(CalendarAgendaModel *model)
                  && eo.endTime.date() >= model->startDate())
                 || (!eo.eventAllDay && eo.startTime < endDt
                     && eo.endTime >= startDt)) {
-                filtered.append(new CalendarEventOccurrence(eo.uniqueId, eo.startTime, eo.endTime));
+                filtered.append(new CalendarEventOccurrence(eo));
             }
         }
     }
@@ -734,10 +733,10 @@ CalendarEventOccurrence* CalendarManager::getNextOccurrence(const QString &insta
 
     if (!eo.startTime.isValid()) {
         qWarning() << Q_FUNC_INFO << "Unable to find occurrence for event" << instanceId;
-        return new CalendarEventOccurrence(QString(), QDateTime(), QDateTime());
+        return new CalendarEventOccurrence();
     }
 
-    return new CalendarEventOccurrence(eo.uniqueId, eo.startTime, eo.endTime);
+    return new CalendarEventOccurrence(eo);
 }
 
 QList<CalendarData::Attendee> CalendarManager::getEventAttendees(const QString &instanceId, bool *resultValid)

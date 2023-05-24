@@ -33,6 +33,8 @@
 #ifndef CALENDAREVENTOCCURRENCE_H
 #define CALENDAREVENTOCCURRENCE_H
 
+#include "calendardata.h"
+
 #include <QObject>
 #include <QDateTime>
 
@@ -50,9 +52,8 @@ class CalendarEventOccurrence : public QObject
     Q_PROPERTY(CalendarStoredEvent *event READ eventObject CONSTANT)
 
 public:
-    CalendarEventOccurrence(const QString &instanceId,
-                            const QDateTime &startTime,
-                            const QDateTime &endTime,
+    CalendarEventOccurrence(QObject *parent = 0);
+    CalendarEventOccurrence(const CalendarData::EventOccurrence &occurrence,
                             QObject *parent = 0);
     ~CalendarEventOccurrence();
 

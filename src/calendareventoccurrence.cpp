@@ -37,11 +37,17 @@
 #include "calendarevent.h"
 #include "calendarmanager.h"
 
-CalendarEventOccurrence::CalendarEventOccurrence(const QString &instanceId,
-                                                 const QDateTime &startTime,
-                                                 const QDateTime &endTime,
+CalendarEventOccurrence::CalendarEventOccurrence(QObject *parent)
+    : QObject(parent)
+{
+}
+
+CalendarEventOccurrence::CalendarEventOccurrence(const CalendarData::EventOccurrence &occurrence,
                                                  QObject *parent)
-    : QObject(parent), mInstanceId(instanceId), mStartTime(startTime), mEndTime(endTime)
+    : QObject(parent)
+    , mInstanceId(occurrence.instanceId)
+    , mStartTime(occurrence.startTime)
+    , mEndTime(occurrence.endTime)
 {
     connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
             this, SLOT(eventUidChanged(QString,QString)));
