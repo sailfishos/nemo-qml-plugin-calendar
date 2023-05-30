@@ -43,7 +43,10 @@ CalendarSearchModel::CalendarSearchModel(QObject *parent)
 
 CalendarSearchModel::~CalendarSearchModel()
 {
-    CalendarManager::instance()->cancelSearch(this);
+    CalendarManager *manager = CalendarManager::instance(false);
+    if (manager) {
+        manager->cancelSearch(this);
+    }
 }
 
 QHash<int, QByteArray> CalendarSearchModel::roleNames() const

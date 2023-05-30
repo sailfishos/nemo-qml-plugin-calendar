@@ -50,7 +50,10 @@ CalendarAgendaModel::CalendarAgendaModel(QObject *parent)
 
 CalendarAgendaModel::~CalendarAgendaModel()
 {
-    CalendarManager::instance()->cancelAgendaRefresh(this);
+    CalendarManager *manager = CalendarManager::instance(false);
+    if (manager) {
+        manager->cancelAgendaRefresh(this);
+    }
     qDeleteAll(mEvents);
     mEvents.clear();
 }
