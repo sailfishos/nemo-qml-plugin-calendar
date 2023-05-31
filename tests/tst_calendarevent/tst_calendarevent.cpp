@@ -409,7 +409,7 @@ void tst_CalendarEvent::testRecurrenceException()
     // adjust second occurrence a bit
     CalendarEventModification *recurrenceException = calendarApi->createModification(savedEvent, qobject_cast<CalendarEventOccurrence*>(query.occurrence()));
     QVERIFY(recurrenceException != 0);
-    QVERIFY(!recurrenceException->recurrenceIdString().isEmpty());
+    QVERIFY(recurrenceException->isException());
     QDateTime modifiedSecond = secondStart.addSecs(10*60); // 12:10
     recurrenceException->setStartTime(modifiedSecond, Qt::TimeZone, "Asia/Ho_Chi_Minh");
     recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
@@ -435,7 +435,7 @@ void tst_CalendarEvent::testRecurrenceException()
         (qobject_cast<CalendarStoredEvent*>(query.event()),
          qobject_cast<CalendarEventOccurrence*>(query.occurrence()));
     QVERIFY(recurrenceSecondException != 0);
-    QVERIFY(!recurrenceSecondException->recurrenceIdString().isEmpty());
+    QVERIFY(recurrenceSecondException->isException());
     recurrenceSecondException->setDisplayLabel("Modified recurring event fifth instance");
     recurrenceSecondException->save();
     QVERIFY(dataUpdated.wait());

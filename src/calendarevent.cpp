@@ -36,6 +36,8 @@
 #include <QDateTime>
 #include <QTimeZone>
 
+#include <KCalendarCore/Event>
+
 #include "calendarutils.h"
 #include "calendarmanager.h"
 #include "calendareventoccurrence.h"
@@ -162,6 +164,11 @@ QString CalendarEvent::instanceId() const
     return mData->instanceId;
 }
 
+bool CalendarEvent::isException() const
+{
+    return mData->recurrenceId.isValid();
+}
+
 bool CalendarEvent::readOnly() const
 {
     return mData->readOnly;
@@ -210,20 +217,6 @@ bool CalendarEvent::rsvp() const
 bool CalendarEvent::externalInvitation() const
 {
     return mData->externalInvitation;
-}
-
-QDateTime CalendarEvent::recurrenceId() const
-{
-    return mData->recurrenceId;
-}
-
-QString CalendarEvent::recurrenceIdString() const
-{
-    if (mData->recurrenceId.isValid()) {
-        return CalendarUtils::recurrenceIdToString(mData->recurrenceId);
-    } else {
-        return QString();
-    }
 }
 
 CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data)
@@ -283,6 +276,17 @@ QString CalendarStoredEvent::iCalendar(const QString &prodId) const
     }
 
     return mManager->convertEventToICalendarSync(mData->instanceId, prodId);
+}
+
+CalendarStoredEvent* CalendarStoredEvent::parent() const
+{
+    if (isException()) {
+        KCalendarCore::Event event;
+        event.setUid(mData->incidenceUid);
+        return mManager->eventObject(event.instanceIdentifier());
+    } else {
+        return nullptr;
+    }
 }
 
 QString CalendarStoredEvent::color() const

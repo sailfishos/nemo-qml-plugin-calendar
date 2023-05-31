@@ -63,7 +63,7 @@ class CalendarEvent : public QObject
     Q_PROPERTY(int reminder READ reminder NOTIFY reminderChanged)
     Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime NOTIFY reminderDateTimeChanged)
     Q_PROPERTY(QString instanceId READ instanceId NOTIFY instanceIdChanged)
-    Q_PROPERTY(QString recurrenceId READ recurrenceIdString CONSTANT)
+    Q_PROPERTY(bool isException READ isException CONSTANT)
     Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
@@ -161,11 +161,10 @@ public:
     int reminder() const;
     QDateTime reminderDateTime() const;
     QString instanceId() const;
+    bool isException() const;
     virtual bool readOnly() const;
     QString calendarUid() const;
     QString location() const;
-    QDateTime recurrenceId() const;
-    QString recurrenceIdString() const;
     Secrecy secrecy() const;
     Status status() const;
     SyncFailure syncFailure() const;
@@ -207,12 +206,14 @@ class CalendarStoredEvent : public CalendarEvent
 {
     Q_OBJECT
     Q_PROPERTY(QString color READ color NOTIFY colorChanged)
+    Q_PROPERTY(CalendarStoredEvent *recurringParent READ parent CONSTANT)
 public:
     CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data);
     ~CalendarStoredEvent();
 
     CalendarData::Event dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const;
     void setEvent(const CalendarData::Event *event);
+    CalendarStoredEvent* parent() const;
     QString color() const;
 
     Q_INVOKABLE bool sendResponse(int response);
