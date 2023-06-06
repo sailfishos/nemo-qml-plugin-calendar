@@ -36,7 +36,6 @@
 #include <QAbstractListModel>
 
 #include <KCalendarCore/Calendar>
-#include <extendedstorage.h>
 
 class CalendarImportModel : public QAbstractListModel
 {
@@ -112,7 +111,6 @@ private:
     QByteArray mIcsRawData;
     QString mNotebookUid;
     KCalendarCore::Event::List mEventList;
-    mKCal::ExtendedStorage::Ptr mStorage;
     QSet<QString> mDuplicates;
     QSet<QString> mInvitations;
     bool mError;

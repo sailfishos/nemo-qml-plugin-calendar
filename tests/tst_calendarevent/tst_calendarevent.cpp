@@ -45,6 +45,7 @@
 #include "calendarworker.h"
 #include "test_plugin/test_plugin.h"
 
+#include <calendarstorage.h>
 #include <servicehandler.h>
 
 #include "plugin.cpp"
@@ -734,16 +735,12 @@ void tst_CalendarEvent::testRecurWeeklyDays()
 void tst_CalendarEvent::testAttendees()
 {
     // Ensure that service handler for invitation is using the test plugin.
-    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
-    mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(cal);
+    mKCal::CalendarStorage::Ptr storage = mKCal::CalendarStorage::systemDefaultCalendar();
     QVERIFY(storage->open());
-    const QString defaultNotebookUid = CalendarManager::instance()->defaultNotebook();
-    QVERIFY(!defaultNotebookUid.isEmpty());
-    mKCal::Notebook::Ptr defaultNotebook = storage->notebook(defaultNotebookUid);
+    mKCal::Notebook::Ptr defaultNotebook = storage->notebook();
     QVERIFY(defaultNotebook);
     defaultNotebook->setPluginName(QString::fromLatin1("TestInvitationPlugin"));
     defaultNotebook->setCustomProperty("TEST_EMAIL", QString::fromLatin1("alice@example.org"));
-    QVERIFY(storage->updateNotebook(defaultNotebook));
 
     // Test first the case without attendee.
     CalendarEventModification *eventMod = calendarApi->createNewEvent();
@@ -830,7 +827,7 @@ void tst_CalendarEvent::testAttendees()
 
     // Simulate adding neither optional nor required participants by external means.
     QVERIFY(storage->load(uid));
-    KCalendarCore::Incidence::Ptr incidence = cal->incidence(uid);
+    KCalendarCore::Incidence::Ptr incidence = storage->calendar()->incidence(uid);
     QVERIFY(incidence);
     const QString dude = QString::fromLatin1("Dude");
     const QString dudeEmail = QString::fromLatin1("dude@example.org");
