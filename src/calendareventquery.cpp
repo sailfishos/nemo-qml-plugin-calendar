@@ -46,8 +46,8 @@ CalendarEventQuery::CalendarEventQuery()
     connect(CalendarManager::instance(), &CalendarManager::timezoneChanged,
             this, &CalendarEventQuery::onTimezoneChanged);
 
-    connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
-            this, SLOT(eventUidChanged(QString,QString)));
+    connect(CalendarManager::instance(), &CalendarManager::instanceIdChanged,
+            this, &CalendarEventQuery::instanceIdNotified);
 }
 
 CalendarEventQuery::~CalendarEventQuery()
@@ -228,10 +228,17 @@ void CalendarEventQuery::onTimezoneChanged()
     }
 }
 
-void CalendarEventQuery::eventUidChanged(QString oldUid, QString newUid)
+void CalendarEventQuery::instanceIdNotified(QString oldId, QString newId, QString notebookUid)
 {
-    if (mInstanceId == oldUid) {
-        emit newUniqueId(newUid);
-        refresh();
+    if (mInstanceId == oldId) {
+        mInstanceId = newId;
+        emit instanceIdChanged();
+
+        if (mEvent.isValid()) {
+            mEvent.instanceId = newId;
+            mEvent.calendarUid = notebookUid;
+        } else {
+            refresh();
+        }
     }
 }

@@ -49,8 +49,8 @@ CalendarEventOccurrence::CalendarEventOccurrence(const CalendarData::EventOccurr
     , mStartTime(occurrence.startTime)
     , mEndTime(occurrence.endTime)
 {
-    connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
-            this, SLOT(eventUidChanged(QString,QString)));
+    connect(CalendarManager::instance(), &CalendarManager::instanceIdChanged,
+            this, &CalendarEventOccurrence::instanceIdChanged);
 }
 
 CalendarEventOccurrence::~CalendarEventOccurrence()
@@ -77,10 +77,12 @@ CalendarStoredEvent *CalendarEventOccurrence::eventObject() const
     return CalendarManager::instance()->eventObject(mInstanceId);
 }
 
-void CalendarEventOccurrence::eventUidChanged(QString oldUid, QString newUid)
+void CalendarEventOccurrence::instanceIdChanged(QString oldId, QString newId, QString notebookUid)
 {
-    if (mInstanceId == oldUid)
-        mInstanceId = newUid;
+    Q_UNUSED(notebookUid);
+
+    if (mInstanceId == oldId)
+        mInstanceId = newId;
 }
 
 static QDateTime toEventDateTime(const QDateTime &dateTime,

@@ -137,15 +137,10 @@ signals:
     void startTimeChanged();
     void eventErrorChanged();
 
-    // Indicates that the event UID has changed in database, event has been moved between notebooks.
-    // The property instanceId will not be changed, the data pointer properties event and occurrence
-    // will reset to null pointers.
-    void newUniqueId(QString newUid);
-
 private slots:
     void refresh();
     void onTimezoneChanged();
-    void eventUidChanged(QString oldUid, QString newUid);
+    void instanceIdNotified(QString oldId, QString newId, QString notebookUid);
 
 private:
     bool mIsComplete;

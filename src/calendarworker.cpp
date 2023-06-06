@@ -309,12 +309,19 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         }
     } else {
         if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
-            // mkcal does funny things when moving event between notebooks, work around by changing uid
             KCalendarCore::Event::Ptr newEvent(event->clone());
-            newEvent->setUid(KCalendarCore::CalFormat::createUniqueId().toUpper());
-            emit eventNotebookChanged(event->uid(), newEvent->uid(), notebookUid);
+#if 0
+            // mkcal does not support keeping the same UID for events
+            // in different notebooks. One should keep the same UID
+            // for the deleted event and the new event not to confuse
+            // sync processes, if the event has been uploaded to a server
+            // already.
+            // So this code is currently broken and requires mKCal
+            // to support multi-notebook incidences sharing the same UID.
+            emit eventNotebookChanged(eventData.instanceId, newEvent->instanceIdentifier(), notebookUid);
             mCalendar->deleteEvent(event);
             mCalendar->addEvent(newEvent, notebookUid);
+#endif
             event = newEvent;
         } else {
             event->setRevision(event->revision() + 1);

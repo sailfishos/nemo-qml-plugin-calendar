@@ -225,8 +225,8 @@ CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, const Calenda
 {
     connect(mManager, SIGNAL(notebookColorChanged(QString)),
             this, SLOT(notebookColorChanged(QString)));
-    connect(mManager, SIGNAL(eventUidChanged(QString,QString)),
-            this, SLOT(eventUidChanged(QString,QString)));
+    connect(mManager, &CalendarManager::instanceIdChanged,
+            this, &CalendarStoredEvent::instanceIdNotified);
 }
 
 CalendarStoredEvent::~CalendarStoredEvent()
@@ -239,13 +239,15 @@ void CalendarStoredEvent::notebookColorChanged(QString notebookUid)
         emit colorChanged();
 }
 
-void CalendarStoredEvent::eventUidChanged(QString oldUid, QString newUid)
+void CalendarStoredEvent::instanceIdNotified(QString oldId, QString newId, QString notebookUid)
 {
-    if (mData->instanceId == oldUid) {
-        mData->instanceId = newUid;
+    if (mData->instanceId == oldId) {
+        mData->instanceId = newId;
         emit instanceIdChanged();
         // Event uid changes when the event is moved between notebooks, calendar uid has changed
+        mData->calendarUid = notebookUid;
         emit calendarUidChanged();
+        emit colorChanged();
     }
 }
 

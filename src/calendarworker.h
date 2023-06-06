@@ -99,7 +99,7 @@ signals:
     void storageModifiedSignal();
     void calendarTimezoneChanged();
 
-    void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
+    void eventNotebookChanged(const QString &oldInstanceId, const QString &newInstanceId, const QString &notebookUid);
 
     void excludedNotebooksChanged(const QStringList &excludedNotebooks);
     void notebookColorChanged(const CalendarData::Notebook &notebook);

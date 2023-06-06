@@ -119,7 +119,9 @@ public:
 private slots:
     void storageModifiedSlot();
     void calendarTimezoneChangedSlot();
-    void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
+    void eventNotebookChanged(const QString &oldInstanceId,
+                              const QString &newInstanceId,
+                              const QString &notebookUid);
     void excludedNotebooksChangedSlot(const QStringList &excludedNotebooks);
     void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);
     void dataLoadedSlot(const QList<CalendarData::Range> &ranges,
@@ -142,7 +144,7 @@ signals:
     void storageModified();
     void timezoneChanged();
     void dataUpdated();
-    void eventUidChanged(QString oldUid, QString newUid);
+    void instanceIdChanged(QString oldId, QString newId, QString notebookUid);
 
 private:
     friend class tst_CalendarManager;

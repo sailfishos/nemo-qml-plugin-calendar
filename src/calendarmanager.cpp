@@ -633,39 +633,23 @@ void CalendarManager::calendarTimezoneChangedSlot()
     emit timezoneChanged();
 }
 
-void CalendarManager::eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid,
+void CalendarManager::eventNotebookChanged(const QString &oldInstanceId,
+                                           const QString &newInstanceId,
                                            const QString &notebookUid)
 {
-    // FIXME: adapt to multihash + recurrenceId.
-#if 0
-    if (mEvents.contains(oldEventUid)) {
-        mEvents.insert(newEventUid, mEvents.value(oldEventUid));
-        mEvents[newEventUid].calendarUid = notebookUid;
-        mEvents.remove(oldEventUid);
+    if (mEvents.contains(oldInstanceId)) {
+        mEvents.insert(newInstanceId, mEvents.value(oldInstanceId));
+        mEvents[newInstanceId].calendarUid = notebookUid;
+        mEvents.remove(oldInstanceId);
     }
-    if (mEventObjects.contains(oldEventUid)) {
-        mEventObjects.insert(newEventUid, mEventObjects.value(oldEventUid));
-        mEventObjects.remove(oldEventUid);
+    // newInstanceId points to the same object than oldInstanceId
+    // to avoid CalendarEventQuery or CalendarEventOccurrence to
+    // emit object changed.
+    if (mEventObjects.contains(oldInstanceId)) {
+        mEventObjects.insert(newInstanceId, mEventObjects.value(oldInstanceId));
+        mEventObjects.remove(oldInstanceId);
     }
-    foreach (QString occurrenceUid, mEventOccurrences.keys()) {
-        if (mEventOccurrences.value(occurrenceUid).instanceId == oldEventUid)
-            mEventOccurrences[occurrenceUid].instanceId = newEventUid;
-    }
-
-    emit eventUidChanged(oldEventUid, newEventUid);
-
-    // Event uid is changed when events are moved between notebooks, the notebook color
-    // associated with this event has changed. Emit color changed after emitting eventUidChanged,
-    // so that data models have the correct event uid to use when querying for CalendarEvent
-    // instances, see CalendarEventOccurrence::eventObject(), used by CalendarAgendaModel.
-    CalendarEvent *eventObject = mEventObjects.value(newEventUid);
-    if (eventObject)
-        emit eventObject->colorChanged();
-#else
-    Q_UNUSED(oldEventUid)
-    Q_UNUSED(newEventUid)
-    Q_UNUSED(notebookUid)
-#endif
+    emit instanceIdChanged(oldInstanceId, newInstanceId, notebookUid);
 }
 
 void CalendarManager::excludedNotebooksChangedSlot(const QStringList &excludedNotebooks)

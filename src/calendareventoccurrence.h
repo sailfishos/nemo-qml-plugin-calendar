@@ -70,7 +70,7 @@ signals:
     void endTimeChanged();
 
 private slots:
-    void eventUidChanged(QString oldUid, QString newUid);
+    void instanceIdChanged(QString oldId, QString newId, QString notebookUid);
 
 private:
     QString mInstanceId;

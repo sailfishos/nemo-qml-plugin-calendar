@@ -225,7 +225,7 @@ signals:
 
 private slots:
     void notebookColorChanged(QString notebookUid);
-    void eventUidChanged(QString oldUid, QString newUid);
+    void instanceIdNotified(QString oldId, QString newId, QString notebookUid);
 
 private:
     CalendarManager *mManager;
