@@ -607,7 +607,6 @@ void CalendarWorker::setNotebookColor(const QString &notebookUid, const QString 
 QHash<QString, CalendarData::EventOccurrence>
 CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
 {
-    const QStringList excluded = excludedNotebooks();
     QHash<QString, CalendarData::EventOccurrence> filtered;
     for (const CalendarData::Range range : ranges) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
@@ -621,7 +620,8 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
             it.next();
             if (mCalendar->isVisible(it.incidence())
                 && it.incidence()->type() == KCalendarCore::IncidenceBase::TypeEvent
-                && !excluded.contains(mCalendar->notebook(it.incidence()))) {
+                && mNotebooks.contains(mCalendar->notebook(it.incidence()))
+                && !mNotebooks.value(mCalendar->notebook(it.incidence())).excluded) {
                 const QDateTime sdt = it.occurrenceStartDate();
                 const KCalendarCore::Duration elapsed
                     (it.incidence()->dateTime(KCalendarCore::Incidence::RoleDisplayStart),
@@ -832,6 +832,10 @@ void CalendarWorker::loadNotebooks()
     bool changed = mNotebooks.isEmpty();
     for (int ii = 0; ii < notebooks.count(); ++ii) {
         mKCal::Notebook::Ptr mkNotebook = notebooks.at(ii);
+        if (!mkNotebook->eventsAllowed()) {
+            continue;
+        }
+        
         CalendarData::Notebook notebook = mNotebooks.value(mkNotebook->uid(), CalendarData::Notebook());
 
         notebook.name = mkNotebook->name();
