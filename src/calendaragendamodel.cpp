@@ -118,8 +118,7 @@ static bool eventsEqual(const CalendarEventOccurrence *e1,
     CalendarEvent *eventObject2 = e2->eventObject();
 
     return eventObject1 && eventObject2 &&
-           eventObject1->uniqueId() == eventObject2->uniqueId() &&
-           eventObject1->recurrenceId() == eventObject2->recurrenceId();
+           eventObject1->instanceId() == eventObject2->instanceId();
 }
 
 static bool eventsLessThan(const CalendarEventOccurrence *e1,
@@ -130,7 +129,7 @@ static bool eventsLessThan(const CalendarEventOccurrence *e1,
                                    e2->eventObject()->displayLabel(),
                                    Qt::CaseInsensitive);
         if (cmp == 0)
-            return QString::compare(e1->eventObject()->uniqueId(), e2->eventObject()->uniqueId()) < 0;
+            return QString::compare(e1->eventObject()->instanceId(), e2->eventObject()->instanceId()) < 0;
         else
             return cmp < 0;
     } else {

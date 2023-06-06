@@ -233,16 +233,14 @@ QVariant CalendarEventsModel::data(const QModelIndex &index, int role) const
         } else {
             return QDateTime::fromString(eventData.endTime, Qt::ISODate);
         }
-    case RecurrenceIdRole:
-        return eventData.recurrenceId;
     case AllDayRole:
         return eventData.allDay;
     case LocationRole:
         return eventData.location;
     case CalendarUidRole:
         return eventData.calendarUid;
-    case UidRole:
-        return eventData.uniqueId;
+    case InstanceIdRole:
+        return eventData.instanceId;
     case ColorRole:
         return QColor(eventData.color);
     case CancelledRole:
@@ -362,11 +360,10 @@ QHash<int, QByteArray> CalendarEventsModel::roleNames() const
     roleNames[DescriptionRole] = "description";
     roleNames[StartTimeRole] = "startTime";
     roleNames[EndTimeRole] = "endTime";
-    roleNames[RecurrenceIdRole] = "recurrenceId";
     roleNames[AllDayRole] = "allDay";
     roleNames[LocationRole] = "location";
     roleNames[CalendarUidRole] = "calendarUid";
-    roleNames[UidRole] = "uid";
+    roleNames[InstanceIdRole] = "instanceId";
     roleNames[ColorRole] = "color";
     roleNames[CancelledRole] = "cancelled";
 

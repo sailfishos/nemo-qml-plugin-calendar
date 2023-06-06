@@ -37,15 +37,20 @@
 #include "calendarevent.h"
 #include "calendarmanager.h"
 
-CalendarEventOccurrence::CalendarEventOccurrence(const QString &eventUid,
-                                                 const QDateTime &recurrenceId,
-                                                 const QDateTime &startTime,
-                                                 const QDateTime &endTime,
-                                                 QObject *parent)
-    : QObject(parent), mEventUid(eventUid), mRecurrenceId(recurrenceId), mStartTime(startTime), mEndTime(endTime)
+CalendarEventOccurrence::CalendarEventOccurrence(QObject *parent)
+    : QObject(parent)
 {
-    connect(CalendarManager::instance(), SIGNAL(eventUidChanged(QString,QString)),
-            this, SLOT(eventUidChanged(QString,QString)));
+}
+
+CalendarEventOccurrence::CalendarEventOccurrence(const CalendarData::EventOccurrence &occurrence,
+                                                 QObject *parent)
+    : QObject(parent)
+    , mInstanceId(occurrence.instanceId)
+    , mStartTime(occurrence.startTime)
+    , mEndTime(occurrence.endTime)
+{
+    connect(CalendarManager::instance(), &CalendarManager::instanceIdChanged,
+            this, &CalendarEventOccurrence::instanceIdChanged);
 }
 
 CalendarEventOccurrence::~CalendarEventOccurrence()
@@ -69,13 +74,15 @@ QDateTime CalendarEventOccurrence::endTime() const
 
 CalendarStoredEvent *CalendarEventOccurrence::eventObject() const
 {
-    return CalendarManager::instance()->eventObject(mEventUid, mRecurrenceId);
+    return CalendarManager::instance()->eventObject(mInstanceId);
 }
 
-void CalendarEventOccurrence::eventUidChanged(QString oldUid, QString newUid)
+void CalendarEventOccurrence::instanceIdChanged(QString oldId, QString newId, QString notebookUid)
 {
-    if (mEventUid == oldUid)
-        mEventUid = newUid;
+    Q_UNUSED(notebookUid);
+
+    if (mInstanceId == oldId)
+        mInstanceId = newId;
 }
 
 static QDateTime toEventDateTime(const QDateTime &dateTime,

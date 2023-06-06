@@ -58,18 +58,17 @@ CalendarEventModification * CalendarApi::createModification(CalendarStoredEvent 
     return new CalendarEventModification(sourceEvent, occurrence);
 }
 
-void CalendarApi::remove(const QString &uid, const QString &recurrenceId, const QDateTime &time)
+void CalendarApi::remove(const QString &instanceId, const QDateTime &time)
 {
-    QDateTime recurrenceTime = QDateTime::fromString(recurrenceId, Qt::ISODate);
-    CalendarManager::instance()->deleteEvent(uid, recurrenceTime, time);
+    CalendarManager::instance()->deleteEvent(instanceId, time);
 
     // TODO: this sucks
     CalendarManager::instance()->save();
 }
 
-void CalendarApi::removeAll(const QString &uid)
+void CalendarApi::removeAll(const QString &instanceId)
 {
-    CalendarManager::instance()->deleteAll(uid);
+    CalendarManager::instance()->deleteAll(instanceId);
     CalendarManager::instance()->save();
 }
 

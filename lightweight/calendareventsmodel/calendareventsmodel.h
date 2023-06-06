@@ -77,11 +77,10 @@ public:
         DescriptionRole,
         StartTimeRole,
         EndTimeRole,
-        RecurrenceIdRole,
         AllDayRole,
         LocationRole,
         CalendarUidRole,
-        UidRole,
+        InstanceIdRole,
         ColorRole,
         CancelledRole
     };

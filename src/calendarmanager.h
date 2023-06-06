@@ -61,22 +61,22 @@ public:
     static CalendarManager *instance(bool createIfNeeded = true);
     ~CalendarManager();
 
-    CalendarStoredEvent* eventObject(const QString &eventUid, const QDateTime &recurrenceId);
+    CalendarStoredEvent* eventObject(const QString &instanceId);
 
     void saveModification(CalendarData::Event eventData, bool updateAttendees,
                           const QList<CalendarData::EmailContact> &required,
                           const QList<CalendarData::EmailContact> &optional);
-    void deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime);
-    void deleteAll(const QString &uid);
+    void deleteEvent(const QString &instanceId, const QDateTime &dateTime);
+    void deleteAll(const QString &instanceId);
     void save();
 
     // Synchronous DB thread access
-    QString convertEventToICalendarSync(const QString &uid, const QString &prodId);
+    QString convertEventToICalendarSync(const QString &instanceId, const QString &prodId);
 
     // Event
-    CalendarData::Event getEvent(const QString& instanceIdentifier, bool *loaded = nullptr) const;
-    CalendarData::Event dissociateSingleOccurrence(const QString &eventUid, const QDateTime &recurrenceId) const;
-    bool sendResponse(const QString &uid, const QDateTime &recurrenceId, CalendarEvent::Response response);
+    CalendarData::Event getEvent(const QString& instanceId, bool *loaded = nullptr) const;
+    CalendarData::Event dissociateSingleOccurrence(const QString &instanceId, const QDateTime &datetime) const;
+    bool sendResponse(const QString &instanceId, CalendarEvent::Response response);
 
     // Notebooks
     QList<CalendarData::Notebook> notebooks();
@@ -111,15 +111,17 @@ public:
 
     // Caller gets ownership of returned CalendarEventOccurrence object
     // Does synchronous DB thread access - no DB operations, though, fast when no ongoing DB ops
-    CalendarEventOccurrence* getNextOccurrence(const QString &uid, const QDateTime &recurrenceId,
+    CalendarEventOccurrence* getNextOccurrence(const QString &instanceId,
                                                const QDateTime &start);
     // return attendees for given event, synchronous call
-    QList<CalendarData::Attendee> getEventAttendees(const QString &uid, const QDateTime &recurrenceId, bool *resultValid);
+    QList<CalendarData::Attendee> getEventAttendees(const QString &instanceId, bool *resultValid);
 
 private slots:
     void storageModifiedSlot();
     void calendarTimezoneChangedSlot();
-    void eventNotebookChanged(const QString &oldEventUid, const QString &newEventUid, const QString &notebookUid);
+    void eventNotebookChanged(const QString &oldInstanceId,
+                              const QString &newInstanceId,
+                              const QString &notebookUid);
     void excludedNotebooksChangedSlot(const QStringList &excludedNotebooks);
     void notebooksChangedSlot(const QList<CalendarData::Notebook> &notebooks);
     void dataLoadedSlot(const QList<CalendarData::Range> &ranges,
@@ -142,7 +144,7 @@ signals:
     void storageModified();
     void timezoneChanged();
     void dataUpdated();
-    void eventUidChanged(QString oldUid, QString newUid);
+    void instanceIdChanged(QString oldId, QString newId, QString notebookUid);
 
 private:
     friend class tst_CalendarManager;

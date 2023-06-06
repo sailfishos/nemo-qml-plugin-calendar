@@ -55,14 +55,9 @@ QString CalendarInvitationQuery::notebookUid() const
     return mNotebookUid;
 }
 
-QString CalendarInvitationQuery::uid() const
+QString CalendarInvitationQuery::instanceId() const
 {
-    return mUid;
-}
-
-QString CalendarInvitationQuery::rid() const
-{
-    return mRid;
+    return mInstanceId;
 }
 
 QString CalendarInvitationQuery::startTime() const
@@ -127,7 +122,6 @@ void CalendarInvitationQuery::queryResult(CalendarData::Event event)
 {
     bool needNUidEmit = false;
     bool needUidEmit = false;
-    bool needRidEmit = false;
     bool needSTEmit = false;
 
     if (mNotebookUid != event.calendarUid) {
@@ -135,15 +129,9 @@ void CalendarInvitationQuery::queryResult(CalendarData::Event event)
         needNUidEmit = true;
     }
 
-    if (mUid != event.uniqueId) {
-        mUid = event.uniqueId;
+    if (mInstanceId != event.instanceId) {
+        mInstanceId = event.instanceId;
         needUidEmit = true;
-    }
-
-    const QString &recurrenceIdString = CalendarUtils::recurrenceIdToString(event.recurrenceId);
-    if (mRid != recurrenceIdString) {
-        mRid = recurrenceIdString;
-        needRidEmit = true;
     }
 
     if (mStartTime != event.startTime.toString(Qt::ISODate)) {
@@ -157,10 +145,7 @@ void CalendarInvitationQuery::queryResult(CalendarData::Event event)
         emit notebookUidChanged();
     }
     if (needUidEmit) {
-        emit uidChanged();
-    }
-    if (needRidEmit) {
-        emit ridChanged();
+        emit instanceIdChanged();
     }
     if (needSTEmit) {
         emit startTimeChanged();

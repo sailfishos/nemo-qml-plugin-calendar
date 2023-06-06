@@ -153,7 +153,7 @@ void CalendarEventListModel::doRefresh()
         if (event.isValid()) {
             CalendarEventOccurrence *occurrence =
                 CalendarManager::instance()->getNextOccurrence
-                (event.uniqueId, event.recurrenceId, mStartTime);
+                (event.instanceId, mStartTime);
             if (occurrence->startTime().isValid()) {
                 occurrence->setProperty("identifier", id);
                 mEvents.append(occurrence);

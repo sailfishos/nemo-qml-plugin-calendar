@@ -44,7 +44,7 @@
 
 namespace CalendarUtils {
 
-QList<CalendarData::Attendee> getEventAttendees(const KCalendarCore::Event::Ptr &event);
+QList<CalendarData::Attendee> getEventAttendees(const KCalendarCore::Incidence::Ptr &event);
 QList<QObject*> convertAttendeeList(const QList<CalendarData::Attendee> &list);
 CalendarData::EventOccurrence getNextOccurrence(const KCalendarCore::Event::Ptr &event,
                                                 const QDateTime &start = QDateTime::currentDateTime(),

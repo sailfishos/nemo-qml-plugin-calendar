@@ -7,8 +7,7 @@
 
 struct EventData {
     QString calendarUid;
-    QString uniqueId;
-    QString recurrenceId;
+    QString instanceId;
     QString startTime;
     QString endTime;
     bool allDay;

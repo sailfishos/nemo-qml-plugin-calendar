@@ -56,9 +56,9 @@ public:
     Q_INVOKABLE CalendarEventModification *createModification(CalendarStoredEvent *sourceEvent,
                                                               CalendarEventOccurrence *occurrence = nullptr);
 
-    Q_INVOKABLE void remove(const QString &uid, const QString &recurrenceId = QString(),
+    Q_INVOKABLE void remove(const QString &instanceId,
                             const QDateTime &time = QDateTime());
-    Q_INVOKABLE void removeAll(const QString &uid); // remove all instances an event, all recurrenceIds
+    Q_INVOKABLE void removeAll(const QString &instanceId); // remove all instances of an event, including exceptions
 
     QStringList excludedNotebooks() const;
     void setExcludedNotebooks(const QStringList &);

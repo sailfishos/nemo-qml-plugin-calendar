@@ -46,8 +46,7 @@ class CalendarInvitationQuery : public QObject, public QQmlParserStatus
     Q_INTERFACES(QQmlParserStatus)
     Q_PROPERTY(QString invitationFile READ invitationFile WRITE setInvitationFile NOTIFY invitationFileChanged)
     Q_PROPERTY(QString notebookUid READ notebookUid NOTIFY notebookUidChanged)
-    Q_PROPERTY(QString uid READ uid NOTIFY uidChanged)
-    Q_PROPERTY(QString rid READ rid NOTIFY ridChanged)
+    Q_PROPERTY(QString instanceId READ instanceId NOTIFY instanceIdChanged)
     Q_PROPERTY(QString startTime READ startTime NOTIFY startTimeChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
 
@@ -59,8 +58,7 @@ public:
     void setInvitationFile(const QString &file);
 
     QString notebookUid() const;
-    QString uid() const;
-    QString rid() const;
+    QString instanceId() const;
     QString startTime() const;
 
     bool busy() const;
@@ -73,8 +71,7 @@ public:
 signals:
     void invitationFileChanged();
     void notebookUidChanged();
-    void uidChanged();
-    void ridChanged();
+    void instanceIdChanged();
     void startTimeChanged();
     void busyChanged();
     void queryFinished();
@@ -89,8 +86,7 @@ private:
 
     QString mInvitationFile;
     QString mNotebookUid;
-    QString mUid;
-    QString mRid;
+    QString mInstanceId;
     QString mStartTime;
 };
 

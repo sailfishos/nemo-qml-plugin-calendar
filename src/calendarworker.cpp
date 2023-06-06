@@ -59,7 +59,7 @@
 #include <timed-qt5/interface>
 
 namespace {
-    void updateAttendee(KCalendarCore::Event::Ptr event,
+    void updateAttendee(KCalendarCore::Incidence::Ptr event,
                         const KCalendarCore::Attendee &attendee,
                         const KCalendarCore::Attendee &updated)
     {
@@ -155,14 +155,20 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
     emit storageModifiedSignal();
 }
 
-void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrenceId, const QDateTime &dateTime)
+KCalendarCore::Incidence::Ptr CalendarWorker::getInstance(const QString &instanceId) const
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
-    if (!event && mStorage->load(uid)) {
-        event = mCalendar->event(uid, recurrenceId);
+    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
+    if (!event && mStorage->loadIncidenceInstance(instanceId)) {
+        event = mCalendar->instance(instanceId);
     }
+    return event;
+}
+
+void CalendarWorker::deleteEvent(const QString &instanceId, const QDateTime &dateTime)
+{
+    KCalendarCore::Incidence::Ptr event = getInstance(instanceId);
     if (!event) {
-        qDebug() << uid << "event already deleted from DB";
+        qDebug() << instanceId << "event already deleted from DB";
         return;
     }
 
@@ -177,23 +183,38 @@ void CalendarWorker::deleteEvent(const QString &uid, const QDateTime &recurrence
         event->setRevision(event->revision() + 1);
     } else if (event->hasRecurrenceId()) {
         // We consider that deleting an exception implies to create an exdate for the parent.
-        KCalendarCore::Event::Ptr parent = mCalendar->event(uid);
+        KCalendarCore::Event::Ptr parent = mCalendar->event(event->uid());
         if (parent) {
             parent->recurrence()->addExDateTime(event->recurrenceId());
             parent->setRevision(parent->revision() + 1);
         }
-        mCalendar->deleteEvent(event);
+        mCalendar->deleteIncidence(event);
     } else {
-        mCalendar->deleteEvent(event);
+        mCalendar->deleteIncidence(event);
     }
 }
 
-bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenceId,
+void CalendarWorker::deleteAll(const QString &instanceId)
+{
+    KCalendarCore::Incidence::Ptr event = getInstance(instanceId);
+    if (!event) {
+        qDebug() << instanceId << "event already deleted from DB";
+        return;
+    }
+    if (event->hasRecurrenceId()) {
+        KCalendarCore::Incidence::Ptr parent = mCalendar->incidence(event->uid());
+        if (parent)
+            event = parent;
+    }
+    mCalendar->deleteIncidence(event);
+}
+
+bool CalendarWorker::sendResponse(const QString &instanceId,
                                   const CalendarEvent::Response response)
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
+    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
     if (!event) {
-        qWarning() << "Failed to send response, event not found. UID = " << uid;
+        qWarning() << "Failed to send response, event not found. UID = " << instanceId;
         return false;
     }
     const QString ownerEmail = getNotebookAddress(mCalendar->notebook(event));
@@ -221,18 +242,20 @@ bool CalendarWorker::sendResponse(const QString &uid, const QDateTime &recurrenc
         if (!sent)
             updateAttendee(event, updated, origAttendee);
     } else {
-        qWarning() << "Failed to load notebook for incidence" << event->instanceIdentifier();
+        qWarning() << "Failed to load notebook for incidence" << instanceId;
     }
 
     return sent;
 }
 
-QString CalendarWorker::convertEventToICalendar(const QString &uid, const QString &prodId) const
+QString CalendarWorker::convertEventToICalendar(const QString &instanceId, const QString &prodId) const
 {
-    // NOTE: not fetching eventInstances() with different recurrenceId
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid);
+    // NOTE: exporting only the matching occurrence with instanceId,
+    // for recurring parent, it will not append the exceptions,
+    // for exceptions, it will not append the parent.
+    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
     if (event.isNull()) {
-        qWarning() << "No event with uid " << uid << ", unable to create iCalendar";
+        qWarning() << "No event with uid " << instanceId << ", unable to create iCalendar";
         return QString();
     }
 
@@ -259,8 +282,8 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
     }
 
     KCalendarCore::Event::Ptr event;
-    if (!eventData.uniqueId.isEmpty()) {
-        event = mCalendar->event(eventData.uniqueId, eventData.recurrenceId);
+    if (!eventData.instanceId.isEmpty()) {
+        event = mCalendar->instance(eventData.instanceId).staticCast<KCalendarCore::Event>();
         if (!event && eventData.recurrenceId.isNull()) {
             // possibility that event was removed while changes were edited. options to either skip, as done now,
             // or resurrect the event
@@ -278,20 +301,27 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
         // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
         // for new events than trying to implement some complex logic in basesailfish-eas.
-        if (eventData.uniqueId.isEmpty()) {
+        if (eventData.instanceId.isEmpty()) {
             event->setUid(event->uid().toUpper());
         } else {
-            event->setUid(eventData.uniqueId);
+            event->setUid(eventData.incidenceUid);
             event->setRecurrenceId(eventData.recurrenceId);
         }
     } else {
         if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
-            // mkcal does funny things when moving event between notebooks, work around by changing uid
-            KCalendarCore::Event::Ptr newEvent = KCalendarCore::Event::Ptr(event->clone());
-            newEvent->setUid(KCalendarCore::CalFormat::createUniqueId().toUpper());
-            emit eventNotebookChanged(event->uid(), newEvent->uid(), notebookUid);
+            KCalendarCore::Event::Ptr newEvent(event->clone());
+#if 0
+            // mkcal does not support keeping the same UID for events
+            // in different notebooks. One should keep the same UID
+            // for the deleted event and the new event not to confuse
+            // sync processes, if the event has been uploaded to a server
+            // already.
+            // So this code is currently broken and requires mKCal
+            // to support multi-notebook incidences sharing the same UID.
+            emit eventNotebookChanged(eventData.instanceId, newEvent->instanceIdentifier(), notebookUid);
             mCalendar->deleteEvent(event);
             mCalendar->addEvent(newEvent, notebookUid);
+#endif
             event = newEvent;
         } else {
             event->setRevision(event->revision() + 1);
@@ -319,11 +349,11 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
     save();
 }
 
-CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &uid, const QDateTime &recurrenceId)
+CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &instanceId, const QDateTime &datetime)
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid);
-    if (!event) {
-        qWarning("Event to create occurrence replacement for not found");
+    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
+    if (!event || event->hasRecurrenceId()) {
+        qWarning("Event to create occurrence replacement for not found or already an exception");
         return CalendarData::Event();
     }
 
@@ -331,8 +361,8 @@ CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &ui
     // zone is also an exception when travelling to another time, we use the
     // LocalTime spec.
     const QDateTime occurrence = event->allDay()
-            ? QDateTime(recurrenceId.date(), recurrenceId.time(), Qt::LocalTime)
-            : recurrenceId;
+            ? QDateTime(datetime.date(), datetime.time(), Qt::LocalTime)
+            : datetime;
     KCalendarCore::Incidence::Ptr replacement = mCalendar->dissociateSingleOccurrence(event, occurrence);
     if (!replacement) {
         qWarning("Unable to create the replacing occurrence");
@@ -628,8 +658,7 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
                      it.incidence()->dateTime(KCalendarCore::Incidence::RoleDisplayEnd),
                      KCalendarCore::Duration::Seconds);
                 CalendarData::EventOccurrence occurrence;
-                occurrence.eventUid = it.incidence()->uid();
-                occurrence.recurrenceId = it.incidence()->recurrenceId();
+                occurrence.instanceId = it.incidence()->instanceIdentifier();
                 occurrence.startTime = sdt;
                 occurrence.endTime = elapsed.end(sdt);
                 occurrence.eventAllDay = it.incidence()->allDay();
@@ -671,9 +700,7 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
     }
 
     foreach (const QString &id, instanceList) {
-        if (mCalendar->instance(id).isNull()) {
-            mStorage->loadIncidenceInstance(id);
-        }
+        mStorage->loadIncidenceInstance(id);
     }
 
     if (reset)
@@ -912,27 +939,22 @@ void CalendarWorker::loadNotebooks()
 }
 
 
-CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &uid,
-                                                                const QDateTime &recurrenceId,
+CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &instanceId,
                                                                 const QDateTime &start) const
 {
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
+    KCalendarCore::Event::Ptr event = getInstance(instanceId).staticCast<KCalendarCore::Event>();
     if (!event) {
-        mStorage->load(uid);
-        event = mCalendar->event(uid, recurrenceId);
-    }
-    if (!event) {
-        qWarning() << "Failed to get next occurrence, event not found. UID = " << uid << recurrenceId;
+        qWarning() << "Failed to get next occurrence, event not found. UID = " << instanceId;
         return CalendarData::EventOccurrence();
     }
     return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event) : KCalendarCore::Incidence::List());
 }
 
-QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &uid, const QDateTime &recurrenceId)
+QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &instanceId)
 {
     QList<CalendarData::Attendee> result;
 
-    KCalendarCore::Event::Ptr event = mCalendar->event(uid, recurrenceId);
+    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
 
     if (event.isNull()) {
         return result;

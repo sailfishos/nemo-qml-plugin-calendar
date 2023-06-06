@@ -96,8 +96,5 @@ bool CalendarImportEvent::sendResponse(int response)
 
 QObject *CalendarImportEvent::nextOccurrence()
 {
-    return new CalendarEventOccurrence(mOccurrence.eventUid,
-                                       mOccurrence.recurrenceId,
-                                       mOccurrence.startTime,
-                                       mOccurrence.endTime);
+    return new CalendarEventOccurrence(mOccurrence);
 }

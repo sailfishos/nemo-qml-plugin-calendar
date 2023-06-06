@@ -36,6 +36,8 @@
 #include <QDateTime>
 #include <QTimeZone>
 
+#include <KCalendarCore/Event>
+
 #include "calendarutils.h"
 #include "calendarmanager.h"
 #include "calendareventoccurrence.h"
@@ -157,9 +159,14 @@ QDateTime CalendarEvent::reminderDateTime() const
     return mData->reminderDateTime;
 }
 
-QString CalendarEvent::uniqueId() const
+QString CalendarEvent::instanceId() const
 {
-    return mData->uniqueId;
+    return mData->instanceId;
+}
+
+bool CalendarEvent::isException() const
+{
+    return mData->recurrenceId.isValid();
 }
 
 bool CalendarEvent::readOnly() const
@@ -212,28 +219,14 @@ bool CalendarEvent::externalInvitation() const
     return mData->externalInvitation;
 }
 
-QDateTime CalendarEvent::recurrenceId() const
-{
-    return mData->recurrenceId;
-}
-
-QString CalendarEvent::recurrenceIdString() const
-{
-    if (mData->recurrenceId.isValid()) {
-        return CalendarUtils::recurrenceIdToString(mData->recurrenceId);
-    } else {
-        return QString();
-    }
-}
-
 CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data)
     : CalendarEvent(data, manager)
     , mManager(manager)
 {
     connect(mManager, SIGNAL(notebookColorChanged(QString)),
             this, SLOT(notebookColorChanged(QString)));
-    connect(mManager, SIGNAL(eventUidChanged(QString,QString)),
-            this, SLOT(eventUidChanged(QString,QString)));
+    connect(mManager, &CalendarManager::instanceIdChanged,
+            this, &CalendarStoredEvent::instanceIdNotified);
 }
 
 CalendarStoredEvent::~CalendarStoredEvent()
@@ -246,19 +239,21 @@ void CalendarStoredEvent::notebookColorChanged(QString notebookUid)
         emit colorChanged();
 }
 
-void CalendarStoredEvent::eventUidChanged(QString oldUid, QString newUid)
+void CalendarStoredEvent::instanceIdNotified(QString oldId, QString newId, QString notebookUid)
 {
-    if (mData->uniqueId == oldUid) {
-        mData->uniqueId = newUid;
-        emit uniqueIdChanged();
+    if (mData->instanceId == oldId) {
+        mData->instanceId = newId;
+        emit instanceIdChanged();
         // Event uid changes when the event is moved between notebooks, calendar uid has changed
+        mData->calendarUid = notebookUid;
         emit calendarUidChanged();
+        emit colorChanged();
     }
 }
 
 bool CalendarStoredEvent::sendResponse(int response)
 {
-    if (mManager->sendResponse(mData->uniqueId, mData->recurrenceId, (Response)response)) {
+    if (mManager->sendResponse(mData->instanceId, (Response)response)) {
         mManager->save();
         return true;
     } else {
@@ -268,7 +263,7 @@ bool CalendarStoredEvent::sendResponse(int response)
 
 void CalendarStoredEvent::deleteEvent()
 {
-    mManager->deleteEvent(mData->uniqueId, mData->recurrenceId, QDateTime());
+    mManager->deleteEvent(mData->instanceId, QDateTime());
     mManager->save();
 }
 
@@ -276,13 +271,24 @@ void CalendarStoredEvent::deleteEvent()
 QString CalendarStoredEvent::iCalendar(const QString &prodId) const
 {
     Q_UNUSED(prodId);
-    if (mData->uniqueId.isEmpty()) {
+    if (mData->instanceId.isEmpty()) {
         qWarning() << "Event has no uid, returning empty iCalendar string."
                    << "Save event before calling this function";
         return QString();
     }
 
-    return mManager->convertEventToICalendarSync(mData->uniqueId, prodId);
+    return mManager->convertEventToICalendarSync(mData->instanceId, prodId);
+}
+
+CalendarStoredEvent* CalendarStoredEvent::parent() const
+{
+    if (isException()) {
+        KCalendarCore::Event event;
+        event.setUid(mData->incidenceUid);
+        return mManager->eventObject(event.instanceIdentifier());
+    } else {
+        return nullptr;
+    }
 }
 
 QString CalendarStoredEvent::color() const
@@ -332,5 +338,5 @@ void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
 
 CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
 {
-    return occurrence ? mManager->dissociateSingleOccurrence(mData->uniqueId, occurrence->startTime()) : CalendarData::Event();
+    return occurrence ? mManager->dissociateSingleOccurrence(mData->instanceId, occurrence->startTime()) : CalendarData::Event();
 }

@@ -4,8 +4,7 @@ QDBusArgument &operator<<(QDBusArgument &argument, const EventData &eventData)
 {
     argument.beginStructure();
     argument << eventData.calendarUid
-             << eventData.uniqueId
-             << eventData.recurrenceId
+             << eventData.instanceId
              << eventData.startTime
              << eventData.endTime
              << eventData.allDay
@@ -22,8 +21,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, EventData &eventD
 {
     argument.beginStructure();
     argument >> eventData.calendarUid
-             >> eventData.uniqueId
-             >> eventData.recurrenceId
+             >> eventData.instanceId
              >> eventData.startTime
              >> eventData.endTime
              >> eventData.allDay
