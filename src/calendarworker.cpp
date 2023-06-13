@@ -559,6 +559,8 @@ void CalendarWorker::setDefaultNotebook(const QString &notebookUid)
     if (!mStorage->setDefaultNotebook(mStorage->notebook(notebookUid))) {
         qWarning() << "unable to set default notebook";
     }
+
+    loadNotebooks();
 }
 
 QStringList CalendarWorker::excludedNotebooks() const

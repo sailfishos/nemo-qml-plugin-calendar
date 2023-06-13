@@ -9,6 +9,7 @@
 #include <KCalendarCore/CalFormat>
 
 #include "calendarmanager.h"
+#include "calendaragendamodel.h"
 #include <QSignalSpy>
 
 class tst_CalendarManager : public QObject
@@ -571,6 +572,26 @@ void tst_CalendarManager::test_notebookApi()
     QTRY_VERIFY(!notebookSpy.empty());
     QCOMPARE(mManager->defaultNotebook(), mAddedNotebooks.last()->uid());
     QCOMPARE(defaultNotebookSpy.count(), 2);
+
+    QSignalSpy dataUpdatedSpy(mManager, &CalendarManager::dataUpdated);
+    CalendarAgendaModel agenda;
+    agenda.setStartDate(QDate(2023, 6, 8));
+    mManager->scheduleAgendaRefresh(&agenda);
+    QTRY_VERIFY(!dataUpdatedSpy.isEmpty());
+    dataUpdatedSpy.clear();
+    QSignalSpy excludedNotebooksSpy(mManager, &CalendarManager::excludedNotebooksChanged);
+    mManager->excludeNotebook(mAddedNotebooks.first()->uid(), true);
+    QTRY_VERIFY(!dataUpdatedSpy.isEmpty());
+    QVERIFY(!excludedNotebooksSpy.isEmpty());
+    QCOMPARE(excludedNotebooksSpy.count(), 1);
+    QCOMPARE(mManager->excludedNotebooks(), QStringList() << mAddedNotebooks.first()->uid());
+    dataUpdatedSpy.clear();
+    excludedNotebooksSpy.clear();
+    mManager->excludeNotebook(mAddedNotebooks.first()->uid(), false);
+    QTRY_VERIFY(!dataUpdatedSpy.isEmpty());
+    QVERIFY(!excludedNotebooksSpy.isEmpty());
+    QCOMPARE(excludedNotebooksSpy.count(), 1);
+    QVERIFY(mManager->excludedNotebooks().isEmpty());
 }
 
 void tst_CalendarManager::cleanupTestCase()
