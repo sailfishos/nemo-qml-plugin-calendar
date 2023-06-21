@@ -761,6 +761,7 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
                                                       mKCal::Notebook::Ptr notebook) const
 {
     CalendarData::Event event(*e);
+    event.instanceId = e->instanceIdentifier();
     event.calendarUid = mCalendar->notebook(e);
     event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
     bool externalInvitation = false;
@@ -949,7 +950,11 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &i
         qWarning() << "Failed to get next occurrence, event not found. UID = " << instanceId;
         return CalendarData::EventOccurrence();
     }
-    return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event) : KCalendarCore::Incidence::List());
+    CalendarData::EventOccurrence occurrence =
+        CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event)
+                                                                       : KCalendarCore::Incidence::List());
+    occurrence.instanceId = instanceId;
+    return occurrence;
 }
 
 QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &instanceId)
