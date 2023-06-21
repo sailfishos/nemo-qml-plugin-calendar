@@ -62,7 +62,13 @@ void tst_CalendarImportModel::initTestCase()
 
 void tst_CalendarImportModel::testByString()
 {
+    mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
+    mKCal::ExtendedStorage::Ptr storage = calendar->defaultStorage(calendar);
+    QVERIFY(storage);
+    QVERIFY(storage->open());
+
     CalendarImportModel *model = new CalendarImportModel;
+    model->setNotebookUid(storage->defaultNotebook()->uid());
 
     const QString icsData =
         QStringLiteral("BEGIN:VCALENDAR\n"
@@ -145,11 +151,7 @@ void tst_CalendarImportModel::testByString()
     QVERIFY(model->data(at2, int(CalendarImportModel::InvitationRole)).toBool());
 
     // Check that importation to the local calendar is working
-    mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
-    mKCal::ExtendedStorage::Ptr storage = calendar->defaultStorage(calendar);
-    QVERIFY(storage);
-    QVERIFY(storage->open());
-    QVERIFY(model->importToNotebook(storage->defaultNotebook()->uid()));
+    QVERIFY(model->save());
 
     QVERIFY(storage->load());
     const KCalendarCore::Incidence::Ptr ev1 = calendar->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A73"));
@@ -164,7 +166,7 @@ void tst_CalendarImportModel::testByString()
     QVERIFY(!ev2->organizer().isEmpty());
 
     // Reimport purging invitations this time
-    QVERIFY(model->importToNotebook(storage->defaultNotebook()->uid(), true));
+    QVERIFY(model->save(true));
 
     QVERIFY(storage->close());
     calendar->close();
