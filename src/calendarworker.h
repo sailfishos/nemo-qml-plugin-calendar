@@ -39,7 +39,7 @@
 #include <QHash>
 
 // mkcal
-#include <extendedstorage.h>
+#include <multicalendarstorage.h>
 
 // libaccounts-qt
 namespace Accounts { class Manager; }
@@ -49,7 +49,7 @@ namespace Accounts { class Manager; }
 
 class CalendarInvitationQuery;
 
-class CalendarWorker : public QObject, public mKCal::ExtendedStorageObserver
+class CalendarWorker : public QObject, public mKCal::MultiCalendarStorage::Observer
 {
     Q_OBJECT
     
@@ -58,11 +58,12 @@ public:
     ~CalendarWorker();
 
     /* mKCal::ExtendedStorageObserver */
-    void storageModified(mKCal::ExtendedStorage *storage, const QString &info);
-    void storageUpdated(mKCal::ExtendedStorage *storage,
+    void storageModified(mKCal::MultiCalendarStorage *storage) override;
+    void storageUpdated(mKCal::MultiCalendarStorage *storage,
+                        const QString &notebookUid,
                         const KCalendarCore::Incidence::List &added,
                         const KCalendarCore::Incidence::List &modified,
-                        const KCalendarCore::Incidence::List &deleted);
+                        const KCalendarCore::Incidence::List &deleted) override;
 
 public slots:
     void init();
@@ -122,7 +123,8 @@ private:
     QStringList excludedNotebooks() const;
     bool saveExcludeNotebook(const QString &notebookUid, bool exclude);
 
-    bool isOrganizer(const KCalendarCore::Incidence::Ptr &event) const;
+    bool isOrganizer(const QString &notebookUid,
+                     const KCalendarCore::Incidence::Ptr &event) const;
     void updateEventAttendees(KCalendarCore::Event::Ptr event, bool newEvent,
                               const QList<CalendarData::EmailContact> &required,
                               const QList<CalendarData::EmailContact> &optional,
@@ -131,15 +133,16 @@ private:
     KCalendarCore::Incidence::Ptr getInstance(const QString &instanceId) const;
 
     CalendarData::Event createEventStruct(const KCalendarCore::Event::Ptr &event,
-                                          mKCal::Notebook::Ptr notebook = mKCal::Notebook::Ptr()) const;
-    QHash<QString, CalendarData::EventOccurrence> eventOccurrences(const QList<CalendarData::Range> &ranges) const;
+                                          const mKCal::Notebook &notebook) const;
+    void eventOccurrences(QHash<QString, CalendarData::EventOccurrence> *occurrences,
+                          const QList<CalendarData::Range> &ranges,
+                          const KCalendarCore::Calendar &calendar) const;
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
                                                     const QList<CalendarData::EventOccurrence> &occurrences) const;
 
     Accounts::Manager *mAccountManager;
 
-    mKCal::ExtendedCalendar::Ptr mCalendar;
-    mKCal::ExtendedStorage::Ptr mStorage;
+    mKCal::MultiCalendarStorage::Ptr mStorage;
 
     QHash<QString, CalendarData::Notebook> mNotebooks;
 

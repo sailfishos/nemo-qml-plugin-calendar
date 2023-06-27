@@ -38,7 +38,7 @@
 #include <QtCore/QFile>
 
 // mkcal
-#include <extendedcalendar.h>
+#include <calendarstorage.h>
 
 // kcalendarcore
 #include <KCalendarCore/MemoryCalendar>
@@ -47,11 +47,6 @@ CalendarImportModel::CalendarImportModel(QObject *parent)
     : QAbstractListModel(parent),
       mError(false)
 {
-    mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
-    mStorage = calendar->defaultStorage(calendar);
-    if (!mStorage->open()) {
-        qWarning() << "Unable to open calendar DB";
-    }
 }
 
 CalendarImportModel::~CalendarImportModel()
@@ -92,6 +87,22 @@ void CalendarImportModel::setIcsString(const QString &icsData)
     mIcsRawData = data;
     emit icsStringChanged();
     setError(!importToMemory(mFileName, mIcsRawData));
+}
+
+QString CalendarImportModel::notebookUid() const
+{
+    return mNotebookUid;
+}
+
+void CalendarImportModel::setNotebookUid(const QString &notebookUid)
+{
+    if (notebookUid == mNotebookUid)
+        return;
+
+    mNotebookUid = notebookUid;
+    emit notebookUidChanged();
+
+    setupDuplicates();
 }
 
 bool CalendarImportModel::hasDuplicates() const
@@ -156,23 +167,28 @@ QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
     }
 }
 
-bool CalendarImportModel::importToNotebook(const QString &notebookUid, bool discardInvitation) const
+bool CalendarImportModel::save(bool discardInvitation) const
 {
+    mKCal::CalendarStorage::Ptr storage = mKCal::CalendarStorage::systemStorage();
+    storage->calendar()->setId(mNotebookUid);
+    if (!storage->open()) {
+        qWarning() << "Unable to open calendar DB";
+    }
     for (const KCalendarCore::Event::Ptr& incidence : mEventList) {
         const KCalendarCore::Incidence::Ptr old =
-            mStorage->calendar()->incidence(incidence->uid(), incidence->recurrenceId());
+            storage->calendar()->incidence(incidence->uid(), incidence->recurrenceId());
         if (old) {
             // Unconditionally overwrite existing incidence with the same UID/RecID.
-            mStorage->calendar()->deleteIncidence(old);
+            storage->calendar()->deleteIncidence(old);
         }
         if (discardInvitation) {
             incidence->setOrganizer(KCalendarCore::Person());
             incidence->clearAttendees();
         }
-        mStorage->calendar().staticCast<mKCal::ExtendedCalendar>()->addIncidence(incidence, notebookUid);
+        storage->calendar()->addIncidence(incidence);
     }
 
-    return mStorage->save();
+    return storage->save();
 }
 
 QHash<int, QByteArray> CalendarImportModel::roleNames() const
@@ -191,6 +207,29 @@ QHash<int, QByteArray> CalendarImportModel::roleNames() const
     return roleNames;
 }
 
+void CalendarImportModel::setupDuplicates()
+{
+    mDuplicates.clear();
+    if (!mNotebookUid.isEmpty()) {
+        mKCal::CalendarStorage::Ptr storage = mKCal::CalendarStorage::systemStorage();
+        storage->calendar()->setId(mNotebookUid);
+        if (!storage->open()) {
+            qWarning() << "Unable to open system storage for notebook" << mNotebookUid;
+            storage.clear();
+        }
+        // To avoid detach here, use qAsConst when available.
+        for (const KCalendarCore::Event::Ptr &event : mEventList) {
+            storage->load(event->uid());
+            const KCalendarCore::Event::Ptr old =
+                storage->calendar()->event(event->uid(), event->recurrenceId());
+            if (old) {
+                mDuplicates.insert(old->instanceIdentifier());
+            }
+        }
+    }
+    emit hasDuplicatesChanged();
+}
+
 bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArray &icsData)
 {
     bool success = false;
@@ -203,24 +242,17 @@ bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArr
     }
 
     beginResetModel();
-    mDuplicates.clear();
     mInvitations.clear();
     mEventList = cal->events(KCalendarCore::EventSortStartDate);
     // To avoid detach here, use qAsConst when available.
     for (const KCalendarCore::Event::Ptr &event : mEventList) {
-        mStorage->load(event->uid());
-        const KCalendarCore::Event::Ptr old =
-            mStorage->calendar()->event(event->uid(), event->recurrenceId());
-        if (old) {
-            mDuplicates.insert(old->instanceIdentifier());
-        }
         if (!event->organizer().isEmpty()) {
             mInvitations.insert(event->instanceIdentifier());
         }
     }
+    setupDuplicates();
     endResetModel();
     emit countChanged();
-    emit hasDuplicatesChanged();
     emit hasInvitationsChanged();
 
     return success;

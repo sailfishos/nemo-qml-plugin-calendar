@@ -53,7 +53,6 @@ CalendarData::Event::Event(const KCalendarCore::Event &event)
     , startTime(event.dtStart())
     , endTime(event.dtEnd())
     , allDay(event.allDay())
-    , instanceId(event.instanceIdentifier())
     , incidenceUid(event.uid())
     , recurrenceId(event.recurrenceId())
     , location(event.location())
@@ -442,7 +441,6 @@ CalendarData::EventOccurrence CalendarUtils::getNextOccurrence(const KCalendarCo
 
     CalendarData::EventOccurrence occurrence;
     if (event) {
-        occurrence.instanceId = event->instanceIdentifier();
         occurrence.eventAllDay = event->allDay();
         occurrence.startTime = event->dtStart().toTimeZone(systemTimeZone);
         occurrence.endTime = event->dtEnd().toTimeZone(systemTimeZone);

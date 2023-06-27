@@ -36,7 +36,6 @@
 #include <QAbstractListModel>
 
 #include <KCalendarCore/Calendar>
-#include <extendedstorage.h>
 
 class CalendarImportModel : public QAbstractListModel
 {
@@ -44,6 +43,7 @@ class CalendarImportModel : public QAbstractListModel
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QString fileName READ fileName WRITE setFileName NOTIFY fileNameChanged)
     Q_PROPERTY(QString icsString READ icsString WRITE setIcsString NOTIFY icsStringChanged)
+    Q_PROPERTY(QString targetNotebook READ notebookUid WRITE setNotebookUid NOTIFY notebookUidChanged)
     Q_PROPERTY(bool hasDuplicates READ hasDuplicates NOTIFY hasDuplicatesChanged)
     Q_PROPERTY(bool hasInvitations READ hasInvitations NOTIFY hasInvitationsChanged)
     Q_PROPERTY(bool error READ error NOTIFY errorChanged)
@@ -72,6 +72,9 @@ public:
     QString icsString() const;
     void setIcsString(const QString &icsData);
 
+    QString notebookUid() const;
+    void setNotebookUid(const QString &notebookUid);
+
     bool hasDuplicates() const;
 
     bool hasInvitations() const;
@@ -88,12 +91,13 @@ signals:
     void countChanged();
     void fileNameChanged();
     void icsStringChanged();
+    void notebookUidChanged();
     void hasDuplicatesChanged();
     void hasInvitationsChanged();
     bool errorChanged();
 
 public slots:
-    bool importToNotebook(const QString &notebookUid = QString(), bool discardInvitation = false) const;
+    bool save(bool discardInvitation = false) const;
 
 protected:
     virtual QHash<int, QByteArray> roleNames() const;
@@ -101,11 +105,12 @@ protected:
 private:
     bool importToMemory(const QString &fileName, const QByteArray &icsData);
     void setError(bool error);
+    void setupDuplicates();
 
     QString mFileName;
     QByteArray mIcsRawData;
+    QString mNotebookUid;
     KCalendarCore::Event::List mEventList;
-    mKCal::ExtendedStorage::Ptr mStorage;
     QSet<QString> mDuplicates;
     QSet<QString> mInvitations;
     bool mError;

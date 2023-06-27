@@ -32,6 +32,8 @@
 #include <QSignalSpy>
 #include <QtTest>
 
+#include <calendarstorage.h>
+
 #include "calendarimportmodel.h"
 
 class tst_CalendarImportModel : public QObject
@@ -47,8 +49,7 @@ private slots:
 
 void tst_CalendarImportModel::initTestCase()
 {
-    mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
-    mKCal::ExtendedStorage::Ptr storage = calendar->defaultStorage(calendar);
+    mKCal::CalendarStorage::Ptr storage = mKCal::CalendarStorage::systemDefaultCalendar();
     QVERIFY(storage);
     QVERIFY(storage->open());
 
@@ -56,13 +57,18 @@ void tst_CalendarImportModel::initTestCase()
     event->setUid(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A73"));
     event->setDtStart(QDateTime(QDate(2022, 6, 8), QTime(15, 7)));
 
-    QVERIFY(calendar->addIncidence(event, storage->defaultNotebook()->uid()));
+    QVERIFY(storage->calendar()->addIncidence(event));
     QVERIFY(storage->save());
 }
 
 void tst_CalendarImportModel::testByString()
 {
+    mKCal::CalendarStorage::Ptr storage = mKCal::CalendarStorage::systemDefaultCalendar();
+    QVERIFY(storage);
+    QVERIFY(storage->open());
+
     CalendarImportModel *model = new CalendarImportModel;
+    model->setNotebookUid(storage->calendar()->id());
 
     const QString icsData =
         QStringLiteral("BEGIN:VCALENDAR\n"
@@ -145,33 +151,29 @@ void tst_CalendarImportModel::testByString()
     QVERIFY(model->data(at2, int(CalendarImportModel::InvitationRole)).toBool());
 
     // Check that importation to the local calendar is working
-    mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
-    mKCal::ExtendedStorage::Ptr storage = calendar->defaultStorage(calendar);
-    QVERIFY(storage);
-    QVERIFY(storage->open());
-    QVERIFY(model->importToNotebook(storage->defaultNotebook()->uid()));
+    QVERIFY(model->save());
 
     QVERIFY(storage->load());
-    const KCalendarCore::Incidence::Ptr ev1 = calendar->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A73"));
+    const KCalendarCore::Incidence::Ptr ev1 = storage->calendar()->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A73"));
     QVERIFY(ev1);
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
     QCOMPARE(ev1->dtStart(), QDate(2019, 6, 7).startOfDay());
 #else
     QCOMPARE(ev1->dtStart(), QDateTime(QDate(2019, 6, 7)));
 #endif
-    const KCalendarCore::Incidence::Ptr ev2 = calendar->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A74"));
+    const KCalendarCore::Incidence::Ptr ev2 = storage->calendar()->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A74"));
     QVERIFY(ev2);
     QVERIFY(!ev2->organizer().isEmpty());
 
     // Reimport purging invitations this time
-    QVERIFY(model->importToNotebook(storage->defaultNotebook()->uid(), true));
+    QVERIFY(model->save(true));
 
     QVERIFY(storage->close());
-    calendar->close();
+    storage->calendar()->close();
     QVERIFY(storage->open());
     QVERIFY(storage->load());
-    QVERIFY(calendar->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A74")));
-    QVERIFY(calendar->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A74"))->organizer().isEmpty());
+    QVERIFY(storage->calendar()->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A74")));
+    QVERIFY(storage->calendar()->incidence(QString::fromLatin1("14B902BC-8D24-4A97-8541-63DF7FD41A74"))->organizer().isEmpty());
 
     delete model;
 }
