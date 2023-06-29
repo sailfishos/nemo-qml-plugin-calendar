@@ -284,48 +284,58 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
     KCalendarCore::Event::Ptr event;
     if (!eventData.instanceId.isEmpty()) {
         event = mCalendar->instance(eventData.instanceId).staticCast<KCalendarCore::Event>();
-        if (!event && eventData.recurrenceId.isNull()) {
-            // possibility that event was removed while changes were edited. options to either skip, as done now,
-            // or resurrect the event
-            qWarning("Event to be saved not found");
-            return;
-        }
     }
     bool createNew = event.isNull();
 
     if (createNew) {
-        event = KCalendarCore::Event::Ptr(new KCalendarCore::Event);
-
-        // For exchange it is better to use upper case UIDs, because for some reason when
-        // UID is generated out of Global object id of the email message we are getting a lowercase
-        // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
-        // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
-        // for new events than trying to implement some complex logic in basesailfish-eas.
         if (eventData.instanceId.isEmpty()) {
+            event = KCalendarCore::Event::Ptr(new KCalendarCore::Event);
+            // For exchange it is better to use upper case UIDs, because for some reason when
+            // UID is generated out of Global object id of the email message we are getting a lowercase
+            // UIDs, but original UIDs for invitations/events sent from Outlook Web interface are in
+            // upper case. To workaround such behaviour it is easier for us to generate an upper case UIDs
+            // for new events than trying to implement some complex logic in basesailfish-eas.
             event->setUid(event->uid().toUpper());
-        } else {
-            event->setUid(eventData.incidenceUid);
+        } else if (eventData.recurrenceId.isValid()) {
+            KCalendarCore::Event::Ptr parent =
+                mCalendar->event(eventData.incidenceUid);
+            if (!parent) {
+                // The parent was removed while the exception was edited.
+                qWarning("Unable to create an exception without parent");
+                return;
+            }
+            event = KCalendarCore::Event::Ptr(parent->clone());
             event->setRecurrenceId(eventData.recurrenceId);
-        }
-    } else {
-        if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
-            KCalendarCore::Event::Ptr newEvent(event->clone());
-#if 0
-            // mkcal does not support keeping the same UID for events
-            // in different notebooks. One should keep the same UID
-            // for the deleted event and the new event not to confuse
-            // sync processes, if the event has been uploaded to a server
-            // already.
-            // So this code is currently broken and requires mKCal
-            // to support multi-notebook incidences sharing the same UID.
-            emit eventNotebookChanged(eventData.instanceId, newEvent->instanceIdentifier(), notebookUid);
-            mCalendar->deleteEvent(event);
-            mCalendar->addEvent(newEvent, notebookUid);
-#endif
-            event = newEvent;
         } else {
-            event->setRevision(event->revision() + 1);
+            // The event was removed while changes were edited.
+            // Options to either skip, as done now, or resurrect the event.
+            qWarning("Event to be saved not found");
+            return;
         }
+    } else if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
+#if 0
+        // mkcal does not support keeping the same UID for events
+        // in different notebooks. One should keep the same UID
+        // for the deleted event and the new event not to confuse
+        // sync processes, if the event has been uploaded to a server
+        // already.
+        // So this code is currently broken and requires mKCal
+        // to support multi-notebook incidences sharing the same UID.
+        KCalendarCore::Event::Ptr parent = mCalendar->event(event-uid());
+        for (const KCalendarCore::Incidence::Ptr &incidence : mCalendar->instances(parent) << parent) {
+            if (!mCalendar->deleteIncidence(incidence)
+                || !mCalendar->addIncidence(incidence, notebookUid)) {
+                qWarning() << "Cannot move event" << incidence->uid() << " to notebookUid:" << notebookUid;
+                return;
+            }
+            emit eventNotebookChanged(incidence->instanceIdentifier(),
+                                      incidence->instanceIdentifier(), notebookUid);
+        }
+#endif
+        event->startUpdates();
+    } else {
+        event->startUpdates();
+        event->setRevision(event->revision() + 1);
     }
 
     eventData.toKCalendarCore(event);
@@ -334,16 +344,11 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         updateEventAttendees(event, createNew, required, optional, notebookUid);
     }
 
-    if (createNew) {
-        bool eventAdded;
-        if (notebookUid.isEmpty())
-            eventAdded = mCalendar->addEvent(event);
-        else
-            eventAdded = mCalendar->addEvent(event, notebookUid);
-        if (!eventAdded) {
-            qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
-            return;
-        }
+    if (createNew && !mCalendar->addEvent(event, notebookUid.isEmpty() ? mCalendar->defaultNotebook() : notebookUid)) {
+        qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
+        return;
+    } else if (!createNew) {
+        event->endUpdates();
     }
 
     save();
@@ -442,7 +447,6 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
         event->setOrganizer(organizer);
     }
 
-    event->startUpdates();
     if (!newEvent) {
         // if existing attendees are removed, those should get a cancel update
         KCalendarCore::Event::Ptr cancelEvent = KCalendarCore::Event::Ptr(event->clone());
@@ -530,7 +534,6 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
             }
         }
     }
-    event->endUpdates();
 }
 
 QString CalendarWorker::getNotebookAddress(const QString &notebookUid) const
