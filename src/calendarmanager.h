@@ -144,7 +144,6 @@ private:
     QList<CalendarData::Range> addRanges(const QList<CalendarData::Range> &oldRanges,
                                          const QList<CalendarData::Range> &newRanges);
     void updateAgendaModel(CalendarAgendaModel *model);
-    void sendEventChangeSignals(const CalendarData::Event &newEvent);
 
     QThread mWorkerThread;
     CalendarWorker *mCalendarWorker;

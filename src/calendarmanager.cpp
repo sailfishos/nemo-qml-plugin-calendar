@@ -739,13 +739,6 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
                                      const QHash<QDate, QStringList> &dailyOccurrences,
                                      bool reset)
 {
-    QList<CalendarData::Event> oldEvents;
-    foreach (const QString &uid, mEventObjects.keys()) {
-        // just add all matching uid, change signal emission will match recurrence ids
-        if (events.contains(uid))
-            oldEvents.append(mEvents.values(uid));
-    }
-
     if (reset) {
         mEvents.clear();
         mEventOccurrences.clear();
@@ -764,30 +757,20 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
         mEventOccurrenceForDates.insert(it.key(), it.value());
     mLoadPending = false;
 
-    foreach (const CalendarData::Event &oldEvent, oldEvents) {
-        const CalendarData::Event &event = getEvent(oldEvent.uniqueId, oldEvent.recurrenceId);
-        if (event.isValid())
-            sendEventChangeSignals(event);
+    for (QHash<QString, CalendarStoredEvent *>::ConstIterator it = mEventObjects.constBegin();
+         it != mEventObjects.constEnd(); it++) {
+        QHash<QString, CalendarData::Event>::ConstIterator event = events.find(it.key());
+        if (it.value()->recurrenceId().isValid()) {
+            while (event != events.constEnd() &&
+                   event->uniqueId == it.key() && event->recurrenceId != it.value()->recurrenceId()) {
+                event++;
+            }
+        }
+        if (event != events.constEnd()) {
+            it.value()->setEvent(&(*event));
+        }
     }
 
     emit dataUpdated();
     mTimer->start();
-}
-
-void CalendarManager::sendEventChangeSignals(const CalendarData::Event &newEvent)
-{
-    CalendarStoredEvent *eventObject = 0;
-    QMultiHash<QString, CalendarStoredEvent *>::iterator it = mEventObjects.find(newEvent.uniqueId);
-    while (it != mEventObjects.end() && it.key() == newEvent.uniqueId) {
-        if (it.value()->recurrenceId() == newEvent.recurrenceId) {
-            eventObject = it.value();
-            break;
-        }
-        ++it;
-    }
-
-    if (!eventObject)
-        return;
-
-    eventObject->setEvent(&newEvent);
 }
