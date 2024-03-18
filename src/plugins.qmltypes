@@ -74,22 +74,16 @@ Module {
         }
         Method {
             name: "remove"
-            Parameter { name: "uid"; type: "string" }
-            Parameter { name: "recurrenceId"; type: "string" }
+            Parameter { name: "instanceId"; type: "string" }
             Parameter { name: "time"; type: "QDateTime" }
         }
         Method {
             name: "remove"
-            Parameter { name: "uid"; type: "string" }
-            Parameter { name: "recurrenceId"; type: "string" }
-        }
-        Method {
-            name: "remove"
-            Parameter { name: "uid"; type: "string" }
+            Parameter { name: "instanceId"; type: "string" }
         }
         Method {
             name: "removeAll"
-            Parameter { name: "uid"; type: "string" }
+            Parameter { name: "instanceId"; type: "string" }
         }
     }
     Component {
@@ -243,8 +237,8 @@ Module {
         Property { name: "recurWeeklyDays"; type: "CalendarEvent::Days"; isReadonly: true }
         Property { name: "reminder"; type: "int"; isReadonly: true }
         Property { name: "reminderDateTime"; type: "QDateTime"; isReadonly: true }
-        Property { name: "uniqueId"; type: "string"; isReadonly: true }
-        Property { name: "recurrenceId"; type: "string"; isReadonly: true }
+        Property { name: "instanceId"; type: "string"; isReadonly: true }
+        Property { name: "isException"; type: "bool"; isReadonly: true }
         Property { name: "readOnly"; type: "bool"; isReadonly: true }
         Property { name: "calendarUid"; type: "string"; isReadonly: true }
         Property { name: "location"; type: "string"; isReadonly: true }
@@ -270,12 +264,15 @@ Module {
             values: {
                 "EventObjectRole": 256,
                 "OccurrenceObjectRole": 257,
-                "IdentifierRole": 258
+                "IdentifierRole": 258,
+                "LastRole": 259
             }
         }
         Property { name: "count"; type: "int"; isReadonly: true }
         Property { name: "identifiers"; type: "QStringList" }
+        Property { name: "startTime"; type: "QDateTime" }
         Property { name: "missingItems"; type: "QStringList"; isReadonly: true }
+        Property { name: "loading"; type: "bool"; isReadonly: true }
     }
     Component {
         name: "CalendarEventModification"
@@ -348,18 +345,12 @@ Module {
         prototype: "QObject"
         exports: ["org.nemomobile.calendar/EventQuery 1.0"]
         exportMetaObjectRevisions: [0]
-        Property { name: "uniqueId"; type: "string" }
-        Property { name: "recurrenceId"; type: "string" }
+        Property { name: "instanceId"; type: "string" }
         Property { name: "startTime"; type: "QDateTime" }
         Property { name: "event"; type: "QObject"; isReadonly: true; isPointer: true }
         Property { name: "occurrence"; type: "QObject"; isReadonly: true; isPointer: true }
         Property { name: "attendees"; type: "QList<QObject*>"; isReadonly: true }
         Property { name: "eventError"; type: "bool"; isReadonly: true }
-        Signal { name: "recurrenceIdStringChanged" }
-        Signal {
-            name: "newUniqueId"
-            Parameter { name: "newUid"; type: "string" }
-        }
     }
     Component {
         name: "CalendarImportModel"
@@ -369,9 +360,11 @@ Module {
         Property { name: "count"; type: "int"; isReadonly: true }
         Property { name: "fileName"; type: "string" }
         Property { name: "icsString"; type: "string" }
+        Property { name: "targetNotebook"; type: "string" }
         Property { name: "hasDuplicates"; type: "bool"; isReadonly: true }
         Property { name: "hasInvitations"; type: "bool"; isReadonly: true }
         Property { name: "error"; type: "bool"; isReadonly: true }
+        Signal { name: "notebookUidChanged" }
         Signal { name: "errorChanged"; type: "bool" }
         Method {
             name: "getEvent"
@@ -379,17 +372,11 @@ Module {
             Parameter { name: "index"; type: "int" }
         }
         Method {
-            name: "importToNotebook"
+            name: "save"
             type: "bool"
-            Parameter { name: "notebookUid"; type: "string" }
             Parameter { name: "discardInvitation"; type: "bool" }
         }
-        Method {
-            name: "importToNotebook"
-            type: "bool"
-            Parameter { name: "notebookUid"; type: "string" }
-        }
-        Method { name: "importToNotebook"; type: "bool" }
+        Method { name: "save"; type: "bool" }
     }
     Component {
         name: "CalendarInvitationQuery"
@@ -398,8 +385,7 @@ Module {
         exportMetaObjectRevisions: [0]
         Property { name: "invitationFile"; type: "string" }
         Property { name: "notebookUid"; type: "string"; isReadonly: true }
-        Property { name: "uid"; type: "string"; isReadonly: true }
-        Property { name: "rid"; type: "string"; isReadonly: true }
+        Property { name: "instanceId"; type: "string"; isReadonly: true }
         Property { name: "startTime"; type: "string"; isReadonly: true }
         Property { name: "busy"; type: "bool"; isReadonly: true }
         Signal { name: "queryFinished" }
@@ -430,12 +416,33 @@ Module {
         Property { name: "isReadOnly"; type: "bool"; isReadonly: true }
     }
     Component {
+        name: "CalendarSearchModel"
+        prototype: "CalendarEventListModel"
+        exports: ["org.nemomobile.calendar/EventSearchModel 1.0"]
+        exportMetaObjectRevisions: [0]
+        Enum {
+            name: "SearchRoles"
+            values: {
+                "YearRole": 259
+            }
+        }
+        Property { name: "searchString"; type: "string" }
+        Property { name: "limit"; type: "int" }
+        Property { name: "loading"; type: "bool"; isReadonly: true }
+    }
+    Component {
         name: "CalendarStoredEvent"
         prototype: "CalendarEvent"
         exports: ["org.nemomobile.calendar/CalendarStoredEvent 1.0"]
         isCreatable: false
         exportMetaObjectRevisions: [0]
         Property { name: "color"; type: "string"; isReadonly: true }
+        Property {
+            name: "recurringParent"
+            type: "CalendarStoredEvent"
+            isReadonly: true
+            isPointer: true
+        }
         Method {
             name: "sendResponse"
             type: "bool"
