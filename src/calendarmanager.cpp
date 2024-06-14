@@ -275,8 +275,7 @@ void CalendarManager::scheduleAgendaRefresh(CalendarAgendaModel *model)
 
     mAgendaRefreshList.append(model);
 
-    if (!mLoadPending)
-        mTimer->start();
+    mTimer->start();
 }
 
 void CalendarManager::cancelEventListRefresh(CalendarEventListModel *model)
@@ -291,8 +290,7 @@ void CalendarManager::scheduleEventListRefresh(CalendarEventListModel *model)
 
     mEventListRefreshList.append(model);
 
-    if (!mLoadPending)
-        mTimer->start();
+    mTimer->start();
 }
 
 void CalendarManager::scheduleEventQueryRefresh(CalendarEventQuery *query)
@@ -302,8 +300,7 @@ void CalendarManager::scheduleEventQueryRefresh(CalendarEventQuery *query)
 
     mQueryRefreshList.append(query);
 
-    if (!mLoadPending)
-        mTimer->start();
+    mTimer->start();
 }
 
 void CalendarManager::cancelEventQueryRefresh(CalendarEventQuery *query)
@@ -479,11 +476,8 @@ void CalendarManager::doAgendaAndQueryRefresh()
         else
             missingRanges = addRanges(missingRanges, newRanges);
     }
-
     if (mResetPending) {
         missingRanges = addRanges(missingRanges, mLoadedRanges);
-        mLoadedRanges.clear();
-        mLoadedQueries.clear();
     }
 
     QStringList missingInstanceList;
@@ -520,7 +514,8 @@ void CalendarManager::doAgendaAndQueryRefresh()
         }
     }
 
-    if (!missingRanges.isEmpty() || !missingInstanceList.isEmpty()) {
+    if ((!missingRanges.isEmpty() || !missingInstanceList.isEmpty())
+        && !mLoadPending) {
         mLoadPending = true;
         QMetaObject::invokeMethod(mCalendarWorker, "loadData", Qt::QueuedConnection,
                                   Q_ARG(QList<CalendarData::Range>, missingRanges),
@@ -532,9 +527,6 @@ void CalendarManager::doAgendaAndQueryRefresh()
 
 void CalendarManager::timeout()
 {
-    if (mLoadPending)
-        return;
-
     if (!mAgendaRefreshList.isEmpty()
         || !mQueryRefreshList.isEmpty()
         || !mEventListRefreshList.isEmpty() || mResetPending)
@@ -758,6 +750,8 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
         mEvents.clear();
         mEventOccurrences.clear();
         mEventOccurrenceForDates.clear();
+        mLoadedRanges.clear();
+        mLoadedQueries.clear();
     }
 
     mLoadedRanges = addRanges(mLoadedRanges, ranges);
