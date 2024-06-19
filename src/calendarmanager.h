@@ -155,34 +155,34 @@ private:
                                          const QList<CalendarData::Range> &newRanges);
     void updateAgendaModel(CalendarAgendaModel *model);
 
-    QThread mWorkerThread;
-    CalendarWorker *mCalendarWorker;
-    QHash<QString, CalendarData::Event> mEvents;
-    QHash<QString, CalendarStoredEvent *> mEventObjects;
-    QHash<QString, CalendarData::EventOccurrence> mEventOccurrences;
-    QHash<QDate, QStringList> mEventOccurrenceForDates;
-    QList<CalendarAgendaModel *> mAgendaRefreshList;
-    QList<CalendarEventListModel *> mEventListRefreshList;
-    QList<CalendarEventQuery *> mQueryRefreshList;
-    QList<CalendarSearchModel *> mSearchList;
-    QHash<CalendarInvitationQuery *, QString> mInvitationQueryHash; // value is the invitationFile.
-    QStringList mExcludedNotebooks;
-    QHash<QString, CalendarData::Notebook> mNotebooks;
+    QThread m_workerThread;
+    CalendarWorker *m_calendarWorker;
+    QHash<QString, CalendarData::Event> m_events;
+    QHash<QString, CalendarStoredEvent *> m_eventObjects;
+    QHash<QString, CalendarData::EventOccurrence> m_eventOccurrences;
+    QHash<QDate, QStringList> m_eventOccurrenceForDates;
+    QList<CalendarAgendaModel *> m_agendaRefreshList;
+    QList<CalendarEventListModel *> m_eventListRefreshList;
+    QList<CalendarEventQuery *> m_queryRefreshList;
+    QList<CalendarSearchModel *> m_searchList;
+    QHash<CalendarInvitationQuery *, QString> m_invitationQueryHash; // value is the invitationFile.
+    QStringList m_excludedNotebooks;
+    QHash<QString, CalendarData::Notebook> m_notebooks;
 
-    QTimer *mTimer;
+    QTimer *m_timer;
 
     // If true indicates that CalendarWorker::loadRanges(...) has been called, and the response
     // has not been received in slot CalendarManager::rangesLoaded(...)
-    bool mLoadPending;
+    bool m_loadPending;
 
     // If true the next call to doAgendaRefresh() will cause a complete reload of calendar data
-    bool mResetPending;
+    bool m_resetPending;
 
     // A list of non-overlapping loaded ranges sorted by range start date
-    QList<CalendarData::Range > mLoadedRanges;
+    QList<CalendarData::Range > m_loadedRanges;
 
     // A list of event instance identifiers that have been processed by CalendarWorker
-    QStringList mLoadedQueries;
+    QStringList m_loadedQueries;
 };
 
 #endif // CALENDARMANAGER_H

@@ -143,15 +143,15 @@ private slots:
     void instanceIdNotified(QString oldId, QString newId, QString notebookUid);
 
 private:
-    bool mIsComplete;
-    QString mInstanceId;
-    QDateTime mStartTime;
-    CalendarData::Event mEvent;
-    CalendarEventOccurrence *mOccurrence;
-    bool mAttendeesCached;
-    bool mEventError;
-    bool mUpdateOccurrence;
-    QList<CalendarData::Attendee> mAttendees;
+    bool m_isComplete;
+    QString m_instanceId;
+    QDateTime m_startTime;
+    CalendarData::Event m_event;
+    CalendarEventOccurrence *m_occurrence;
+    bool m_attendeesCached;
+    bool m_eventError;
+    bool m_updateOccurrence;
+    QList<CalendarData::Attendee> m_attendees;
 };
 
 #endif

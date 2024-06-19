@@ -90,8 +90,8 @@ public:
     //! \reimp_end
 
 private:
-    KCalendarCore::Incidence::Ptr mSentInvitation;
-    KCalendarCore::Incidence::List mUpdatedInvitations;
+    KCalendarCore::Incidence::Ptr m_sentInvitation;
+    KCalendarCore::Incidence::List m_updatedInvitations;
 };
 
 #endif

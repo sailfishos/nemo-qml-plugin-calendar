@@ -96,11 +96,11 @@ private slots:
 private:
     void refresh();
 
-    bool mIsComplete;
-    QStringList mIdentifiers;
-    QStringList mMissingItems;
-    QDateTime mStartTime;
-    QList<CalendarEventOccurrence*> mEvents;
+    bool m_isComplete;
+    QStringList m_identifiers;
+    QStringList m_missingItems;
+    QDateTime m_startTime;
+    QList<CalendarEventOccurrence*> m_events;
 };
 
 #endif // CALENDAREVENTLISTMODEL_H

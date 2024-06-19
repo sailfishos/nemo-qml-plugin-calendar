@@ -39,7 +39,7 @@
 #include <QDebug>
 
 CalendarEventQuery::CalendarEventQuery()
-    : mIsComplete(true), mOccurrence(0), mAttendeesCached(false), mEventError(false), mUpdateOccurrence(false)
+    : m_isComplete(true), m_occurrence(0), m_attendeesCached(false), m_eventError(false), m_updateOccurrence(false)
 {
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
@@ -61,23 +61,23 @@ CalendarEventQuery::~CalendarEventQuery()
 // The instanceId of the matched event
 QString CalendarEventQuery::instanceId() const
 {
-    return mInstanceId;
+    return m_instanceId;
 }
 
 void CalendarEventQuery::setInstanceId(const QString &instanceId)
 {
-    if (instanceId == mInstanceId)
+    if (instanceId == m_instanceId)
         return;
-    mInstanceId = instanceId;
+    m_instanceId = instanceId;
     emit instanceIdChanged();
 
-    if (mEvent.isValid()) {
-        mEvent = CalendarData::Event();
+    if (m_event.isValid()) {
+        m_event = CalendarData::Event();
         emit eventChanged();
     }
-    if (mOccurrence) {
-        delete mOccurrence;
-        mOccurrence = 0;
+    if (m_occurrence) {
+        delete m_occurrence;
+        m_occurrence = 0;
         emit occurrenceChanged();
     }
 
@@ -89,15 +89,15 @@ void CalendarEventQuery::setInstanceId(const QString &instanceId)
 // If there is no following occurrence, the previous occurrence is returned.
 QDateTime CalendarEventQuery::startTime() const
 {
-    return mStartTime;
+    return m_startTime;
 }
 
 void CalendarEventQuery::setStartTime(const QDateTime &t)
 {
-    if (t == mStartTime)
+    if (t == m_startTime)
         return;
-    mStartTime = t;
-    mUpdateOccurrence = true;
+    m_startTime = t;
+    m_updateOccurrence = true;
     emit startTimeChanged();
 
     refresh();
@@ -110,78 +110,78 @@ void CalendarEventQuery::resetStartTime()
 
 QObject *CalendarEventQuery::event() const
 {
-    if (mEvent.isValid() && mEvent.instanceId == mInstanceId)
-        return CalendarManager::instance()->eventObject(mInstanceId);
+    if (m_event.isValid() && m_event.instanceId == m_instanceId)
+        return CalendarManager::instance()->eventObject(m_instanceId);
     else
         return nullptr;
 }
 
 QObject *CalendarEventQuery::occurrence() const
 {
-    return mOccurrence;
+    return m_occurrence;
 }
 
 QList<QObject*> CalendarEventQuery::attendees()
 {
-    if (!mAttendeesCached) {
+    if (!m_attendeesCached) {
         bool resultValid = false;
-        mAttendees = CalendarManager::instance()->getEventAttendees(mInstanceId, &resultValid);
+        m_attendees = CalendarManager::instance()->getEventAttendees(m_instanceId, &resultValid);
         if (resultValid) {
-            mAttendeesCached = true;
+            m_attendeesCached = true;
         }
     }
 
-    return CalendarUtils::convertAttendeeList(mAttendees);
+    return CalendarUtils::convertAttendeeList(m_attendees);
 }
 
 void CalendarEventQuery::classBegin()
 {
-    mIsComplete = false;
+    m_isComplete = false;
 }
 
 void CalendarEventQuery::componentComplete()
 {
-    mIsComplete = true;
+    m_isComplete = true;
     refresh();
 }
 
 void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
 {
-    // The value of mInstanceId may have changed, verify that we got what we asked for
-    if (event.isValid() && event.instanceId != mInstanceId)
+    // The value of m_instanceId may have changed, verify that we got what we asked for
+    if (event.isValid() && event.instanceId != m_instanceId)
         return;
 
-    bool updateOccurrence = mUpdateOccurrence;
+    bool updateOccurrence = m_updateOccurrence;
     bool signalEventChanged = false;
 
-    if (event.instanceId != mEvent.instanceId) {
-        mEvent = event;
+    if (event.instanceId != m_event.instanceId) {
+        m_event = event;
         signalEventChanged = true;
         updateOccurrence = true;
-    } else if (mEvent.isValid()) { // The event may have changed even if the pointer did not
-        if (mEvent.allDay != event.allDay
-                || mEvent.endTime != event.endTime
-                || mEvent.recur != event.recur
+    } else if (m_event.isValid()) { // The event may have changed even if the pointer did not
+        if (m_event.allDay != event.allDay
+                || m_event.endTime != event.endTime
+                || m_event.recur != event.recur
                 || event.recur == CalendarEvent::RecurCustom
-                || mEvent.startTime != event.startTime) {
-            mEvent = event;
+                || m_event.startTime != event.startTime) {
+            m_event = event;
             updateOccurrence = true;
         }
     }
 
     if (updateOccurrence) { // Err on the safe side: always update occurrence if it may have changed
-        delete mOccurrence;
-        mOccurrence = 0;
+        delete m_occurrence;
+        m_occurrence = 0;
 
-        if (mEvent.isValid()) {
+        if (m_event.isValid()) {
             CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(
-                    mInstanceId, mStartTime);
+                    m_instanceId, m_startTime);
             if (occurrence) {
-                mOccurrence = occurrence;
-                mOccurrence->setParent(this);
+                m_occurrence = occurrence;
+                m_occurrence->setParent(this);
             }
         }
-        mUpdateOccurrence = false;
+        m_updateOccurrence = false;
         emit occurrenceChanged();
     }
 
@@ -191,27 +191,27 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
     // check if attendees have changed.
     bool resultValid = false;
     QList<CalendarData::Attendee> attendees = CalendarManager::instance()->getEventAttendees(
-            mInstanceId, &resultValid);
-    if (resultValid && mAttendees != attendees) {
-        mAttendees = attendees;
-        mAttendeesCached = true;
+            m_instanceId, &resultValid);
+    if (resultValid && m_attendees != attendees) {
+        m_attendees = attendees;
+        m_attendeesCached = true;
         emit attendeesChanged();
     }
 
-    if (mEventError != eventError) {
-        mEventError = eventError;
+    if (m_eventError != eventError) {
+        m_eventError = eventError;
         emit eventErrorChanged();
     }
 }
 
 bool CalendarEventQuery::eventError() const
 {
-    return mEventError;
+    return m_eventError;
 }
 
 void CalendarEventQuery::refresh()
 {
-    if (!mIsComplete || mInstanceId.isEmpty())
+    if (!m_isComplete || m_instanceId.isEmpty())
         return;
 
     CalendarManager::instance()->scheduleEventQueryRefresh(this);
@@ -219,24 +219,24 @@ void CalendarEventQuery::refresh()
 
 void CalendarEventQuery::onTimezoneChanged()
 {
-    if (mOccurrence) {
+    if (m_occurrence) {
         // Actually, the date times have not changed, but
         // their representations in local time (as used in QML)
         // have changed.
-        mOccurrence->startTimeChanged();
-        mOccurrence->endTimeChanged();
+        m_occurrence->startTimeChanged();
+        m_occurrence->endTimeChanged();
     }
 }
 
 void CalendarEventQuery::instanceIdNotified(QString oldId, QString newId, QString notebookUid)
 {
-    if (mInstanceId == oldId) {
-        mInstanceId = newId;
+    if (m_instanceId == oldId) {
+        m_instanceId = newId;
         emit instanceIdChanged();
 
-        if (mEvent.isValid()) {
-            mEvent.instanceId = newId;
-            mEvent.calendarUid = notebookUid;
+        if (m_event.isValid()) {
+            m_event.instanceId = newId;
+            m_event.calendarUid = notebookUid;
         } else {
             refresh();
         }

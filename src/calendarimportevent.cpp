@@ -37,44 +37,44 @@
 
 CalendarImportEvent::CalendarImportEvent(const KCalendarCore::Event::Ptr &event)
     : CalendarEvent((CalendarData::Event*)0, nullptr)
-    , mColor("#ffffff")
+    , m_color("#ffffff")
 {
     if (event) {
-        *mData = CalendarData::Event(*event);
-        mOrganizer = event->organizer().fullName();
-        mOrganizerEmail = event->organizer().email();
-        mAttendees = CalendarUtils::getEventAttendees(event);
-        mOccurrence = CalendarUtils::getNextOccurrence(event);
+        *m_data = CalendarData::Event(*event);
+        m_organizer = event->organizer().fullName();
+        m_organizerEmail = event->organizer().email();
+        m_attendees = CalendarUtils::getEventAttendees(event);
+        m_occurrence = CalendarUtils::getNextOccurrence(event);
     }
-    mData->readOnly = true;
+    m_data->readOnly = true;
 }
 
 QString CalendarImportEvent::color() const
 {
-    return mColor;
+    return m_color;
 }
 
 QList<QObject *> CalendarImportEvent::attendees() const
 {
-    return CalendarUtils::convertAttendeeList(mAttendees);
+    return CalendarUtils::convertAttendeeList(m_attendees);
 }
 
 QString CalendarImportEvent::organizer() const
 {
-    return mOrganizer;
+    return m_organizer;
 }
 
 QString CalendarImportEvent::organizerEmail() const
 {
-    return mOrganizerEmail;
+    return m_organizerEmail;
 }
 
 void CalendarImportEvent::setColor(const QString &color)
 {
-    if (mColor == color)
+    if (m_color == color)
         return;
 
-    mColor = color;
+    m_color = color;
     emit colorChanged();
 }
 
@@ -96,5 +96,5 @@ bool CalendarImportEvent::sendResponse(int response)
 
 QObject *CalendarImportEvent::nextOccurrence()
 {
-    return new CalendarEventOccurrence(mOccurrence);
+    return new CalendarEventOccurrence(m_occurrence);
 }

@@ -45,9 +45,9 @@ CalendarEventOccurrence::CalendarEventOccurrence(QObject *parent)
 CalendarEventOccurrence::CalendarEventOccurrence(const CalendarData::EventOccurrence &occurrence,
                                                  QObject *parent)
     : QObject(parent)
-    , mInstanceId(occurrence.instanceId)
-    , mStartTime(occurrence.startTime)
-    , mEndTime(occurrence.endTime)
+    , m_instanceId(occurrence.instanceId)
+    , m_startTime(occurrence.startTime)
+    , m_endTime(occurrence.endTime)
 {
     connect(CalendarManager::instance(), &CalendarManager::instanceIdChanged,
             this, &CalendarEventOccurrence::instanceIdChanged);
@@ -59,30 +59,30 @@ CalendarEventOccurrence::~CalendarEventOccurrence()
 
 bool CalendarEventOccurrence::operator<(const CalendarEventOccurrence &other)
 {
-    return (mStartTime == other.mStartTime) ? (mEndTime < other.mEndTime) : (mStartTime < other.mStartTime);
+    return (m_startTime == other.m_startTime) ? (m_endTime < other.m_endTime) : (m_startTime < other.m_startTime);
 }
 
 QDateTime CalendarEventOccurrence::startTime() const
 {
-    return mStartTime;
+    return m_startTime;
 }
 
 QDateTime CalendarEventOccurrence::endTime() const
 {
-    return mEndTime;
+    return m_endTime;
 }
 
 CalendarStoredEvent *CalendarEventOccurrence::eventObject() const
 {
-    return CalendarManager::instance()->eventObject(mInstanceId);
+    return CalendarManager::instance()->eventObject(m_instanceId);
 }
 
 void CalendarEventOccurrence::instanceIdChanged(QString oldId, QString newId, QString notebookUid)
 {
     Q_UNUSED(notebookUid);
 
-    if (mInstanceId == oldId)
-        mInstanceId = newId;
+    if (m_instanceId == oldId)
+        m_instanceId = newId;
 }
 
 static QDateTime toEventDateTime(const QDateTime &dateTime,
@@ -106,11 +106,11 @@ static QDateTime toEventDateTime(const QDateTime &dateTime,
 QDateTime CalendarEventOccurrence::startTimeInTz() const
 {
     const CalendarEvent *event = eventObject();
-    return event ? toEventDateTime(mStartTime, event->startTimeSpec(), event->startTimeZone()) : mStartTime;
+    return event ? toEventDateTime(m_startTime, event->startTimeSpec(), event->startTimeZone()) : m_startTime;
 }
 
 QDateTime CalendarEventOccurrence::endTimeInTz() const
 {
     const CalendarEvent *event = eventObject();
-    return event ? toEventDateTime(mEndTime, event->endTimeSpec(), event->endTimeZone()) : mEndTime;
+    return event ? toEventDateTime(m_endTime, event->endTimeSpec(), event->endTimeZone()) : m_endTime;
 }

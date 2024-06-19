@@ -47,26 +47,26 @@
 
 CalendarEventsModel::CalendarEventsModel(QObject *parent) :
     QAbstractListModel(parent),
-    mProxy(0),
-    mWatcher(new QFileSystemWatcher(this)),
-    mFilterMode(FilterNone),
-    mContentType(ContentAll),
-    mEventLimit(1000),
-    mTotalCount(0),
-    mEventDisplayTime(0),
+    m_proxy(0),
+    m_watcher(new QFileSystemWatcher(this)),
+    m_filterMode(FilterNone),
+    m_contentType(ContentAll),
+    m_eventLimit(1000),
+    m_totalCount(0),
+    m_eventDisplayTime(0),
     m_mkcalTracked(false)
 {
     registerCalendarDataServiceTypes();
-    mProxy = new CalendarDataServiceProxy("org.nemomobile.calendardataservice",
-                                          "/org/nemomobile/calendardataservice",
-                                          QDBusConnection::sessionBus(),
-                                          this);
-    connect(mProxy, SIGNAL(getEventsResult(QString,EventDataList)),
+    m_proxy = new CalendarDataServiceProxy("org.nemomobile.calendardataservice",
+                                           "/org/nemomobile/calendardataservice",
+                                           QDBusConnection::sessionBus(),
+                                           this);
+    connect(m_proxy, SIGNAL(getEventsResult(QString,EventDataList)),
             this, SLOT(getEventsResult(QString,EventDataList)));
 
-    mUpdateDelayTimer.setInterval(500);
-    mUpdateDelayTimer.setSingleShot(true);
-    connect(&mUpdateDelayTimer, SIGNAL(timeout()), this, SLOT(update()));
+    m_updateDelayTimer.setInterval(500);
+    m_updateDelayTimer.setSingleShot(true);
+    connect(&m_updateDelayTimer, SIGNAL(timeout()), this, SLOT(update()));
 
     trackMkcal();
 
@@ -78,61 +78,61 @@ CalendarEventsModel::CalendarEventsModel(QObject *parent) :
         settingsDir.mkpath(QStringLiteral("."));
     }
 
-    if (!mWatcher->addPath(settingsDir.absolutePath())) {
+    if (!m_watcher->addPath(settingsDir.absolutePath())) {
         qWarning() << "CalendarEventsModel: error following settings file changes" << settingsDir.absolutePath();
     }
 
     // Updates to the calendar db will cause several file change notifications, delay update a bit
-    connect(mWatcher, SIGNAL(directoryChanged(QString)), &mUpdateDelayTimer, SLOT(start()));
-    connect(mWatcher, SIGNAL(fileChanged(QString)), &mUpdateDelayTimer, SLOT(start())); // for mkcal tracking
+    connect(m_watcher, SIGNAL(directoryChanged(QString)), &m_updateDelayTimer, SLOT(start()));
+    connect(m_watcher, SIGNAL(fileChanged(QString)), &m_updateDelayTimer, SLOT(start())); // for mkcal tracking
 }
 
 int CalendarEventsModel::count() const
 {
-    return qMin(mEventDataList.count(), mEventLimit);
+    return qMin(m_eventDataList.count(), m_eventLimit);
 }
 
 int CalendarEventsModel::totalCount() const
 {
-    return mTotalCount;
+    return m_totalCount;
 }
 
 QDateTime CalendarEventsModel::creationDate() const
 {
-    return mCreationDate;
+    return m_creationDate;
 }
 
 QDateTime CalendarEventsModel::expiryDate() const
 {
-    return mExpiryDate;
+    return m_expiryDate;
 }
 
 int CalendarEventsModel::eventLimit() const
 {
-    return mEventLimit;
+    return m_eventLimit;
 }
 
 void CalendarEventsModel::setEventLimit(int limit)
 {
-    if (mEventLimit == limit || limit <= 0)
+    if (m_eventLimit == limit || limit <= 0)
         return;
 
-    mEventLimit = limit;
+    m_eventLimit = limit;
     emit eventLimitChanged();
     restartUpdateTimer(); // TODO: Could change list content without fetching data
 }
 
 int CalendarEventsModel::eventDisplayTime() const
 {
-    return mEventDisplayTime;
+    return m_eventDisplayTime;
 }
 
 void CalendarEventsModel::setEventDisplayTime(int seconds)
 {
-    if (mEventDisplayTime == seconds)
+    if (m_eventDisplayTime == seconds)
         return;
 
-    mEventDisplayTime = seconds;
+    m_eventDisplayTime = seconds;
     emit eventDisplayTimeChanged();
 
     restartUpdateTimer();
@@ -140,15 +140,15 @@ void CalendarEventsModel::setEventDisplayTime(int seconds)
 
 QDateTime CalendarEventsModel::startDate() const
 {
-    return mStartDate;
+    return m_startDate;
 }
 
 void CalendarEventsModel::setStartDate(const QDateTime &startDate)
 {
-    if (mStartDate == startDate)
+    if (m_startDate == startDate)
         return;
 
-    mStartDate = startDate;
+    m_startDate = startDate;
     emit startDateChanged();
 
     restartUpdateTimer();
@@ -156,15 +156,15 @@ void CalendarEventsModel::setStartDate(const QDateTime &startDate)
 
 QDateTime CalendarEventsModel::endDate() const
 {
-    return mEndDate;
+    return m_endDate;
 }
 
 void CalendarEventsModel::setEndDate(const QDateTime &endDate)
 {
-    if (mEndDate == endDate)
+    if (m_endDate == endDate)
         return;
 
-    mEndDate = endDate;
+    m_endDate = endDate;
     emit endDateChanged();
 
     restartUpdateTimer();
@@ -172,15 +172,15 @@ void CalendarEventsModel::setEndDate(const QDateTime &endDate)
 
 int CalendarEventsModel::filterMode() const
 {
-    return mFilterMode;
+    return m_filterMode;
 }
 
 void CalendarEventsModel::setFilterMode(int mode)
 {
-    if (mFilterMode == mode)
+    if (m_filterMode == mode)
         return;
 
-    mFilterMode = mode;
+    m_filterMode = mode;
     emit filterModeChanged();
     restartUpdateTimer();
 }
@@ -188,15 +188,15 @@ void CalendarEventsModel::setFilterMode(int mode)
 
 int CalendarEventsModel::contentType() const
 {
-    return mContentType;
+    return m_contentType;
 }
 
 void CalendarEventsModel::setContentType(int contentType)
 {
-    if (mContentType == contentType)
+    if (m_contentType == contentType)
         return;
 
-    mContentType = contentType;
+    m_contentType = contentType;
     emit contentTypeChanged();
     restartUpdateTimer();
 }
@@ -206,15 +206,15 @@ int CalendarEventsModel::rowCount(const QModelIndex &index) const
     if (index != QModelIndex())
         return 0;
 
-    return mEventDataList.count();
+    return m_eventDataList.count();
 }
 
 QVariant CalendarEventsModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() >= mEventDataList.count())
+    if (!index.isValid() || index.row() >= m_eventDataList.count())
         return QVariant();
 
-    EventData eventData = mEventDataList.at(index.row());
+    EventData eventData = m_eventDataList.at(index.row());
 
     switch(role) {
     case DisplayLabelRole:
@@ -252,10 +252,10 @@ QVariant CalendarEventsModel::data(const QModelIndex &index, int role) const
 
 void CalendarEventsModel::update()
 {
-    mTransactionId.clear();
-    QDateTime endDate = (mEndDate.isValid()) ? mEndDate : mStartDate;
-    QDBusPendingCall pcall = mProxy->getEvents(mStartDate.date().toString(Qt::ISODate),
-                                               endDate.date().toString(Qt::ISODate));
+    m_transactionId.clear();
+    QDateTime endDate = (m_endDate.isValid()) ? m_endDate : m_startDate;
+    QDBusPendingCall pcall = m_proxy->getEvents(m_startDate.date().toString(Qt::ISODate),
+                                                endDate.date().toString(Qt::ISODate));
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(pcall, this);
     QObject::connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)),
                      this, SLOT(updateFinished(QDBusPendingCallWatcher*)));
@@ -267,7 +267,7 @@ void CalendarEventsModel::updateFinished(QDBusPendingCallWatcher *call)
     if (reply.isError())
         qWarning() << "dbus error:" << reply.error().name() << reply.error().message();
     else
-        mTransactionId = reply.value();
+        m_transactionId = reply.value();
 
     call->deleteLater();
 }
@@ -278,19 +278,19 @@ void CalendarEventsModel::getEventsResult(const QString &transactionId, const Ev
     // events it should be there.
     trackMkcal();
 
-    if (mTransactionId != transactionId)
+    if (m_transactionId != transactionId)
         return;
 
-    int oldcount = mEventDataList.count();
-    int oldTotalCount = mTotalCount;
+    int oldcount = m_eventDataList.count();
+    int oldTotalCount = m_totalCount;
     beginResetModel();
-    mEventDataList.clear();
+    m_eventDataList.clear();
     QDateTime now = QDateTime::currentDateTime();
     QDateTime expiryDate;
-    mTotalCount = 0;
+    m_totalCount = 0;
     foreach (const EventData &e, eventDataList) {
-        if ((e.allDay && mContentType == ContentEvents)
-                || (!e.allDay && mContentType == ContentAllDay)) {
+        if ((e.allDay && m_contentType == ContentEvents)
+                || (!e.allDay && m_contentType == ContentAllDay)) {
             continue;
         }
 
@@ -304,43 +304,43 @@ void CalendarEventsModel::getEventsResult(const QString &transactionId, const Ev
         } else {
             startTime = QDateTime::fromString(e.startTime, Qt::ISODate);
 
-            if (mEventDisplayTime > 0) {
-                endTime = startTime.addSecs(mEventDisplayTime);
+            if (m_eventDisplayTime > 0) {
+                endTime = startTime.addSecs(m_eventDisplayTime);
             } else {
                 endTime = QDateTime::fromString(e.endTime, Qt::ISODate);
             }
         }
 
-        if ((mFilterMode == FilterPast && now < endTime)
-                || (mFilterMode == FilterPastAndCurrent && now < startTime)
-                || (mFilterMode == FilterNone)) {
-            if (mEventDataList.count() < mEventLimit) {
-                mEventDataList.append(e);
+        if ((m_filterMode == FilterPast && now < endTime)
+                || (m_filterMode == FilterPastAndCurrent && now < startTime)
+                || (m_filterMode == FilterNone)) {
+            if (m_eventDataList.count() < m_eventLimit) {
+                m_eventDataList.append(e);
 
-                if (mFilterMode == FilterPast && (!expiryDate.isValid() || expiryDate > endTime)) {
+                if (m_filterMode == FilterPast && (!expiryDate.isValid() || expiryDate > endTime)) {
                     expiryDate = endTime;
-                } else if (mFilterMode == FilterPastAndCurrent && (!expiryDate.isValid() || expiryDate > startTime)) {
+                } else if (m_filterMode == FilterPastAndCurrent && (!expiryDate.isValid() || expiryDate > startTime)) {
                     expiryDate = startTime;
                 }
             }
-            mTotalCount++;
+            m_totalCount++;
         }
     }
 
-    mCreationDate = QDateTime::currentDateTime();
+    m_creationDate = QDateTime::currentDateTime();
     emit creationDateChanged();
 
     if (!expiryDate.isValid()) {
-        if (mEndDate.isValid()) {
-            expiryDate = mEndDate;
+        if (m_endDate.isValid()) {
+            expiryDate = m_endDate;
         } else {
-            expiryDate = mStartDate.addDays(1);
+            expiryDate = m_startDate.addDays(1);
             expiryDate.setTime(QTime(0,0,0,1));
         }
     }
 
-    if (mExpiryDate != expiryDate) {
-        mExpiryDate = expiryDate;
+    if (m_expiryDate != expiryDate) {
+        m_expiryDate = expiryDate;
         emit expiryDateChanged();
     }
 
@@ -348,7 +348,7 @@ void CalendarEventsModel::getEventsResult(const QString &transactionId, const Ev
     if (count() != oldcount) {
         emit countChanged();
     }
-    if (mTotalCount != oldTotalCount) {
+    if (m_totalCount != oldTotalCount) {
         emit totalCountChanged();
     }
 }
@@ -372,10 +372,10 @@ QHash<int, QByteArray> CalendarEventsModel::roleNames() const
 
 void CalendarEventsModel::restartUpdateTimer()
 {
-    if (mStartDate.isValid())
-        mUpdateDelayTimer.start();
+    if (m_startDate.isValid())
+        m_updateDelayTimer.start();
     else
-        mUpdateDelayTimer.stop();
+        m_updateDelayTimer.stop();
 }
 
 void CalendarEventsModel::trackMkcal()
@@ -386,7 +386,7 @@ void CalendarEventsModel::trackMkcal()
 
     QString privilegedDataDir = QString("%1/.local/share/system/privileged/Calendar/mkcal/db").arg(QDir::homePath());
     if (QFile::exists(privilegedDataDir)) {
-        if (!mWatcher->addPath(privilegedDataDir)) {
+        if (!m_watcher->addPath(privilegedDataDir)) {
             qWarning() << "CalendarEventsModel: error adding filesystem watcher for calendar db";
         } else {
             m_mkcalTracked = true;

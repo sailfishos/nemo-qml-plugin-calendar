@@ -80,14 +80,14 @@ private:
     friend class CalendarManager;
     void queryResult(CalendarData::Event event);
 
-    bool mIsComplete;
-    bool mNeedQuery;
-    bool mBusy;
+    bool m_isComplete;
+    bool m_needQuery;
+    bool m_busy;
 
-    QString mInvitationFile;
-    QString mNotebookUid;
-    QString mInstanceId;
-    QString mStartTime;
+    QString m_invitationFile;
+    QString m_notebookUid;
+    QString m_instanceId;
+    QString m_startTime;
 };
 
 #endif

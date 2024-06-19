@@ -37,7 +37,7 @@
 #include <QDebug>
 
 CalendarEventListModel::CalendarEventListModel(QObject *parent)
-    : QAbstractListModel(parent), mIsComplete(true)
+    : QAbstractListModel(parent), m_isComplete(true)
 {
     connect(CalendarManager::instance(), &CalendarManager::storageModified,
             this, &CalendarEventListModel::refresh);
@@ -53,8 +53,8 @@ CalendarEventListModel::~CalendarEventListModel()
     if (manager) {
         manager->cancelEventListRefresh(this);
     }
-    qDeleteAll(mEvents);
-    mEvents.clear();
+    qDeleteAll(m_events);
+    m_events.clear();
 }
 
 QHash<int, QByteArray> CalendarEventListModel::roleNames() const
@@ -68,10 +68,10 @@ QHash<int, QByteArray> CalendarEventListModel::roleNames() const
 
 void CalendarEventListModel::refresh()
 {
-    if (!mIsComplete)
+    if (!m_isComplete)
         return;
 
-    if (!mIdentifiers.isEmpty()) {
+    if (!m_identifiers.isEmpty()) {
         CalendarManager::instance()->scheduleEventListRefresh(this);
     }
 
@@ -80,10 +80,10 @@ void CalendarEventListModel::refresh()
 
 void CalendarEventListModel::setIdentifiers(const QStringList &identifiers)
 {
-    if (identifiers == mIdentifiers)
+    if (identifiers == m_identifiers)
         return;
 
-    mIdentifiers = identifiers;
+    m_identifiers = identifiers;
     emit identifiersChanged();
 
     refresh();
@@ -91,27 +91,27 @@ void CalendarEventListModel::setIdentifiers(const QStringList &identifiers)
 
 QStringList CalendarEventListModel::identifiers() const
 {
-    return mIdentifiers;
+    return m_identifiers;
 }
 
 QStringList CalendarEventListModel::missingItems() const
 {
-    return mMissingItems;
+    return m_missingItems;
 }
 
-// For recurring events, if mStartTime is valid, the stored occurrence
-// is the closest to mStartTime. When mStartTime is invalid, the
+// For recurring events, if m_startTime is valid, the stored occurrence
+// is the closest to m_startTime. When m_startTime is invalid, the
 // initial occurrence is used.
 QDateTime CalendarEventListModel::startTime() const
 {
-    return mStartTime;
+    return m_startTime;
 }
 
 void CalendarEventListModel::setStartTime(const QDateTime &time)
 {
-    if (time == mStartTime)
+    if (time == m_startTime)
         return;
-    mStartTime = time;
+    m_startTime = time;
     emit startTimeChanged();
 
     doRefresh();
@@ -124,12 +124,12 @@ void CalendarEventListModel::resetStartTime()
 
 bool CalendarEventListModel::loading() const
 {
-    return (mEvents.count() + mMissingItems.count()) < mIdentifiers.count();
+    return (m_events.count() + m_missingItems.count()) < m_identifiers.count();
 }
 
 int CalendarEventListModel::count() const
 {
-    return mEvents.size();
+    return m_events.size();
 }
 
 int CalendarEventListModel::rowCount(const QModelIndex &index) const
@@ -137,37 +137,37 @@ int CalendarEventListModel::rowCount(const QModelIndex &index) const
     if (index != QModelIndex())
         return 0;
 
-    return mEvents.size();
+    return m_events.size();
 }
 
 void CalendarEventListModel::doRefresh()
 {
     beginResetModel();
-    qDeleteAll(mEvents);
-    mEvents.clear();
-    mMissingItems.clear();
+    qDeleteAll(m_events);
+    m_events.clear();
+    m_missingItems.clear();
 
-    for (const QString &id : mIdentifiers) {
+    for (const QString &id : m_identifiers) {
         bool loaded;
         CalendarData::Event event = CalendarManager::instance()->getEvent(id, &loaded);
         if (event.isValid()) {
             CalendarEventOccurrence *occurrence =
                 CalendarManager::instance()->getNextOccurrence
-                (event.instanceId, mStartTime);
+                (event.instanceId, m_startTime);
             if (occurrence->startTime().isValid()) {
                 occurrence->setProperty("identifier", id);
-                mEvents.append(occurrence);
+                m_events.append(occurrence);
             } else {
                 delete occurrence;
-                mMissingItems.append(id);
+                m_missingItems.append(id);
             }
         } else if (loaded) {
-            mMissingItems.append(id);
+            m_missingItems.append(id);
         }
     }
 
-    if (mStartTime.isValid()) {
-        std::sort(mEvents.begin(), mEvents.end(),
+    if (m_startTime.isValid()) {
+        std::sort(m_events.begin(), m_events.end(),
                   [](CalendarEventOccurrence *a, CalendarEventOccurrence *b) {
                       // Inverse sort: earlier first
                       return a && b && (*b < *a);
@@ -185,18 +185,18 @@ QVariant CalendarEventListModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    if (index.row() < 0 || index.row() >= mEvents.count()) {
+    if (index.row() < 0 || index.row() >= m_events.count()) {
         qWarning() << "CalendarEventListModel: Invalid index";
         return QVariant();
     }
 
     switch (role) {
     case EventObjectRole:
-        return QVariant::fromValue<QObject *>(mEvents.at(index.row())->eventObject());
+        return QVariant::fromValue<QObject *>(m_events.at(index.row())->eventObject());
     case OccurrenceObjectRole:
-        return QVariant::fromValue<QObject *>(mEvents.at(index.row()));
+        return QVariant::fromValue<QObject *>(m_events.at(index.row()));
     case IdentifierRole:
-        return mEvents.at(index.row())->property("identifier");
+        return m_events.at(index.row())->property("identifier");
     default:
         qWarning() << "CalendarEventListModel: Unknown role asked";
         return QVariant();
@@ -206,7 +206,7 @@ QVariant CalendarEventListModel::data(const QModelIndex &index, int role) const
 void CalendarEventListModel::onTimezoneChanged()
 {
     QList<CalendarEventOccurrence *>::ConstIterator it;
-    for (it = mEvents.constBegin(); it != mEvents.constEnd(); it++) {
+    for (it = m_events.constBegin(); it != m_events.constEnd(); it++) {
         // Actually, the date times have not changed, but
         // their representations in local time (as used in QML)
         // have changed.
@@ -217,11 +217,11 @@ void CalendarEventListModel::onTimezoneChanged()
 
 void CalendarEventListModel::classBegin()
 {
-    mIsComplete = false;
+    m_isComplete = false;
 }
 
 void CalendarEventListModel::componentComplete()
 {
-    mIsComplete = true;
+    m_isComplete = true;
     refresh();
 }

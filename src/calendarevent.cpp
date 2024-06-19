@@ -44,17 +44,17 @@
 #include "calendardata.h"
 
 CalendarEvent::CalendarEvent(const CalendarData::Event *data, QObject *parent)
-    : QObject(parent), mData(new CalendarData::Event)
+    : QObject(parent), m_data(new CalendarData::Event)
 {
     if (data)
-        *mData = *data;
+        *m_data = *data;
 }
 
 CalendarEvent::CalendarEvent(const CalendarEvent *other, QObject *parent)
-    : QObject(parent), mData(new CalendarData::Event)
+    : QObject(parent), m_data(new CalendarData::Event)
 {
     if (other) {
-        *mData = *other->mData;
+        *m_data = *other->m_data;
     } else {
         qWarning("Null source passed to CalendarEvent().");
     }
@@ -62,17 +62,17 @@ CalendarEvent::CalendarEvent(const CalendarEvent *other, QObject *parent)
 
 CalendarEvent::~CalendarEvent()
 {
-    delete mData;
+    delete m_data;
 }
 
 QString CalendarEvent::displayLabel() const
 {
-    return mData->displayLabel;
+    return m_data->displayLabel;
 }
 
 QString CalendarEvent::description() const
 {
-    return mData->description;
+    return m_data->description;
 }
 
 QDateTime CalendarEvent::startTime() const
@@ -81,13 +81,13 @@ QDateTime CalendarEvent::startTime() const
     // will be in UTC also and the UI will convert it to local when displaying
     // the time, while in every other case, it set the QDateTime in
     // local zone.
-    const QDateTime dt = mData->startTime;
+    const QDateTime dt = m_data->startTime;
     return QDateTime(dt.date(), dt.time());
 }
 
 QDateTime CalendarEvent::endTime() const
 {
-    const QDateTime dt = mData->endTime;
+    const QDateTime dt = m_data->endTime;
     return QDateTime(dt.date(), dt.time());
 }
 
@@ -102,130 +102,130 @@ static Qt::TimeSpec toTimeSpec(const QDateTime &dt)
 
 Qt::TimeSpec CalendarEvent::startTimeSpec() const
 {
-    return toTimeSpec(mData->startTime);
+    return toTimeSpec(m_data->startTime);
 }
 
 Qt::TimeSpec CalendarEvent::endTimeSpec() const
 {
-    return toTimeSpec(mData->endTime);
+    return toTimeSpec(m_data->endTime);
 }
 
 QString CalendarEvent::startTimeZone() const
 {
-    return QString::fromLatin1(mData->startTime.timeZone().id());
+    return QString::fromLatin1(m_data->startTime.timeZone().id());
 }
 
 QString CalendarEvent::endTimeZone() const
 {
-    return QString::fromLatin1(mData->endTime.timeZone().id());
+    return QString::fromLatin1(m_data->endTime.timeZone().id());
 }
 
 bool CalendarEvent::allDay() const
 {
-    return mData->allDay;
+    return m_data->allDay;
 }
 
 CalendarEvent::Recur CalendarEvent::recur() const
 {
-    return mData->recur;
+    return m_data->recur;
 }
 
 QDateTime CalendarEvent::recurEndDate() const
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
-    return mData->recurEndDate.endOfDay();
+    return m_data->recurEndDate.endOfDay();
 #else
-    return QDateTime(mData->recurEndDate);
+    return QDateTime(m_data->recurEndDate);
 #endif
 }
 
 bool CalendarEvent::hasRecurEndDate() const
 {
-    return mData->recurEndDate.isValid();
+    return m_data->recurEndDate.isValid();
 }
 
 CalendarEvent::Days CalendarEvent::recurWeeklyDays() const
 {
-    return mData->recurWeeklyDays;
+    return m_data->recurWeeklyDays;
 }
 
 int CalendarEvent::reminder() const
 {
-    return mData->reminder;
+    return m_data->reminder;
 }
 
 QDateTime CalendarEvent::reminderDateTime() const
 {
-    return mData->reminderDateTime;
+    return m_data->reminderDateTime;
 }
 
 QString CalendarEvent::instanceId() const
 {
-    return mData->instanceId;
+    return m_data->instanceId;
 }
 
 bool CalendarEvent::isException() const
 {
-    return mData->recurrenceId.isValid();
+    return m_data->recurrenceId.isValid();
 }
 
 bool CalendarEvent::readOnly() const
 {
-    return mData->readOnly;
+    return m_data->readOnly;
 }
 
 QString CalendarEvent::calendarUid() const
 {
-    return mData->calendarUid;
+    return m_data->calendarUid;
 }
 
 QString CalendarEvent::location() const
 {
-    return mData->location;
+    return m_data->location;
 }
 
 CalendarEvent::Secrecy CalendarEvent::secrecy() const
 {
-    return mData->secrecy;
+    return m_data->secrecy;
 }
 
 CalendarEvent::Status CalendarEvent::status() const
 {
-    return mData->status;
+    return m_data->status;
 }
 
 CalendarEvent::SyncFailure CalendarEvent::syncFailure() const
 {
-    return mData->syncFailure;
+    return m_data->syncFailure;
 }
 
 CalendarEvent::SyncFailureResolution CalendarEvent::syncFailureResolution() const
 {
-    return mData->syncFailureResolution;
+    return m_data->syncFailureResolution;
 }
 
 CalendarEvent::Response CalendarEvent::ownerStatus() const
 {
-    return mData->ownerStatus;
+    return m_data->ownerStatus;
 }
 
 bool CalendarEvent::rsvp() const
 {
-    return mData->rsvp;
+    return m_data->rsvp;
 }
 
 bool CalendarEvent::externalInvitation() const
 {
-    return mData->externalInvitation;
+    return m_data->externalInvitation;
 }
 
 CalendarStoredEvent::CalendarStoredEvent(CalendarManager *manager, const CalendarData::Event *data)
     : CalendarEvent(data, manager)
-    , mManager(manager)
+    , m_manager(manager)
 {
-    connect(mManager, SIGNAL(notebookColorChanged(QString)),
+    connect(m_manager, SIGNAL(notebookColorChanged(QString)),
             this, SLOT(notebookColorChanged(QString)));
-    connect(mManager, &CalendarManager::instanceIdChanged,
+    connect(m_manager, &CalendarManager::instanceIdChanged,
             this, &CalendarStoredEvent::instanceIdNotified);
 }
 
@@ -235,17 +235,17 @@ CalendarStoredEvent::~CalendarStoredEvent()
 
 void CalendarStoredEvent::notebookColorChanged(QString notebookUid)
 {
-    if (mData->calendarUid == notebookUid)
+    if (m_data->calendarUid == notebookUid)
         emit colorChanged();
 }
 
 void CalendarStoredEvent::instanceIdNotified(QString oldId, QString newId, QString notebookUid)
 {
-    if (mData->instanceId == oldId) {
-        mData->instanceId = newId;
+    if (m_data->instanceId == oldId) {
+        m_data->instanceId = newId;
         emit instanceIdChanged();
         // Event uid changes when the event is moved between notebooks, calendar uid has changed
-        mData->calendarUid = notebookUid;
+        m_data->calendarUid = notebookUid;
         emit calendarUidChanged();
         emit colorChanged();
     }
@@ -253,8 +253,8 @@ void CalendarStoredEvent::instanceIdNotified(QString oldId, QString newId, QStri
 
 bool CalendarStoredEvent::sendResponse(int response)
 {
-    if (mManager->sendResponse(mData->instanceId, (Response)response)) {
-        mManager->save();
+    if (m_manager->sendResponse(m_data->instanceId, (Response)response)) {
+        m_manager->save();
         return true;
     } else {
         return false;
@@ -263,29 +263,29 @@ bool CalendarStoredEvent::sendResponse(int response)
 
 void CalendarStoredEvent::deleteEvent()
 {
-    mManager->deleteEvent(mData->instanceId, QDateTime());
-    mManager->save();
+    m_manager->deleteEvent(m_data->instanceId, QDateTime());
+    m_manager->save();
 }
 
 // Returns the event as a iCalendar string
 QString CalendarStoredEvent::iCalendar(const QString &prodId) const
 {
     Q_UNUSED(prodId);
-    if (mData->instanceId.isEmpty()) {
+    if (m_data->instanceId.isEmpty()) {
         qWarning() << "Event has no uid, returning empty iCalendar string."
                    << "Save event before calling this function";
         return QString();
     }
 
-    return mManager->convertEventToICalendarSync(mData->instanceId, prodId);
+    return m_manager->convertEventToICalendarSync(m_data->instanceId, prodId);
 }
 
 CalendarStoredEvent* CalendarStoredEvent::parent() const
 {
     if (isException()) {
         KCalendarCore::Event event;
-        event.setUid(mData->incidenceUid);
-        return mManager->eventObject(event.instanceIdentifier());
+        event.setUid(m_data->incidenceUid);
+        return m_manager->eventObject(event.instanceIdentifier());
     } else {
         return nullptr;
     }
@@ -293,7 +293,7 @@ CalendarStoredEvent* CalendarStoredEvent::parent() const
 
 QString CalendarStoredEvent::color() const
 {
-    return mManager->getNotebookColor(mData->calendarUid);
+    return m_manager->getNotebookColor(m_data->calendarUid);
 }
 
 void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
@@ -301,42 +301,42 @@ void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
     if (!data)
         return;
 
-    CalendarData::Event old = *mData;
-    *mData = *data;
+    CalendarData::Event old = *m_data;
+    *m_data = *data;
 
-    if (mData->allDay != old.allDay)
+    if (m_data->allDay != old.allDay)
         emit allDayChanged();
-    if (mData->displayLabel != old.displayLabel)
+    if (m_data->displayLabel != old.displayLabel)
         emit displayLabelChanged();
-    if (mData->description != old.description)
+    if (m_data->description != old.description)
         emit descriptionChanged();
-    if (mData->endTime != old.endTime)
+    if (m_data->endTime != old.endTime)
         emit endTimeChanged();
-    if (mData->location != old.location)
+    if (m_data->location != old.location)
         emit locationChanged();
-    if (mData->secrecy != old.secrecy)
+    if (m_data->secrecy != old.secrecy)
         emit secrecyChanged();
-    if (mData->status != old.status)
+    if (m_data->status != old.status)
         emit statusChanged();
-    if (mData->recur != old.recur)
+    if (m_data->recur != old.recur)
         emit recurChanged();
-    if (mData->reminder != old.reminder)
+    if (m_data->reminder != old.reminder)
         emit reminderChanged();
-    if (mData->reminderDateTime != old.reminderDateTime)
+    if (m_data->reminderDateTime != old.reminderDateTime)
         emit reminderDateTimeChanged();
-    if (mData->startTime != old.startTime)
+    if (m_data->startTime != old.startTime)
         emit startTimeChanged();
-    if (mData->rsvp != old.rsvp)
+    if (m_data->rsvp != old.rsvp)
         emit rsvpChanged();
-    if (mData->externalInvitation != old.externalInvitation)
+    if (m_data->externalInvitation != old.externalInvitation)
         emit externalInvitationChanged();
-    if (mData->ownerStatus != old.ownerStatus)
+    if (m_data->ownerStatus != old.ownerStatus)
         emit ownerStatusChanged();
-    if (mData->syncFailure != old.syncFailure)
+    if (m_data->syncFailure != old.syncFailure)
         emit syncFailureChanged();
 }
 
 CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
 {
-    return occurrence ? mManager->dissociateSingleOccurrence(mData->instanceId, occurrence->startTime()) : CalendarData::Event();
+    return occurrence ? m_manager->dissociateSingleOccurrence(m_data->instanceId, occurrence->startTime()) : CalendarData::Event();
 }

@@ -21,7 +21,7 @@ private slots:
 private:
     QQmlEngine *engine;
     CalendarApi *calendarApi;
-    QSet<QString> mSavedEvents;
+    QSet<QString> m_savedEvents;
 };
 
 void tst_CalendarSearchModel::initTestCase()

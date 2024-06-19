@@ -71,8 +71,8 @@ protected:
     virtual QHash<int, QByteArray> roleNames() const;
 
 private:
-    QString mSearchString;
-    int mLimit = 0;
+    QString m_searchString;
+    int m_limit = 0;
 };
 
 #endif

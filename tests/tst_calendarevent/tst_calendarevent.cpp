@@ -74,7 +74,7 @@ private:
     bool saveEvent(CalendarEventModification *eventMod, QString *uid);
     QQmlEngine *engine;
     CalendarApi *calendarApi;
-    QSet<QString> mSavedEvents;
+    QSet<QString> m_savedEvents;
 };
 
 void tst_CalendarEvent::initTestCase()
@@ -229,7 +229,7 @@ void tst_CalendarEvent::testSave()
         QFAIL("Failed to fetch new event uid");
     }
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
 
     CalendarEventQuery query;
     QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
@@ -266,7 +266,7 @@ void tst_CalendarEvent::testSave()
     eventB->deleteEvent();
     QVERIFY(eventSpy.wait());
     QVERIFY(!query.event());
-    mSavedEvents.remove(uid);
+    m_savedEvents.remove(uid);
 
     delete eventMod;
 }
@@ -281,7 +281,7 @@ void tst_CalendarEvent::testModify()
     QString uid;
     QVERIFY(saveEvent(eventMod, &uid));
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
     delete eventMod;
 
     CalendarEventQuery query;
@@ -336,7 +336,7 @@ void tst_CalendarEvent::testTimeZone()
         QFAIL("Failed to fetch new event uid");
     }
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
 
     CalendarEventQuery query;
     QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
@@ -361,7 +361,7 @@ void tst_CalendarEvent::testTimeZone()
     eventB->deleteEvent();
     QVERIFY(eventSpy.wait());
     QVERIFY(!query.event());
-    mSavedEvents.remove(uid);
+    m_savedEvents.remove(uid);
 
     delete eventMod;
 }
@@ -390,7 +390,7 @@ void tst_CalendarEvent::testRecurrenceException()
         QFAIL("Failed to fetch new event uid");
     }
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
 
     // need event and occurrence to replace....
     CalendarEventQuery query;
@@ -552,7 +552,7 @@ void tst_CalendarEvent::testRecurrenceException()
     calendarApi->removeAll(uid);
     QVERIFY(updated.wait());
     QVERIFY(!query.event());
-    mSavedEvents.remove(uid);
+    m_savedEvents.remove(uid);
 
     delete recurrenceException;
     delete recurrenceSecondException;
@@ -638,7 +638,7 @@ void tst_CalendarEvent::testDate()
     }
 
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
 }
 
 void tst_CalendarEvent::testRecurrence_data()
@@ -673,7 +673,7 @@ void tst_CalendarEvent::testRecurrence()
         QFAIL("Failed to fetch new event uid");
     }
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
 
     CalendarEventQuery query;
     QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
@@ -688,7 +688,7 @@ void tst_CalendarEvent::testRecurrence()
     event->deleteEvent();
     QVERIFY(eventSpy.wait());
     QVERIFY(!query.event());
-    mSavedEvents.remove(uid);
+    m_savedEvents.remove(uid);
 }
 
 void tst_CalendarEvent::testRecurWeeklyDays()
@@ -712,7 +712,7 @@ void tst_CalendarEvent::testRecurWeeklyDays()
         QFAIL("Failed to fetch new event uid");
     }
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
 
     CalendarEventQuery query;
     QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
@@ -728,7 +728,7 @@ void tst_CalendarEvent::testRecurWeeklyDays()
     event->deleteEvent();
     QVERIFY(eventSpy.wait());
     QVERIFY(!query.event());
-    mSavedEvents.remove(uid);
+    m_savedEvents.remove(uid);
 }
 
 void tst_CalendarEvent::testAttendees()
@@ -759,7 +759,7 @@ void tst_CalendarEvent::testAttendees()
         QFAIL("Failed to fetch new event uid");
     }
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
     delete eventMod;
 
     CalendarEventQuery query;
@@ -801,7 +801,7 @@ void tst_CalendarEvent::testAttendees()
         QFAIL("Failed to fetch new event uid");
     }
     QVERIFY(!uid.isEmpty());
-    mSavedEvents.insert(uid);
+    m_savedEvents.insert(uid);
     delete eventMod;
 
     // Check that the sendInvitation() service has received the right data.
@@ -908,9 +908,9 @@ void tst_CalendarEvent::testAttendees()
 void tst_CalendarEvent::cleanupTestCase()
 {
     QSignalSpy modified(CalendarManager::instance(), &CalendarManager::storageModified);
-    foreach (const QString &uid, mSavedEvents)
+    foreach (const QString &uid, m_savedEvents)
         calendarApi->removeAll(uid);
-    if (!mSavedEvents.isEmpty())
+    if (!m_savedEvents.isEmpty())
         QVERIFY(modified.wait());
 }
 

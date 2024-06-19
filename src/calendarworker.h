@@ -136,15 +136,15 @@ private:
     QHash<QDate, QStringList> dailyEventOccurrences(const QList<CalendarData::Range> &ranges,
                                                     const QList<CalendarData::EventOccurrence> &occurrences) const;
 
-    Accounts::Manager *mAccountManager;
+    Accounts::Manager *m_accountManager;
 
-    mKCal::ExtendedCalendar::Ptr mCalendar;
-    mKCal::ExtendedStorage::Ptr mStorage;
+    mKCal::ExtendedCalendar::Ptr m_calendar;
+    mKCal::ExtendedStorage::Ptr m_storage;
 
-    QHash<QString, CalendarData::Notebook> mNotebooks;
+    QHash<QString, CalendarData::Notebook> m_notebooks;
 
     // Tracks which events have been already passed to manager, using instanceIdentifiers.
-    QSet<QString> mSentEvents;
+    QSet<QString> m_sentEvents;
 };
 
 #endif // CALENDARWORKER_H

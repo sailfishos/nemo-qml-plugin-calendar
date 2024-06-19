@@ -44,12 +44,12 @@
 #include "../../src/calendarmanager.h"
 
 CalendarDataService::CalendarDataService(QObject *parent) :
-    QObject(parent), mAgendaModel(0), mTransactionIdCounter(0)
+    QObject(parent), m_agendaModel(0), m_transactionIdCounter(0)
 {
-    mKillTimer.setSingleShot(true);
-    mKillTimer.setInterval(2000);
-    connect(&mKillTimer, SIGNAL(timeout()), this, SLOT(shutdown()));
-    mKillTimer.start();
+    m_killTimer.setSingleShot(true);
+    m_killTimer.setInterval(2000);
+    connect(&m_killTimer, SIGNAL(timeout()), this, SLOT(shutdown()));
+    m_killTimer.start();
 
     registerCalendarDataServiceTypes();
     new CalendarDataServiceAdaptor(this);
@@ -66,7 +66,7 @@ CalendarDataService::CalendarDataService(QObject *parent) :
 
 QString CalendarDataService::getEvents(const QString &startDate, const QString &endDate)
 {
-    mKillTimer.stop();
+    m_killTimer.stop();
     QDate start = QDate::fromString(startDate, Qt::ISODate);
     QDate end = QDate::fromString(endDate, Qt::ISODate);
     QString transactionId;
@@ -75,9 +75,9 @@ QString CalendarDataService::getEvents(const QString &startDate, const QString &
     } else {
         transactionId = QString("%1-%2")
                 .arg(QCoreApplication::applicationPid())
-                .arg(++mTransactionIdCounter);
+                .arg(++m_transactionIdCounter);
         DataRequest dataRequest = { start, end, transactionId };
-        mDataRequestQueue.insert(0, dataRequest);
+        m_dataRequestQueue.insert(0, dataRequest);
     }
     // Delay triggering until after return to ensure that client gets transactionId
     QTimer::singleShot(1, this, SLOT(processQueue()));
@@ -87,9 +87,9 @@ QString CalendarDataService::getEvents(const QString &startDate, const QString &
 void CalendarDataService::updated()
 {
     EventDataList reply;
-    for (int i = 0; i < mAgendaModel->count(); i++) {
-        QVariant variant = mAgendaModel->get(i, CalendarAgendaModel::EventObjectRole);
-        QVariant occurrenceVariant = mAgendaModel->get(i, CalendarAgendaModel::OccurrenceObjectRole);
+    for (int i = 0; i < m_agendaModel->count(); i++) {
+        QVariant variant = m_agendaModel->get(i, CalendarAgendaModel::EventObjectRole);
+        QVariant occurrenceVariant = m_agendaModel->get(i, CalendarAgendaModel::OccurrenceObjectRole);
         if (variant.canConvert<CalendarStoredEvent *>() && occurrenceVariant.canConvert<CalendarEventOccurrence *>()) {
             CalendarStoredEvent* event = variant.value<CalendarStoredEvent *>();
             CalendarEventOccurrence* occurrence = occurrenceVariant.value<CalendarEventOccurrence *>();
@@ -110,11 +110,11 @@ void CalendarDataService::updated()
             reply << eventStruct;
         }
     }
-    if (!mCurrentDataRequest.transactionId.isEmpty()
-            && mCurrentDataRequest.start == mAgendaModel->startDate()
-            && mCurrentDataRequest.end == mAgendaModel->endDate()) {
-        emit getEventsResult(mCurrentDataRequest.transactionId, reply);
-        mCurrentDataRequest = DataRequest();
+    if (!m_currentDataRequest.transactionId.isEmpty()
+            && m_currentDataRequest.start == m_agendaModel->startDate()
+            && m_currentDataRequest.end == m_agendaModel->endDate()) {
+        emit getEventsResult(m_currentDataRequest.transactionId, reply);
+        m_currentDataRequest = DataRequest();
     } else {
         qWarning() << "No transactionId, discarding results";
     }
@@ -127,11 +127,11 @@ void CalendarDataService::shutdown()
     connection.unregisterService("org.nemomobile.calendardataservice");
     connection.unregisterObject("/org/nemomobile/calendardataservice");
 
-    if (mAgendaModel) {
+    if (m_agendaModel) {
         // Call CalendarManager dtor to ensure that the QThread managed by it
         // will be destroyed via deleteLater when control returns to the event loop.
         // Delete the AgendaModel first, its destructor refers to CalendarManager
-        delete mAgendaModel;
+        delete m_agendaModel;
         delete CalendarManager::instance();
     }
     QTimer::singleShot(0, QCoreApplication::instance(), SLOT(quit()));
@@ -139,29 +139,29 @@ void CalendarDataService::shutdown()
 
 void CalendarDataService::initialize()
 {
-    if (!mAgendaModel) {
-        mAgendaModel = new CalendarAgendaModel(this);
-        connect(mAgendaModel, SIGNAL(updated()), this, SLOT(updated()));
+    if (!m_agendaModel) {
+        m_agendaModel = new CalendarAgendaModel(this);
+        connect(m_agendaModel, SIGNAL(updated()), this, SLOT(updated()));
     }
 }
 
 void CalendarDataService::processQueue()
 {
-    if (mDataRequestQueue.isEmpty()) {
-        mKillTimer.start();
+    if (m_dataRequestQueue.isEmpty()) {
+        m_killTimer.start();
         return;
     }
 
-    if (mCurrentDataRequest.transactionId.isEmpty()) {
+    if (m_currentDataRequest.transactionId.isEmpty()) {
         initialize();
-        mCurrentDataRequest = mDataRequestQueue.takeLast();
-        if (mAgendaModel->startDate() == mCurrentDataRequest.start
-                && mAgendaModel->endDate() == mCurrentDataRequest.end) {
+        m_currentDataRequest = m_dataRequestQueue.takeLast();
+        if (m_agendaModel->startDate() == m_currentDataRequest.start
+                && m_agendaModel->endDate() == m_currentDataRequest.end) {
             // We already have the events, go to updated() directly
             updated();
         } else {
-            mAgendaModel->setStartDate(mCurrentDataRequest.start);
-            mAgendaModel->setEndDate(mCurrentDataRequest.end);
+            m_agendaModel->setStartDate(m_currentDataRequest.start);
+            m_agendaModel->setEndDate(m_currentDataRequest.end);
         }
     }
 }
