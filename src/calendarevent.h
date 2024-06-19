@@ -197,7 +197,7 @@ signals:
     void externalInvitationChanged();
 
 protected:
-    CalendarData::Event *mData;
+    CalendarData::Event *m_data;
 };
 
 class CalendarManager;
@@ -228,7 +228,7 @@ private slots:
     void instanceIdNotified(QString oldId, QString newId, QString notebookUid);
 
 private:
-    CalendarManager *mManager;
+    CalendarManager *m_manager;
 };
 
 #endif // CALENDAREVENT_H

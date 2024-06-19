@@ -71,10 +71,10 @@ signals:
     void colorChanged();
 
 private:
-    QString mColor;
-    QString mOrganizer;
-    QString mOrganizerEmail;
-    QList<CalendarData::Attendee> mAttendees;
-    CalendarData::EventOccurrence mOccurrence;
+    QString m_color;
+    QString m_organizer;
+    QString m_organizerEmail;
+    QList<CalendarData::Attendee> m_attendees;
+    CalendarData::EventOccurrence m_occurrence;
 };
 #endif // CALENDARIMPORTEVENT_H

@@ -75,17 +75,17 @@ namespace {
 }
 
 CalendarWorker::CalendarWorker()
-    : QObject(0), mAccountManager(0)
+    : QObject(0), m_accountManager(0)
 {
 }
 
 CalendarWorker::~CalendarWorker()
 {
-    if (mStorage.data())
-        mStorage->close();
+    if (m_storage.data())
+        m_storage->close();
 
-    mCalendar.clear();
-    mStorage.clear();
+    m_calendar.clear();
+    m_storage.clear();
 }
 
 void CalendarWorker::storageModified(mKCal::ExtendedStorage *storage, const QString &info)
@@ -94,7 +94,7 @@ void CalendarWorker::storageModified(mKCal::ExtendedStorage *storage, const QStr
     Q_UNUSED(info);
 
     // External touch of the database. We have no clue what changed.
-    // The mCalendar content has been wiped out already.
+    // The m_calendar content has been wiped out already.
     loadNotebooks();
     emit storageModifiedSignal();
 }
@@ -112,7 +112,7 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
     // until that is done, let's just handle new events as invitations and rest as updates.
     for (const KCalendarCore::Incidence::Ptr &event: added) {
         if (event->attendeeCount() > 0) {
-            mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+            mKCal::Notebook::Ptr notebook = m_storage->notebook(m_calendar->notebook(event));
             if (notebook) {
                 mKCal::ServiceHandler::instance().sendInvitation(notebook, event, QString());
             } else {
@@ -122,7 +122,7 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
     }
     for (const KCalendarCore::Incidence::Ptr &event: modified) {
         if (event->attendeeCount() > 0 && isOrganizer(event)) {
-            mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+            mKCal::Notebook::Ptr notebook = m_storage->notebook(m_calendar->notebook(event));
             if (notebook) {
                 mKCal::ServiceHandler::instance().sendUpdate(notebook, event, QString());
             } else {
@@ -135,7 +135,7 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
         // FIXME: should send response update if deleting an event we have responded to.
         if (event->attendeeCount() > 0 && isOrganizer(event)) {
             event->setStatus(KCalendarCore::Incidence::StatusCanceled);
-            mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+            mKCal::Notebook::Ptr notebook = m_storage->notebook(m_calendar->notebook(event));
             if (notebook) {
                 mKCal::ServiceHandler::instance().sendUpdate(notebook, event, QString());
             } else {
@@ -143,11 +143,11 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
             }
         }
         // if the event was stored in a local (non-synced) notebook, purge it.
-        const CalendarData::Notebook &notebook = mNotebooks.value(mCalendar->notebook(event));
+        const CalendarData::Notebook &notebook = m_notebooks.value(m_calendar->notebook(event));
         if (notebook.localCalendar
             && !storage->purgeDeletedIncidences(KCalendarCore::Incidence::List() << event, notebook.uid)) {
             qWarning() << "Failed to purge deleted event" << event->uid()
-                       << "from local calendar" << mCalendar->notebook(event);
+                       << "from local calendar" << m_calendar->notebook(event);
         }
     }
 
@@ -157,9 +157,9 @@ void CalendarWorker::storageUpdated(mKCal::ExtendedStorage *storage,
 
 KCalendarCore::Incidence::Ptr CalendarWorker::getInstance(const QString &instanceId) const
 {
-    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
-    if (!event && mStorage->loadIncidenceInstance(instanceId)) {
-        event = mCalendar->instance(instanceId);
+    KCalendarCore::Incidence::Ptr event = m_calendar->instance(instanceId);
+    if (!event && m_storage->loadIncidenceInstance(instanceId)) {
+        event = m_calendar->instance(instanceId);
     }
     return event;
 }
@@ -183,14 +183,14 @@ void CalendarWorker::deleteEvent(const QString &instanceId, const QDateTime &dat
         event->setRevision(event->revision() + 1);
     } else if (event->hasRecurrenceId()) {
         // We consider that deleting an exception implies to create an exdate for the parent.
-        KCalendarCore::Event::Ptr parent = mCalendar->event(event->uid());
+        KCalendarCore::Event::Ptr parent = m_calendar->event(event->uid());
         if (parent) {
             parent->recurrence()->addExDateTime(event->recurrenceId());
             parent->setRevision(parent->revision() + 1);
         }
-        mCalendar->deleteIncidence(event);
+        m_calendar->deleteIncidence(event);
     } else {
-        mCalendar->deleteIncidence(event);
+        m_calendar->deleteIncidence(event);
     }
 }
 
@@ -202,22 +202,22 @@ void CalendarWorker::deleteAll(const QString &instanceId)
         return;
     }
     if (event->hasRecurrenceId()) {
-        KCalendarCore::Incidence::Ptr parent = mCalendar->incidence(event->uid());
+        KCalendarCore::Incidence::Ptr parent = m_calendar->incidence(event->uid());
         if (parent)
             event = parent;
     }
-    mCalendar->deleteIncidence(event);
+    m_calendar->deleteIncidence(event);
 }
 
 bool CalendarWorker::sendResponse(const QString &instanceId,
                                   const CalendarEvent::Response response)
 {
-    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
+    KCalendarCore::Incidence::Ptr event = m_calendar->instance(instanceId);
     if (!event) {
         qWarning() << "Failed to send response, event not found. UID = " << instanceId;
         return false;
     }
-    const QString ownerEmail = getNotebookAddress(mCalendar->notebook(event));
+    const QString ownerEmail = getNotebookAddress(m_calendar->notebook(event));
     const KCalendarCore::Attendee origAttendee = event->attendeeByMail(ownerEmail);
     KCalendarCore::Attendee updated = origAttendee;
     switch (response) {
@@ -236,7 +236,7 @@ bool CalendarWorker::sendResponse(const QString &instanceId,
     updateAttendee(event, origAttendee, updated);
 
     bool sent = false;
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+    mKCal::Notebook::Ptr notebook = m_storage->notebook(m_calendar->notebook(event));
     if (notebook) {
         sent = mKCal::ServiceHandler::instance().sendResponse(notebook, event, event->description());
         if (!sent)
@@ -253,7 +253,7 @@ QString CalendarWorker::convertEventToICalendar(const QString &instanceId, const
     // NOTE: exporting only the matching occurrence with instanceId,
     // for recurring parent, it will not append the exceptions,
     // for exceptions, it will not append the parent.
-    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
+    KCalendarCore::Incidence::Ptr event = m_calendar->instance(instanceId);
     if (event.isNull()) {
         qWarning() << "No event with uid " << instanceId << ", unable to create iCalendar";
         return QString();
@@ -267,7 +267,7 @@ QString CalendarWorker::convertEventToICalendar(const QString &instanceId, const
 
 void CalendarWorker::save()
 {
-    mStorage->save();
+    m_storage->save();
 }
 
 void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool updateAttendees,
@@ -276,14 +276,14 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
 {
     QString notebookUid = eventData.calendarUid;
 
-    if (!notebookUid.isEmpty() && !mStorage->isValidNotebook(notebookUid)) {
+    if (!notebookUid.isEmpty() && !m_storage->isValidNotebook(notebookUid)) {
         qWarning() << "Invalid notebook uid:" << notebookUid;
         return;
     }
 
     KCalendarCore::Event::Ptr event;
     if (!eventData.instanceId.isEmpty()) {
-        event = mCalendar->instance(eventData.instanceId).staticCast<KCalendarCore::Event>();
+        event = m_calendar->instance(eventData.instanceId).staticCast<KCalendarCore::Event>();
     }
     bool createNew = event.isNull();
 
@@ -298,7 +298,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
             event->setUid(event->uid().toUpper());
         } else if (eventData.recurrenceId.isValid()) {
             KCalendarCore::Event::Ptr parent =
-                mCalendar->event(eventData.incidenceUid);
+                m_calendar->event(eventData.incidenceUid);
             if (!parent) {
                 // The parent was removed while the exception was edited.
                 qWarning("Unable to create an exception without parent");
@@ -312,7 +312,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
             qWarning("Event to be saved not found");
             return;
         }
-    } else if (!notebookUid.isEmpty() && mCalendar->notebook(event) != notebookUid) {
+    } else if (!notebookUid.isEmpty() && m_calendar->notebook(event) != notebookUid) {
 #if 0
         // mkcal does not support keeping the same UID for events
         // in different notebooks. One should keep the same UID
@@ -321,10 +321,10 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         // already.
         // So this code is currently broken and requires mKCal
         // to support multi-notebook incidences sharing the same UID.
-        KCalendarCore::Event::Ptr parent = mCalendar->event(event-uid());
-        for (const KCalendarCore::Incidence::Ptr &incidence : mCalendar->instances(parent) << parent) {
-            if (!mCalendar->deleteIncidence(incidence)
-                || !mCalendar->addIncidence(incidence, notebookUid)) {
+        KCalendarCore::Event::Ptr parent = m_calendar->event(event-uid());
+        for (const KCalendarCore::Incidence::Ptr &incidence : m_calendar->instances(parent) << parent) {
+            if (!m_calendar->deleteIncidence(incidence)
+                || !m_calendar->addIncidence(incidence, notebookUid)) {
                 qWarning() << "Cannot move event" << incidence->uid() << " to notebookUid:" << notebookUid;
                 return;
             }
@@ -344,7 +344,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         updateEventAttendees(event, createNew, required, optional, notebookUid);
     }
 
-    if (createNew && !mCalendar->addEvent(event, notebookUid.isEmpty() ? mCalendar->defaultNotebook() : notebookUid)) {
+    if (createNew && !m_calendar->addEvent(event, notebookUid.isEmpty() ? m_calendar->defaultNotebook() : notebookUid)) {
         qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
         return;
     } else if (!createNew) {
@@ -356,7 +356,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
 
 CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &instanceId, const QDateTime &datetime)
 {
-    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
+    KCalendarCore::Incidence::Ptr event = m_calendar->instance(instanceId);
     if (!event || event->hasRecurrenceId()) {
         qWarning("Event to create occurrence replacement for not found or already an exception");
         return CalendarData::Event();
@@ -368,13 +368,13 @@ CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &in
     const QDateTime occurrence = event->allDay()
             ? QDateTime(datetime.date(), datetime.time(), Qt::LocalTime)
             : datetime;
-    KCalendarCore::Incidence::Ptr replacement = mCalendar->dissociateSingleOccurrence(event, occurrence);
+    KCalendarCore::Incidence::Ptr replacement = m_calendar->dissociateSingleOccurrence(event, occurrence);
     if (!replacement) {
         qWarning("Unable to create the replacing occurrence");
         return CalendarData::Event();
     }
 
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(event));
+    mKCal::Notebook::Ptr notebook = m_storage->notebook(m_calendar->notebook(event));
     if (!notebook) {
         qWarning("Unable to find the notebook of created exception");
         return CalendarData::Event();
@@ -384,10 +384,10 @@ CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &in
 
 void CalendarWorker::init()
 {
-    mCalendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
-    mStorage = mCalendar->defaultStorage(mCalendar);
-    mStorage->open();
-    mStorage->registerObserver(this);
+    m_calendar = mKCal::ExtendedCalendar::Ptr(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
+    m_storage = m_calendar->defaultStorage(m_calendar);
+    m_storage->open();
+    m_storage->registerObserver(this);
     loadNotebooks();
 
     Maemo::Timed::Interface *timed = new Maemo::Timed::Interface(this);
@@ -402,8 +402,8 @@ void CalendarWorker::onTimedSignal(const Maemo::Timed::WallClock::Info &info,
     Q_UNUSED(time_changed);
 
     QTimeZone newTimezone(info.humanReadableTz().toUtf8());
-    if (newTimezone.isValid() && newTimezone != mCalendar->timeZone()) {
-        mCalendar->setTimeZone(newTimezone);
+    if (newTimezone.isValid() && newTimezone != m_calendar->timeZone()) {
+        m_calendar->setTimeZone(newTimezone);
         emit storageModifiedSignal();
         emit calendarTimezoneChanged();
     }
@@ -413,7 +413,7 @@ bool CalendarWorker::isOrganizer(const KCalendarCore::Incidence::Ptr &event) con
 {
     if (event) {
         const KCalendarCore::Person calOrganizer = event->organizer();
-        return (!calOrganizer.isEmpty() && calOrganizer.email() == getNotebookAddress(mCalendar->notebook(event)));
+        return (!calOrganizer.isEmpty() && calOrganizer.email() == getNotebookAddress(m_calendar->notebook(event)));
     } else {
         qWarning() << Q_FUNC_INFO << "event is NULL";
         return false;
@@ -432,7 +432,7 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
         return;
     }
 
-    mKCal::Notebook::Ptr notebook = mStorage->notebook(notebookUid);
+    mKCal::Notebook::Ptr notebook = m_storage->notebook(notebookUid);
     if (notebook.isNull()) {
         qWarning() << "No notebook found with UID" << notebookUid;
         return;
@@ -538,28 +538,28 @@ void CalendarWorker::updateEventAttendees(KCalendarCore::Event::Ptr event, bool 
 
 QString CalendarWorker::getNotebookAddress(const QString &notebookUid) const
 {
-    return mNotebooks.value(notebookUid).emailAddress;
+    return m_notebooks.value(notebookUid).emailAddress;
 }
 
 QList<CalendarData::Notebook> CalendarWorker::notebooks() const
 {
-    return mNotebooks.values();
+    return m_notebooks.values();
 }
 
 void CalendarWorker::excludeNotebook(const QString &notebookUid, bool exclude)
 {
     if (saveExcludeNotebook(notebookUid, exclude)) {
         emit excludedNotebooksChanged(excludedNotebooks());
-        emit notebooksChanged(mNotebooks.values());
+        emit notebooksChanged(m_notebooks.values());
     }
 }
 
 void CalendarWorker::setDefaultNotebook(const QString &notebookUid)
 {
-    if (mStorage->defaultNotebook() && mStorage->defaultNotebook()->uid() == notebookUid)
+    if (m_storage->defaultNotebook() && m_storage->defaultNotebook()->uid() == notebookUid)
         return;
 
-    if (!mStorage->setDefaultNotebook(mStorage->notebook(notebookUid))) {
+    if (!m_storage->setDefaultNotebook(m_storage->notebook(notebookUid))) {
         qWarning() << "unable to set default notebook";
     }
 
@@ -569,7 +569,7 @@ void CalendarWorker::setDefaultNotebook(const QString &notebookUid)
 QStringList CalendarWorker::excludedNotebooks() const
 {
     QStringList excluded;
-    foreach (const CalendarData::Notebook &notebook, mNotebooks.values()) {
+    foreach (const CalendarData::Notebook &notebook, m_notebooks.values()) {
         if (notebook.excluded)
             excluded << notebook.uid;
     }
@@ -578,17 +578,17 @@ QStringList CalendarWorker::excludedNotebooks() const
 
 bool CalendarWorker::saveExcludeNotebook(const QString &notebookUid, bool exclude)
 {
-    QHash<QString, CalendarData::Notebook>::Iterator notebook = mNotebooks.find(notebookUid);
-    if (notebook == mNotebooks.end())
+    QHash<QString, CalendarData::Notebook>::Iterator notebook = m_notebooks.find(notebookUid);
+    if (notebook == m_notebooks.end())
         return false;
     bool changed = (notebook->excluded != exclude);
     notebook->excluded = exclude;
 
     // Ensure, mKCal backend is up-to-date on notebook visibility.
-    const mKCal::Notebook::Ptr mkNotebook = mStorage->notebook(notebookUid);
+    const mKCal::Notebook::Ptr mkNotebook = m_storage->notebook(notebookUid);
     if (mkNotebook && mkNotebook->isVisible() != !exclude) {
         mkNotebook->setIsVisible(!exclude);
-        mStorage->updateNotebook(mkNotebook);
+        m_storage->updateNotebook(mkNotebook);
     }
 
     return changed;
@@ -616,26 +616,26 @@ void CalendarWorker::setExcludedNotebooks(const QStringList &list)
 
     if (changed) {
         emit excludedNotebooksChanged(excludedNotebooks());
-        emit notebooksChanged(mNotebooks.values());
+        emit notebooksChanged(m_notebooks.values());
     }
 }
 
 void CalendarWorker::setNotebookColor(const QString &notebookUid, const QString &color)
 {
-    if (!mNotebooks.contains(notebookUid))
+    if (!m_notebooks.contains(notebookUid))
         return;
 
-    if (mNotebooks.value(notebookUid).color != color) {
-        if (mKCal::Notebook::Ptr mkNotebook = mStorage->notebook(notebookUid)) {
+    if (m_notebooks.value(notebookUid).color != color) {
+        if (mKCal::Notebook::Ptr mkNotebook = m_storage->notebook(notebookUid)) {
             mkNotebook->setColor(color);
-            mStorage->updateNotebook(mkNotebook);
+            m_storage->updateNotebook(mkNotebook);
         }
 
-        CalendarData::Notebook notebook = mNotebooks.value(notebookUid);
+        CalendarData::Notebook notebook = m_notebooks.value(notebookUid);
         notebook.color = color;
-        mNotebooks.insert(notebook.uid, notebook);
+        m_notebooks.insert(notebook.uid, notebook);
 
-        emit notebooksChanged(mNotebooks.values());
+        emit notebooksChanged(m_notebooks.values());
     }
 }
 
@@ -645,18 +645,18 @@ CalendarWorker::eventOccurrences(const QList<CalendarData::Range> &ranges) const
     QHash<QString, CalendarData::EventOccurrence> filtered;
     for (const CalendarData::Range range : ranges) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
-        KCalendarCore::OccurrenceIterator it(*mCalendar, range.first.addDays(-1).startOfDay(),
+        KCalendarCore::OccurrenceIterator it(*m_calendar, range.first.addDays(-1).startOfDay(),
                                              range.second.endOfDay());
 #else
-        KCalendarCore::OccurrenceIterator it(*mCalendar, QDateTime(range.first.addDays(-1)),
+        KCalendarCore::OccurrenceIterator it(*m_calendar, QDateTime(range.first.addDays(-1)),
                                              QDateTime(range.second.addDays(1)).addSecs(-1));
 #endif
         while (it.hasNext()) {
             it.next();
-            if (mCalendar->isVisible(it.incidence())
+            if (m_calendar->isVisible(it.incidence())
                 && it.incidence()->type() == KCalendarCore::IncidenceBase::TypeEvent
-                && mNotebooks.contains(mCalendar->notebook(it.incidence()))
-                && !mNotebooks.value(mCalendar->notebook(it.incidence())).excluded) {
+                && m_notebooks.contains(m_calendar->notebook(it.incidence()))
+                && !m_notebooks.value(m_calendar->notebook(it.incidence())).excluded) {
                 const QDateTime sdt = it.occurrenceStartDate();
                 const KCalendarCore::Duration elapsed
                     (it.incidence()->dateTime(KCalendarCore::Incidence::RoleDisplayStart),
@@ -701,35 +701,35 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
                               bool reset)
 {
     for (const CalendarData::Range &range : ranges) {
-        mStorage->load(range.first, range.second.addDays(1)); // end date is not inclusive
+        m_storage->load(range.first, range.second.addDays(1)); // end date is not inclusive
     }
 
     foreach (const QString &id, instanceList) {
-        mStorage->loadIncidenceInstance(id);
+        m_storage->loadIncidenceInstance(id);
     }
 
     if (reset)
-        mSentEvents.clear();
+        m_sentEvents.clear();
 
     QHash<QString, CalendarData::Event> events;
     bool orphansDeleted = false;
 
-    const KCalendarCore::Event::List list = mCalendar->rawEvents();
+    const KCalendarCore::Event::List list = m_calendar->rawEvents();
     for (const KCalendarCore::Event::Ptr &e : list) {
-        if (!mCalendar->isVisible(e)) {
+        if (!m_calendar->isVisible(e)) {
             continue;
         }
         // The database may have changed after loading the events, make sure that the notebook
         // of the event still exists.
-        mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(e));
+        mKCal::Notebook::Ptr notebook = m_storage->notebook(m_calendar->notebook(e));
         if (notebook.isNull()) {
             // This may be a symptom of a deeper bug: if a sync adapter (or mkcal)
             // doesn't delete events which belong to a deleted notebook, then the
             // events will be "orphan" and need to be deleted.
-            if (mStorage->load(e->uid())) {
-                KCalendarCore::Incidence::Ptr orphan = mCalendar->incidence(e->uid());
+            if (m_storage->load(e->uid())) {
+                KCalendarCore::Incidence::Ptr orphan = m_calendar->incidence(e->uid());
                 if (orphan) {
-                    if (mCalendar->deleteIncidence(orphan)) {
+                    if (m_calendar->deleteIncidence(orphan)) {
                         qWarning() << "Deleted orphan calendar event:" << orphan->uid()
                                    << orphan->summary() << orphan->description() << orphan->location();
                         orphansDeleted = true;
@@ -743,9 +743,9 @@ void CalendarWorker::loadData(const QList<CalendarData::Range> &ranges,
         }
 
         const QString id = e->instanceIdentifier();
-        if (!mSentEvents.contains(id)) {
+        if (!m_sentEvents.contains(id)) {
             CalendarData::Event event = createEventStruct(e, notebook);
-            mSentEvents.insert(id);
+            m_sentEvents.insert(id);
             events.insert(id, event);
         }
     }
@@ -764,8 +764,8 @@ CalendarData::Event CalendarWorker::createEventStruct(const KCalendarCore::Event
                                                       mKCal::Notebook::Ptr notebook) const
 {
     CalendarData::Event event(*e);
-    event.calendarUid = mCalendar->notebook(e);
-    event.readOnly = mStorage->notebook(event.calendarUid)->isReadOnly();
+    event.calendarUid = m_calendar->notebook(e);
+    event.readOnly = m_storage->notebook(event.calendarUid)->isReadOnly();
     bool externalInvitation = false;
     const QString &calendarOwnerEmail = getNotebookAddress(event.calendarUid);
 
@@ -805,19 +805,19 @@ void CalendarWorker::search(const QString &searchString, int limit)
     QStringList identifiers;
     QHash<QString, CalendarData::Event> events;
 
-    if (mStorage->search(searchString, &identifiers, limit)) {
+    if (m_storage->search(searchString, &identifiers, limit)) {
         emit searchResults(searchString, identifiers);
     }
 
     for (int i = 0; i < identifiers.length(); i++) {
-        if (!mSentEvents.contains(identifiers[i])) {
-            KCalendarCore::Incidence::Ptr incidence = mCalendar->instance(identifiers[i]);
+        if (!m_sentEvents.contains(identifiers[i])) {
+            KCalendarCore::Incidence::Ptr incidence = m_calendar->instance(identifiers[i]);
             if (incidence
                 && incidence->type() == KCalendarCore::IncidenceBase::TypeEvent
-                && mCalendar->isVisible(incidence)) {
-                mKCal::Notebook::Ptr notebook = mStorage->notebook(mCalendar->notebook(incidence));
+                && m_calendar->isVisible(incidence)) {
+                mKCal::Notebook::Ptr notebook = m_storage->notebook(m_calendar->notebook(incidence));
                 CalendarData::Event event = createEventStruct(incidence.staticCast<KCalendarCore::Event>(), notebook);
-                mSentEvents.insert(identifiers[i]);
+                m_sentEvents.insert(identifiers[i]);
                 events.insert(identifiers[i], event);
             }
         }
@@ -856,26 +856,26 @@ void CalendarWorker::loadNotebooks()
     QStringList defaultNotebookColors = QStringList() << "#00aeef" << "red" << "blue" << "green" << "pink" << "yellow";
     int nextDefaultNotebookColor = 0;
 
-    const mKCal::Notebook::List notebooks = mStorage->notebooks();
+    const mKCal::Notebook::List notebooks = m_storage->notebooks();
     QSettings settings("nemo", "nemo-qml-plugin-calendar");
 
     QHash<QString, CalendarData::Notebook> newNotebooks;
 
-    bool changed = mNotebooks.isEmpty();
+    bool changed = m_notebooks.isEmpty();
     for (int ii = 0; ii < notebooks.count(); ++ii) {
         mKCal::Notebook::Ptr mkNotebook = notebooks.at(ii);
         if (!mkNotebook->eventsAllowed()) {
             continue;
         }
         
-        CalendarData::Notebook notebook = mNotebooks.value(mkNotebook->uid(), CalendarData::Notebook());
+        CalendarData::Notebook notebook = m_notebooks.value(mkNotebook->uid(), CalendarData::Notebook());
 
         notebook.name = mkNotebook->name();
         notebook.uid = mkNotebook->uid();
         notebook.description = mkNotebook->description();
         notebook.emailAddress = mKCal::ServiceHandler::instance().emailAddress(mkNotebook);
-        notebook.isDefault = mStorage->defaultNotebook()
-                && (mkNotebook->uid() == mStorage->defaultNotebook()->uid());
+        notebook.isDefault = m_storage->defaultNotebook()
+                && (mkNotebook->uid() == m_storage->defaultNotebook()->uid());
         notebook.readOnly = mkNotebook->isReadOnly();
         notebook.localCalendar = mkNotebook->isMaster()
                 && !mkNotebook->isShared()
@@ -885,7 +885,7 @@ void CalendarWorker::loadNotebooks()
         // To keep backward compatibility:
         if (settings.value("exclude/" + notebook.uid, false).toBool()) {
             mkNotebook->setIsVisible(false);
-            if (notebook.excluded || mStorage->updateNotebook(mkNotebook)) {
+            if (notebook.excluded || m_storage->updateNotebook(mkNotebook)) {
                 settings.remove("exclude/" + notebook.uid);
             }
             notebook.excluded = true;
@@ -900,7 +900,7 @@ void CalendarWorker::loadNotebooks()
         bool canRemoveConf = true;
         if (notebook.color != mkNotebook->color()) {
             mkNotebook->setColor(notebook.color);
-            canRemoveConf = mStorage->updateNotebook(mkNotebook);
+            canRemoveConf = m_storage->updateNotebook(mkNotebook);
         }
         if (confHasColor && canRemoveConf) {
             settings.remove("colors/" + notebook.uid);
@@ -908,19 +908,19 @@ void CalendarWorker::loadNotebooks()
 
         QString accountStr = mkNotebook->account();
         if (!accountStr.isEmpty()) {
-            if (!mAccountManager) {
-                mAccountManager = new Accounts::Manager(this);
+            if (!m_accountManager) {
+                m_accountManager = new Accounts::Manager(this);
             }
             bool ok = false;
             int accountId = accountStr.toInt(&ok);
             if (ok && accountId > 0) {
-                Accounts::Account *account = Accounts::Account::fromId(mAccountManager, accountId, this);
+                Accounts::Account *account = Accounts::Account::fromId(m_accountManager, accountId, this);
                 if (account) {
                     if (!serviceIsEnabled(account, mkNotebook->syncProfile())) {
                         continue;
                     }
                     notebook.accountId = accountId;
-                    notebook.accountIcon = mAccountManager->provider(account->providerName()).iconName();
+                    notebook.accountIcon = m_accountManager->provider(account->providerName()).iconName();
                     if (notebook.description.isEmpty()) {
                         // fill the description field with some account information
                         notebook.description = account->displayName();
@@ -930,16 +930,16 @@ void CalendarWorker::loadNotebooks()
             }
         }
 
-        if (mNotebooks.contains(notebook.uid) && mNotebooks.value(notebook.uid) != notebook)
+        if (m_notebooks.contains(notebook.uid) && m_notebooks.value(notebook.uid) != notebook)
             changed = true;
 
         newNotebooks.insert(notebook.uid, notebook);
     }
 
-    if (changed || mNotebooks.count() != newNotebooks.count()) {
-        mNotebooks = newNotebooks;
+    if (changed || m_notebooks.count() != newNotebooks.count()) {
+        m_notebooks = newNotebooks;
         emit excludedNotebooksChanged(excludedNotebooks());
-        emit notebooksChanged(mNotebooks.values());
+        emit notebooksChanged(m_notebooks.values());
     }
 }
 
@@ -952,14 +952,14 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &i
         qWarning() << "Failed to get next occurrence, event not found. UID = " << instanceId;
         return CalendarData::EventOccurrence();
     }
-    return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? mCalendar->instances(event) : KCalendarCore::Incidence::List());
+    return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? m_calendar->instances(event) : KCalendarCore::Incidence::List());
 }
 
 QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &instanceId)
 {
     QList<CalendarData::Attendee> result;
 
-    KCalendarCore::Incidence::Ptr event = mCalendar->instance(instanceId);
+    KCalendarCore::Incidence::Ptr event = m_calendar->instance(instanceId);
 
     if (event.isNull()) {
         return result;
@@ -978,7 +978,7 @@ void CalendarWorker::findMatchingEvent(const QString &invitationFile)
         if (incidence->type() == KCalendarCore::IncidenceBase::TypeEvent) {
             // Search for this event in the database.
             loadData(QList<CalendarData::Range>() << qMakePair(incidence->dtStart().date().addDays(-1), incidence->dtStart().date().addDays(1)), QStringList(), false);
-            KCalendarCore::Incidence::List dbIncidences = mCalendar->incidences();
+            KCalendarCore::Incidence::List dbIncidences = m_calendar->incidences();
             Q_FOREACH (KCalendarCore::Incidence::Ptr dbIncidence, dbIncidences) {
                 const QString remoteUidValue(dbIncidence->nonKDECustomProperty("X-SAILFISHOS-REMOTE-UID"));
                 if (dbIncidence->uid().compare(incidence->uid(), Qt::CaseInsensitive) == 0 ||

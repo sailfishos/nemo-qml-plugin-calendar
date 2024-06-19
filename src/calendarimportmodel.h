@@ -108,14 +108,14 @@ private:
     void setError(bool error);
     void setupDuplicates();
 
-    QString mFileName;
-    QByteArray mIcsRawData;
-    QString mNotebookUid;
-    KCalendarCore::Event::List mEventList;
-    mKCal::ExtendedStorage::Ptr mStorage;
-    QSet<QString> mDuplicates;
-    QSet<QString> mInvitations;
-    bool mError;
+    QString m_fileName;
+    QByteArray m_icsRawData;
+    QString m_notebookUid;
+    KCalendarCore::Event::List m_eventList;
+    mKCal::ExtendedStorage::Ptr m_storage;
+    QSet<QString> m_duplicates;
+    QSet<QString> m_invitations;
+    bool m_error;
 };
 
 #endif // CALENDARIMPORT_H

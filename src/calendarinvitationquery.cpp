@@ -37,8 +37,8 @@
 #include "calendarutils.h"
 
 CalendarInvitationQuery::CalendarInvitationQuery()
-    : mIsComplete(false)
-    , mNeedQuery(false)
+    : m_isComplete(false)
+    , m_needQuery(false)
 {
 }
 
@@ -52,33 +52,33 @@ CalendarInvitationQuery::~CalendarInvitationQuery()
 
 QString CalendarInvitationQuery::notebookUid() const
 {
-    return mNotebookUid;
+    return m_notebookUid;
 }
 
 QString CalendarInvitationQuery::instanceId() const
 {
-    return mInstanceId;
+    return m_instanceId;
 }
 
 QString CalendarInvitationQuery::startTime() const
 {
-    return mStartTime;
+    return m_startTime;
 }
 
 QString CalendarInvitationQuery::invitationFile() const
 {
-    return mInvitationFile;
+    return m_invitationFile;
 }
 
 bool CalendarInvitationQuery::busy() const
 {
-    return mBusy;
+    return m_busy;
 }
 
 void CalendarInvitationQuery::setInvitationFile(const QString &file)
 {
-    if (mInvitationFile != file) {
-        mInvitationFile = file;
+    if (m_invitationFile != file) {
+        m_invitationFile = file;
         emit invitationFileChanged();
     }
 
@@ -87,33 +87,33 @@ void CalendarInvitationQuery::setInvitationFile(const QString &file)
 
 void CalendarInvitationQuery::classBegin()
 {
-    mIsComplete = false;
+    m_isComplete = false;
 }
 
 void CalendarInvitationQuery::componentComplete()
 {
-    mIsComplete = true;
-    if (mNeedQuery) {
+    m_isComplete = true;
+    if (m_needQuery) {
         query();
     }
 }
 
 void CalendarInvitationQuery::query()
 {
-    if (!mInvitationFile.isEmpty()) {
-        // note: we allow scheduling the query even if mBusy is true
+    if (!m_invitationFile.isEmpty()) {
+        // note: we allow scheduling the query even if m_busy is true
         // as the client could have changed the invitation file
         // and in that case, the old query is orphaned by the manager.
-        bool oldBusy = mBusy;
-        mBusy = true;
+        bool oldBusy = m_busy;
+        m_busy = true;
         if (!oldBusy) {
             emit busyChanged();
         }
 
-        if (mIsComplete) {
-            CalendarManager::instance()->scheduleInvitationQuery(this, mInvitationFile);
+        if (m_isComplete) {
+            CalendarManager::instance()->scheduleInvitationQuery(this, m_invitationFile);
         } else {
-            mNeedQuery = true;
+            m_needQuery = true;
         }
     }
 }
@@ -124,22 +124,22 @@ void CalendarInvitationQuery::queryResult(CalendarData::Event event)
     bool needUidEmit = false;
     bool needSTEmit = false;
 
-    if (mNotebookUid != event.calendarUid) {
-        mNotebookUid = event.calendarUid;
+    if (m_notebookUid != event.calendarUid) {
+        m_notebookUid = event.calendarUid;
         needNUidEmit = true;
     }
 
-    if (mInstanceId != event.instanceId) {
-        mInstanceId = event.instanceId;
+    if (m_instanceId != event.instanceId) {
+        m_instanceId = event.instanceId;
         needUidEmit = true;
     }
 
-    if (mStartTime != event.startTime.toString(Qt::ISODate)) {
-        mStartTime = event.startTime.toString(Qt::ISODate);
+    if (m_startTime != event.startTime.toString(Qt::ISODate)) {
+        m_startTime = event.startTime.toString(Qt::ISODate);
         needSTEmit = true;
     }
 
-    mBusy = false;
+    m_busy = false;
 
     if (needNUidEmit) {
         emit notebookUidChanged();

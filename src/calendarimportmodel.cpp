@@ -45,11 +45,11 @@
 
 CalendarImportModel::CalendarImportModel(QObject *parent)
     : QAbstractListModel(parent),
-      mError(false)
+      m_error(false)
 {
     mKCal::ExtendedCalendar::Ptr calendar(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
-    mStorage = calendar->defaultStorage(calendar);
-    if (!mStorage->open()) {
+    m_storage = calendar->defaultStorage(calendar);
+    if (!m_storage->open()) {
         qWarning() << "Unable to open calendar DB";
     }
 }
@@ -60,51 +60,51 @@ CalendarImportModel::~CalendarImportModel()
 
 int CalendarImportModel::count() const
 {
-    return mEventList.count();
+    return m_eventList.count();
 }
 
 QString CalendarImportModel::fileName() const
 {
-    return mFileName;
+    return m_fileName;
 }
 
 void CalendarImportModel::setFileName(const QString &fileName)
 {
-    if (mFileName == fileName)
+    if (m_fileName == fileName)
         return;
 
-    mFileName = fileName;
+    m_fileName = fileName;
     emit fileNameChanged();
-    setError(!importToMemory(mFileName, mIcsRawData));
+    setError(!importToMemory(m_fileName, m_icsRawData));
 }
 
 QString CalendarImportModel::icsString() const
 {
-    return QString::fromUtf8(mIcsRawData);
+    return QString::fromUtf8(m_icsRawData);
 }
 
 void CalendarImportModel::setIcsString(const QString &icsData)
 {
     QByteArray data = icsData.toUtf8();
-    if (mIcsRawData == data)
+    if (m_icsRawData == data)
         return;
 
-    mIcsRawData = data;
+    m_icsRawData = data;
     emit icsStringChanged();
-    setError(!importToMemory(mFileName, mIcsRawData));
+    setError(!importToMemory(m_fileName, m_icsRawData));
 }
 
 QString CalendarImportModel::notebookUid() const
 {
-    return mNotebookUid;
+    return m_notebookUid;
 }
 
 void CalendarImportModel::setNotebookUid(const QString &notebookUid)
 {
-    if (notebookUid == mNotebookUid)
+    if (notebookUid == m_notebookUid)
         return;
 
-    mNotebookUid = notebookUid;
+    m_notebookUid = notebookUid;
     emit notebookUidChanged();
 
     setupDuplicates();
@@ -112,25 +112,25 @@ void CalendarImportModel::setNotebookUid(const QString &notebookUid)
 
 bool CalendarImportModel::hasDuplicates() const
 {
-    return !mDuplicates.isEmpty();
+    return !m_duplicates.isEmpty();
 }
 
 bool CalendarImportModel::hasInvitations() const
 {
-    return !mInvitations.isEmpty();
+    return !m_invitations.isEmpty();
 }
 
 bool CalendarImportModel::error() const
 {
-    return mError;
+    return m_error;
 }
 
 QObject *CalendarImportModel::getEvent(int index)
 {
-    if (index < 0 || index >= mEventList.count())
+    if (index < 0 || index >= m_eventList.count())
         return 0;
 
-    return new CalendarImportEvent(mEventList.at(index));
+    return new CalendarImportEvent(m_eventList.at(index));
 }
 
 int CalendarImportModel::rowCount(const QModelIndex &index) const
@@ -138,15 +138,15 @@ int CalendarImportModel::rowCount(const QModelIndex &index) const
     if (index != QModelIndex())
         return 0;
 
-    return mEventList.count();
+    return m_eventList.count();
 }
 
 QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() >= mEventList.count())
+    if (!index.isValid() || index.row() >= m_eventList.count())
         return QVariant();
 
-    KCalendarCore::Event::Ptr event = mEventList.at(index.row());
+    KCalendarCore::Event::Ptr event = m_eventList.at(index.row());
 
     switch(role) {
     case DisplayLabelRole:
@@ -162,9 +162,9 @@ QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
     case LocationRole:
         return event->location();
     case DuplicateRole:
-        return mDuplicates.contains(event->instanceIdentifier());
+        return m_duplicates.contains(event->instanceIdentifier());
     case InvitationRole:
-        return mInvitations.contains(event->instanceIdentifier());
+        return m_invitations.contains(event->instanceIdentifier());
     case UidRole:
         return event->uid();
     default:
@@ -174,21 +174,21 @@ QVariant CalendarImportModel::data(const QModelIndex &index, int role) const
 
 bool CalendarImportModel::save(bool discardInvitation) const
 {
-    for (const KCalendarCore::Event::Ptr& incidence : mEventList) {
+    for (const KCalendarCore::Event::Ptr& incidence : m_eventList) {
         const KCalendarCore::Incidence::Ptr old =
-            mStorage->calendar()->incidence(incidence->uid(), incidence->recurrenceId());
+            m_storage->calendar()->incidence(incidence->uid(), incidence->recurrenceId());
         if (old) {
             // Unconditionally overwrite existing incidence with the same UID/RecID.
-            mStorage->calendar()->deleteIncidence(old);
+            m_storage->calendar()->deleteIncidence(old);
         }
         if (discardInvitation) {
             incidence->setOrganizer(KCalendarCore::Person());
             incidence->clearAttendees();
         }
-        mStorage->calendar().staticCast<mKCal::ExtendedCalendar>()->addIncidence(incidence, mNotebookUid);
+        m_storage->calendar().staticCast<mKCal::ExtendedCalendar>()->addIncidence(incidence, m_notebookUid);
     }
 
-    return mStorage->save();
+    return m_storage->save();
 }
 
 QHash<int, QByteArray> CalendarImportModel::roleNames() const
@@ -209,15 +209,15 @@ QHash<int, QByteArray> CalendarImportModel::roleNames() const
 
 void CalendarImportModel::setupDuplicates()
 {
-    mDuplicates.clear();
-    if (!mNotebookUid.isEmpty()) {
+    m_duplicates.clear();
+    if (!m_notebookUid.isEmpty()) {
         // To avoid detach here, use qAsConst when available.
-        for (const KCalendarCore::Event::Ptr &event : mEventList) {
-            mStorage->load(event->uid());
+        for (const KCalendarCore::Event::Ptr &event : m_eventList) {
+            m_storage->load(event->uid());
             const KCalendarCore::Event::Ptr old =
-                mStorage->calendar()->event(event->uid(), event->recurrenceId());
+                m_storage->calendar()->event(event->uid(), event->recurrenceId());
             if (old) {
-                mDuplicates.insert(old->instanceIdentifier());
+                m_duplicates.insert(old->instanceIdentifier());
             }
         }
     }
@@ -236,12 +236,12 @@ bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArr
     }
 
     beginResetModel();
-    mInvitations.clear();
-    mEventList = cal->events(KCalendarCore::EventSortStartDate);
+    m_invitations.clear();
+    m_eventList = cal->events(KCalendarCore::EventSortStartDate);
     // To avoid detach here, use qAsConst when available.
-    for (const KCalendarCore::Event::Ptr &event : mEventList) {
+    for (const KCalendarCore::Event::Ptr &event : m_eventList) {
         if (!event->organizer().isEmpty()) {
-            mInvitations.insert(event->instanceIdentifier());
+            m_invitations.insert(event->instanceIdentifier());
         }
     }
     setupDuplicates();
@@ -254,8 +254,8 @@ bool CalendarImportModel::importToMemory(const QString &fileName, const QByteArr
 
 void CalendarImportModel::setError(bool error)
 {
-    if (error != mError) {
-        mError = error;
+    if (error != m_error) {
+        m_error = error;
         emit errorChanged();
     }
 }

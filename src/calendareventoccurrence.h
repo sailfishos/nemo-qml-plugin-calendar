@@ -73,9 +73,9 @@ private slots:
     void instanceIdChanged(QString oldId, QString newId, QString notebookUid);
 
 private:
-    QString mInstanceId;
-    QDateTime mStartTime;
-    QDateTime mEndTime;
+    QString m_instanceId;
+    QDateTime m_startTime;
+    QDateTime m_endTime;
 };
 
 #endif // CALENDAREVENTOCCURRENCE_H

@@ -106,12 +106,12 @@ private slots:
     void onTimezoneChanged();
 
 private:
-    QDate mStartDate;
-    QDate mEndDate;
-    QList<CalendarEventOccurrence *> mEvents;
+    QDate m_startDate;
+    QDate m_endDate;
+    QList<CalendarEventOccurrence *> m_events;
 
-    bool mIsComplete;
-    int mFilterMode;
+    bool m_isComplete;
+    int m_filterMode;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(CalendarAgendaModel::FilterModes)

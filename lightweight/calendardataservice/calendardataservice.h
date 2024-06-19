@@ -70,11 +70,11 @@ private:
 
     void initialize();
 
-    CalendarAgendaModel *mAgendaModel;
-    QTimer mKillTimer;
-    int mTransactionIdCounter;
-    QList<DataRequest> mDataRequestQueue;
-    DataRequest mCurrentDataRequest;
+    CalendarAgendaModel *m_agendaModel;
+    QTimer m_killTimer;
+    int m_transactionIdCounter;
+    QList<DataRequest> m_dataRequestQueue;
+    DataRequest m_currentDataRequest;
 };
 
 #endif // CALENDARDATASERVICE_H

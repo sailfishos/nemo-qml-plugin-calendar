@@ -142,20 +142,20 @@ private:
     void restartUpdateTimer();
     void trackMkcal();
 
-    CalendarDataServiceProxy *mProxy;
-    QFileSystemWatcher *mWatcher;
-    QTimer mUpdateDelayTimer;
-    EventDataList mEventDataList;
-    QDateTime mStartDate;
-    QDateTime mEndDate;
-    QDateTime mCreationDate;
-    QDateTime mExpiryDate;
-    int mFilterMode;
-    int mContentType;
-    int mEventLimit;
-    int mTotalCount;
-    int mEventDisplayTime;
-    QString mTransactionId;
+    CalendarDataServiceProxy *m_proxy;
+    QFileSystemWatcher *m_watcher;
+    QTimer m_updateDelayTimer;
+    EventDataList m_eventDataList;
+    QDateTime m_startDate;
+    QDateTime m_endDate;
+    QDateTime m_creationDate;
+    QDateTime m_expiryDate;
+    int m_filterMode;
+    int m_contentType;
+    int m_eventLimit;
+    int m_totalCount;
+    int m_eventDisplayTime;
+    QString m_transactionId;
     bool m_mkcalTracked;
 };
 

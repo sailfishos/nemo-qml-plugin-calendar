@@ -40,7 +40,7 @@
 #include <QDebug>
 
 CalendarAgendaModel::CalendarAgendaModel(QObject *parent)
-    : QAbstractListModel(parent), mIsComplete(true), mFilterMode(FilterNone)
+    : QAbstractListModel(parent), m_isComplete(true), m_filterMode(FilterNone)
 {
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
@@ -54,8 +54,8 @@ CalendarAgendaModel::~CalendarAgendaModel()
     if (manager) {
         manager->cancelAgendaRefresh(this);
     }
-    qDeleteAll(mEvents);
-    mEvents.clear();
+    qDeleteAll(m_events);
+    m_events.clear();
 }
 
 QHash<int, QByteArray> CalendarAgendaModel::roleNames() const
@@ -69,15 +69,15 @@ QHash<int, QByteArray> CalendarAgendaModel::roleNames() const
 
 QDate CalendarAgendaModel::startDate() const
 {
-    return mStartDate;
+    return m_startDate;
 }
 
 void CalendarAgendaModel::setStartDate(const QDate &startDate)
 {
-    if (mStartDate == startDate)
+    if (m_startDate == startDate)
         return;
 
-    mStartDate = startDate;
+    m_startDate = startDate;
     emit startDateChanged();
 
     refresh();
@@ -85,15 +85,15 @@ void CalendarAgendaModel::setStartDate(const QDate &startDate)
 
 QDate CalendarAgendaModel::endDate() const
 {
-    return mEndDate;
+    return m_endDate;
 }
 
 void CalendarAgendaModel::setEndDate(const QDate &endDate)
 {
-    if (mEndDate == endDate)
+    if (m_endDate == endDate)
         return;
 
-    mEndDate = endDate;
+    m_endDate = endDate;
     emit endDateChanged();
 
     refresh();
@@ -101,7 +101,7 @@ void CalendarAgendaModel::setEndDate(const QDate &endDate)
 
 void CalendarAgendaModel::refresh()
 {
-    if (!mIsComplete)
+    if (!m_isComplete)
         return;
 
     CalendarManager::instance()->scheduleAgendaRefresh(this);
@@ -139,22 +139,22 @@ static bool eventsLessThan(const CalendarEventOccurrence *e1,
 
 void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
 {
-    QList<CalendarEventOccurrence *> events = mEvents;
+    QList<CalendarEventOccurrence *> events = m_events;
     QList<CalendarEventOccurrence *> skippedEvents;
 
     QSet<QString> alreadyAddedCalendarUids;
     // filter out if necessary
-    if (mFilterMode != FilterNone) {
+    if (m_filterMode != FilterNone) {
         QList<CalendarEventOccurrence *>::iterator it = newEvents.begin();
         while (it != newEvents.end()) {
             bool skip = false;
-            if (mFilterMode & FilterNonAllDay && !(*it)->eventObject()->allDay()) {
+            if (m_filterMode & FilterNonAllDay && !(*it)->eventObject()->allDay()) {
                 skip = true;
             }
-            if (mFilterMode & FilterAllDay && (*it)->eventObject()->allDay()) {
+            if (m_filterMode & FilterAllDay && (*it)->eventObject()->allDay()) {
                 skip = true;
             }
-            if (mFilterMode & FilterMultipleEventsPerNotebook) {
+            if (m_filterMode & FilterMultipleEventsPerNotebook) {
                 QString uid = (*it)->eventObject()->calendarUid();
                 if (alreadyAddedCalendarUids.contains(uid)) {
                     skip = true;
@@ -174,10 +174,10 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
 
     std::sort(newEvents.begin(), newEvents.end(), eventsLessThan);
 
-    int oldEventCount = mEvents.count();
+    int oldEventCount = m_events.count();
     int newEventsCounter = 0;
     int eventsCounter = 0;
-    int mEventsIndex = 0;
+    int m_eventsIndex = 0;
 
     while (newEventsCounter < newEvents.count() || eventsCounter < events.count()) {
         // Remove old events
@@ -190,8 +190,8 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
         }
 
         if (removeCount) {
-            beginRemoveRows(QModelIndex(), mEventsIndex, mEventsIndex + removeCount - 1);
-            mEvents.erase(mEvents.begin() + mEventsIndex, mEvents.begin() + mEventsIndex + removeCount);
+            beginRemoveRows(QModelIndex(), m_eventsIndex, m_eventsIndex + removeCount - 1);
+            m_events.erase(m_events.begin() + m_eventsIndex, m_events.begin() + m_eventsIndex + removeCount);
             endRemoveRows();
             for (int ii = eventsCounter; ii < eventsCounter + removeCount; ++ii)
                 delete events.at(ii);
@@ -204,7 +204,7 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
             skippedEvents.append(newEvents.at(newEventsCounter));
             eventsCounter++;
             newEventsCounter++;
-            mEventsIndex++;
+            m_eventsIndex++;
         }
 
         // Insert new events
@@ -217,10 +217,10 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
         }
 
         if (insertCount) {
-            beginInsertRows(QModelIndex(), mEventsIndex, mEventsIndex + insertCount - 1);
+            beginInsertRows(QModelIndex(), m_eventsIndex, m_eventsIndex + insertCount - 1);
             for (int ii = 0; ii < insertCount; ++ii) {
                 newEvents.at(newEventsCounter + ii)->setParent(this);
-                mEvents.insert(mEventsIndex++, newEvents.at(newEventsCounter + ii));
+                m_events.insert(m_eventsIndex++, newEvents.at(newEventsCounter + ii));
             }
             newEventsCounter += insertCount;
             endInsertRows();
@@ -229,7 +229,7 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
 
     qDeleteAll(skippedEvents);
 
-    if (oldEventCount != mEvents.count())
+    if (oldEventCount != m_events.count())
         emit countChanged();
 
     emit updated();
@@ -237,18 +237,18 @@ void CalendarAgendaModel::doRefresh(QList<CalendarEventOccurrence *> newEvents)
 
 int CalendarAgendaModel::count() const
 {
-    return mEvents.size();
+    return m_events.size();
 }
 
 int CalendarAgendaModel::filterMode() const
 {
-    return mFilterMode;
+    return m_filterMode;
 }
 
 void CalendarAgendaModel::setFilterMode(int mode)
 {
-    if (mode != mFilterMode) {
-        mFilterMode = mode;
+    if (mode != m_filterMode) {
+        m_filterMode = mode;
         emit filterModeChanged();
         refresh();
     }
@@ -259,7 +259,7 @@ int CalendarAgendaModel::rowCount(const QModelIndex &index) const
     if (index != QModelIndex())
         return 0;
 
-    return mEvents.size();
+    return m_events.size();
 }
 
 QVariant CalendarAgendaModel::data(const QModelIndex &index, int role) const
@@ -272,18 +272,18 @@ QVariant CalendarAgendaModel::data(const QModelIndex &index, int role) const
 
 QVariant CalendarAgendaModel::get(int index, int role) const
 {
-    if (index < 0 || index >= mEvents.count()) {
+    if (index < 0 || index >= m_events.count()) {
         qWarning() << "CalendarAgendaModel: Invalid index";
         return QVariant();
     }
 
     switch (role) {
     case EventObjectRole:
-        return QVariant::fromValue<QObject *>(mEvents.at(index)->eventObject());
+        return QVariant::fromValue<QObject *>(m_events.at(index)->eventObject());
     case OccurrenceObjectRole:
-        return QVariant::fromValue<QObject *>(mEvents.at(index));
+        return QVariant::fromValue<QObject *>(m_events.at(index));
     case SectionBucketRole:
-        return mEvents.at(index)->startTime().date();
+        return m_events.at(index)->startTime().date();
     default:
         qWarning() << "CalendarAgendaModel: Unknown role asked";
         return QVariant();
@@ -293,7 +293,7 @@ QVariant CalendarAgendaModel::get(int index, int role) const
 void CalendarAgendaModel::onTimezoneChanged()
 {
     QList<CalendarEventOccurrence *>::ConstIterator it;
-    for (it = mEvents.constBegin(); it != mEvents.constEnd(); it++) {
+    for (it = m_events.constBegin(); it != m_events.constEnd(); it++) {
         // Actually, the date times have not changed, but
         // their representations in local time (as used in QML)
         // have changed.
@@ -304,11 +304,11 @@ void CalendarAgendaModel::onTimezoneChanged()
 
 void CalendarAgendaModel::classBegin()
 {
-    mIsComplete = false;
+    m_isComplete = false;
 }
 
 void CalendarAgendaModel::componentComplete()
 {
-    mIsComplete = true;
+    m_isComplete = true;
     refresh();
 }

@@ -51,7 +51,7 @@ bool TestInvitationPlugin::sendInvitation(const QString &accountId, const QStrin
     Q_UNUSED(invitation);
     Q_UNUSED(body);
 
-    mSentInvitation = invitation;
+    m_sentInvitation = invitation;
 
     return true;
 }
@@ -63,7 +63,7 @@ bool TestInvitationPlugin::sendUpdate(const QString &accountId, const KCalendarC
     Q_UNUSED(invitation);
     Q_UNUSED(body);
 
-    mUpdatedInvitations << invitation;
+    m_updatedInvitations << invitation;
 
     return true;
 }
@@ -161,10 +161,10 @@ ServiceInterface::ErrorCode TestInvitationPlugin::error() const
 
 KCalendarCore::Incidence::Ptr TestInvitationPlugin::sentInvitation() const
 {
-    return mSentInvitation;
+    return m_sentInvitation;
 }
 
 KCalendarCore::Incidence::List TestInvitationPlugin::updatedInvitations() const
 {
-    return mUpdatedInvitations;
+    return m_updatedInvitations;
 }

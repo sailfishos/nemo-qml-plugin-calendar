@@ -80,14 +80,14 @@ QVariant CalendarSearchModel::data(const QModelIndex &index, int role) const
 
 void CalendarSearchModel::setSearchString(const QString &searchString)
 {
-    if (searchString == mSearchString)
+    if (searchString == m_searchString)
         return;
 
-    mSearchString = searchString;
+    m_searchString = searchString;
     emit searchStringChanged();
 
     setIdentifiers(QStringList());
-    if (!mSearchString.isEmpty()) {
+    if (!m_searchString.isEmpty()) {
         CalendarManager::instance()->search(this);
         emit loadingChanged();
     }
@@ -95,23 +95,23 @@ void CalendarSearchModel::setSearchString(const QString &searchString)
 
 QString CalendarSearchModel::searchString() const
 {
-    return mSearchString;
+    return m_searchString;
 }
 
 int CalendarSearchModel::limit() const
 {
-    return mLimit;
+    return m_limit;
 }
 
 void CalendarSearchModel::setLimit(int limit)
 {
-    if (limit == mLimit)
+    if (limit == m_limit)
         return;
 
-    mLimit = limit;
+    m_limit = limit;
     emit limitChanged();
 
-    if (!mSearchString.isEmpty()) {
+    if (!m_searchString.isEmpty()) {
         CalendarManager::instance()->search(this);
         emit loadingChanged();
     }
