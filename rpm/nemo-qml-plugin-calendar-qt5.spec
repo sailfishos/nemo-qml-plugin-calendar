@@ -49,26 +49,21 @@ BuildRequires:  pkgconfig(KF5CalendarCore)
 %build
 
 %qmake5 
-
-make %{?_smp_mflags}
+%make_build
 
 %install
-rm -rf %{buildroot}
 %qmake_install
 
 %files
-%defattr(-,root,root,-)
 %license LICENSE.BSD
 %{_libdir}/qt5/qml/org/nemomobile/calendar/libnemocalendar.so
 %{_libdir}/qt5/qml/org/nemomobile/calendar/plugins.qmltypes
 %{_libdir}/qt5/qml/org/nemomobile/calendar/qmldir
 
 %files tests
-%defattr(-,root,root,-)
-/opt/tests/nemo-qml-plugins-qt5/calendar/*
+/opt/tests/nemo-qml-plugin-calendar-qt5/*
 
 %files lightweight
-%defattr(-,root,root,-)
 %attr(2755, root, privileged) %{_bindir}/calendardataservice
 %{_datadir}/dbus-1/services/org.nemomobile.calendardataservice.service
 %{_libdir}/qt5/qml/org/nemomobile/calendar/lightweight/libnemocalendarwidget.so
@@ -76,5 +71,4 @@ rm -rf %{buildroot}
 %{_libdir}/qt5/qml/org/nemomobile/calendar/lightweight/qmldir
 
 %files tools
-%defattr(-,root,root,-)
 %{_bindir}/icalconverter

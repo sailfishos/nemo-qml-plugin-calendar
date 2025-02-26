@@ -5,7 +5,7 @@ CONFIG += qt plugin hide_symbols
 
 QT -= gui
 
-target.path = /opt/tests/nemo-qml-plugins-qt5/calendar/plugins
+target.path = /opt/tests/nemo-qml-plugin-calendar-qt5/plugins
 PKGCONFIG += KF5CalendarCore libmkcal-qt5
 
 INSTALLS += target

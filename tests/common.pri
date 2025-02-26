@@ -6,4 +6,4 @@ QT += testlib
 TEMPLATE = app
 CONFIG -= app_bundle
 
-target.path = /opt/tests/nemo-qml-plugins-qt5/calendar
+target.path = /opt/tests/nemo-qml-plugin-calendar-qt5
