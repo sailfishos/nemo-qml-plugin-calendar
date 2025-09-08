@@ -304,10 +304,9 @@ void CalendarEventsModel::getEventsResult(const QString &transactionId, const Ev
         } else {
             startTime = QDateTime::fromString(e.startTime, Qt::ISODate);
 
-            if (m_eventDisplayTime > 0) {
+            endTime = QDateTime::fromString(e.endTime, Qt::ISODate);
+            if (m_eventDisplayTime > 0 && startTime.date() == endTime.date()) {
                 endTime = startTime.addSecs(m_eventDisplayTime);
-            } else {
-                endTime = QDateTime::fromString(e.endTime, Qt::ISODate);
             }
         }
 
