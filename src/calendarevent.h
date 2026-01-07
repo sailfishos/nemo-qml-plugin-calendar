@@ -64,6 +64,7 @@ class CalendarEvent : public QObject
     Q_PROPERTY(QDateTime reminderDateTime READ reminderDateTime NOTIFY reminderDateTimeChanged)
     Q_PROPERTY(QString instanceId READ instanceId NOTIFY instanceIdChanged)
     Q_PROPERTY(bool isException READ isException CONSTANT)
+    Q_PROPERTY(bool thisAndFuture READ thisAndFuture NOTIFY thisAndFutureChanged)
     Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
     Q_PROPERTY(QString calendarUid READ calendarUid NOTIFY calendarUidChanged)
     Q_PROPERTY(QString location READ location NOTIFY locationChanged)
@@ -162,6 +163,7 @@ public:
     QDateTime reminderDateTime() const;
     QString instanceId() const;
     bool isException() const;
+    bool thisAndFuture() const;
     virtual bool readOnly() const;
     QString calendarUid() const;
     QString location() const;
@@ -184,6 +186,7 @@ signals:
     void reminderDateTimeChanged();
     void instanceIdChanged();
     void calendarUidChanged();
+    void thisAndFutureChanged();
     void locationChanged();
     void recurEndDateChanged();
     void hasRecurEndDateChanged();

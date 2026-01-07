@@ -181,6 +181,18 @@ void CalendarWorker::deleteEvent(const QString &instanceId, const QDateTime &dat
         else
             event->recurrence()->addExDateTime(dateTime);
         event->setRevision(event->revision() + 1);
+    } else if (event->thisAndFuture() && dateTime.isValid() && dateTime != event->dtStart()) {
+        // We're deleting an occurrence after a this and future exception
+        // We treat it as an exDate to the parent.
+        KCalendarCore::Event::Ptr parent = m_calendar->event(event->uid());
+        if (parent) {
+            const QDateTime recId = dateTime.addSecs(event->dtStart().secsTo(event->recurrenceId()));
+            if (dateTime.timeSpec() == Qt::LocalTime && parent->dtStart().timeSpec() != Qt::LocalTime)
+                parent->recurrence()->addExDateTime(recId.toTimeZone(parent->dtStart().timeZone()));
+            else
+                parent->recurrence()->addExDateTime(recId);
+            parent->setRevision(parent->revision() + 1);
+        }
     } else if (event->hasRecurrenceId()) {
         // We consider that deleting an exception implies to create an exdate for the parent.
         KCalendarCore::Event::Ptr parent = m_calendar->event(event->uid());
@@ -306,6 +318,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
             }
             event = KCalendarCore::Event::Ptr(parent->clone());
             event->setRecurrenceId(eventData.recurrenceId);
+            event->setThisAndFuture(eventData.thisAndFuture);
         } else {
             // The event was removed while changes were edited.
             // Options to either skip, as done now, or resurrect the event.
