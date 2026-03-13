@@ -39,9 +39,7 @@
 
 #include "../common/eventdata.h"
 
-/*
- * Proxy class for interface org.nemomobile.calendardataservice
- */
+// Proxy class for interface org.nemomobile.calendardataservice
 class CalendarDataServiceProxy: public QDBusAbstractInterface
 {
     Q_OBJECT
@@ -50,7 +48,8 @@ public:
     { return "org.nemomobile.calendardataservice"; }
 
 public:
-    CalendarDataServiceProxy(const QString &service, const QString &path, const QDBusConnection &connection, QObject *parent = 0);
+    CalendarDataServiceProxy(const QString &service, const QString &path, const QDBusConnection &connection,
+                             QObject *parent = 0);
 
     ~CalendarDataServiceProxy();
 

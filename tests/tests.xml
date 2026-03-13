@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testdefinition version="1.0">
   <suite name="nemo-qml-plugin-calendar-qt5-tests" domain="mw">
-    <set name="unit-tests" feature="calendar mw">
+    <set name="unit-tests" feature="nemo-calendar mw">
       <case manual="false" name="calendarmanager">
         <step>rm -f /tmp/testdb; SQLITESTORAGEDB=/tmp/testdb /usr/sbin/run-blts-root /bin/su $USER -g privileged -c /opt/tests/nemo-qml-plugin-calendar-qt5/tst_calendarmanager</step>
       </case>

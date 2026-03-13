@@ -45,16 +45,16 @@
 
 #include "calendardataserviceproxy.h"
 
-CalendarEventsModel::CalendarEventsModel(QObject *parent) :
-    QAbstractListModel(parent),
-    m_proxy(0),
-    m_watcher(new QFileSystemWatcher(this)),
-    m_filterMode(FilterNone),
-    m_contentType(ContentAll),
-    m_eventLimit(1000),
-    m_totalCount(0),
-    m_eventDisplayTime(0),
-    m_mkcalTracked(false)
+CalendarEventsModel::CalendarEventsModel(QObject *parent)
+    : QAbstractListModel(parent)
+    , m_proxy(nullptr)
+    , m_watcher(new QFileSystemWatcher(this))
+    , m_filterMode(FilterNone)
+    , m_contentType(ContentAll)
+    , m_eventLimit(1000)
+    , m_totalCount(0)
+    , m_eventDisplayTime(0)
+    , m_mkcalTracked(false)
 {
     registerCalendarDataServiceTypes();
     m_proxy = new CalendarDataServiceProxy("org.nemomobile.calendardataservice",
