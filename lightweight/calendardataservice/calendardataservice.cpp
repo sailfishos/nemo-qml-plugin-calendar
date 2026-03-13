@@ -43,17 +43,20 @@
 #include "../../src/calendareventoccurrence.h"
 #include "../../src/calendarmanager.h"
 
-CalendarDataService::CalendarDataService(QObject *parent) :
-    QObject(parent), m_agendaModel(0), m_transactionIdCounter(0)
+CalendarDataService::CalendarDataService(QObject *parent)
+    : QObject(parent)
+    , m_agendaModel(nullptr)
+    , m_transactionIdCounter(0)
 {
     m_killTimer.setSingleShot(true);
     m_killTimer.setInterval(2000);
-    connect(&m_killTimer, SIGNAL(timeout()), this, SLOT(shutdown()));
+    connect(&m_killTimer, &QTimer::timeout, this, &CalendarDataService::shutdown);
     m_killTimer.start();
 
     registerCalendarDataServiceTypes();
     new CalendarDataServiceAdaptor(this);
     QDBusConnection connection = QDBusConnection::sessionBus();
+
     if (!connection.registerObject("/org/nemomobile/calendardataservice", this))
         qWarning("Can't register org/nemomobile/calendardataservice object for the D-Bus service.");
 
@@ -70,6 +73,7 @@ QString CalendarDataService::getEvents(const QString &startDate, const QString &
     QDate start = QDate::fromString(startDate, Qt::ISODate);
     QDate end = QDate::fromString(endDate, Qt::ISODate);
     QString transactionId;
+
     if (!start.isValid() || !end.isValid()) {
         qWarning() << "Invalid date parameter(s):" << startDate << ", " << endDate;
     } else {
@@ -79,23 +83,29 @@ QString CalendarDataService::getEvents(const QString &startDate, const QString &
         DataRequest dataRequest = { start, end, transactionId };
         m_dataRequestQueue.insert(0, dataRequest);
     }
+
     // Delay triggering until after return to ensure that client gets transactionId
-    QTimer::singleShot(1, this, SLOT(processQueue()));
+    QTimer::singleShot(1, this, &CalendarDataService::processQueue);
+
     return transactionId;
 }
 
 void CalendarDataService::updated()
 {
     EventDataList reply;
+
     for (int i = 0; i < m_agendaModel->count(); i++) {
         QVariant variant = m_agendaModel->get(i, CalendarAgendaModel::EventObjectRole);
         QVariant occurrenceVariant = m_agendaModel->get(i, CalendarAgendaModel::OccurrenceObjectRole);
+
         if (variant.canConvert<CalendarStoredEvent *>() && occurrenceVariant.canConvert<CalendarEventOccurrence *>()) {
             CalendarStoredEvent* event = variant.value<CalendarStoredEvent *>();
             CalendarEventOccurrence* occurrence = occurrenceVariant.value<CalendarEventOccurrence *>();
+
             EventData eventStruct;
             eventStruct.displayLabel = event->displayLabel();
             eventStruct.description = event->description();
+
             if (event->allDay()) {
                 eventStruct.startTime = occurrence->startTime().date().toString(Qt::ISODate);
                 eventStruct.endTime = occurrence->endTime().date().toString(Qt::ISODate);
@@ -103,6 +113,7 @@ void CalendarDataService::updated()
                 eventStruct.startTime = occurrence->startTime().toString(Qt::ISODate);
                 eventStruct.endTime = occurrence->endTime().toString(Qt::ISODate);
             }
+
             eventStruct.allDay = event->allDay();
             eventStruct.color = event->color();
             eventStruct.instanceId = event->instanceId();
@@ -118,6 +129,7 @@ void CalendarDataService::updated()
     } else {
         qWarning() << "No transactionId, discarding results";
     }
+
     processQueue();
 }
 
@@ -134,14 +146,16 @@ void CalendarDataService::shutdown()
         delete m_agendaModel;
         delete CalendarManager::instance();
     }
-    QTimer::singleShot(0, QCoreApplication::instance(), SLOT(quit()));
+    QTimer::singleShot(0, QCoreApplication::instance(), &QCoreApplication::quit);
 }
 
 void CalendarDataService::initialize()
 {
     if (!m_agendaModel) {
         m_agendaModel = new CalendarAgendaModel(this);
-        connect(m_agendaModel, SIGNAL(updated()), this, SLOT(updated()));
+
+        connect(m_agendaModel, &CalendarAgendaModel::updated,
+                this, &CalendarDataService::updated);
     }
 }
 
@@ -155,6 +169,7 @@ void CalendarDataService::processQueue()
     if (m_currentDataRequest.transactionId.isEmpty()) {
         initialize();
         m_currentDataRequest = m_dataRequestQueue.takeLast();
+
         if (m_agendaModel->startDate() == m_currentDataRequest.start
                 && m_agendaModel->endDate() == m_currentDataRequest.end) {
             // We already have the events, go to updated() directly

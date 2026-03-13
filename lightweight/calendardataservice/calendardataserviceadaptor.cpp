@@ -38,8 +38,8 @@
  * Implementation of adaptor class CalendarDataServiceAdaptor
  */
 
-CalendarDataServiceAdaptor::CalendarDataServiceAdaptor(QObject *parent) :
-    QDBusAbstractAdaptor(parent)
+CalendarDataServiceAdaptor::CalendarDataServiceAdaptor(QObject *parent)
+    : QDBusAbstractAdaptor(parent)
 {
     setAutoRelaySignals(true);
 }
