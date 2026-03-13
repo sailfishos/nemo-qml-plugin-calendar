@@ -92,6 +92,11 @@ QString CalendarDataService::getEvents(const QString &startDate, const QString &
 
 void CalendarDataService::updated()
 {
+    if (m_currentDataRequest.transactionId.isEmpty()) {
+        processQueue();
+        return;
+    }
+
     EventDataList reply;
 
     for (int i = 0; i < m_agendaModel->count(); i++) {
@@ -121,13 +126,11 @@ void CalendarDataService::updated()
             reply << eventStruct;
         }
     }
-    if (!m_currentDataRequest.transactionId.isEmpty()
-            && m_currentDataRequest.start == m_agendaModel->startDate()
-            && m_currentDataRequest.end == m_agendaModel->endDate()) {
+
+    if (m_currentDataRequest.start == m_agendaModel->startDate()
+        && m_currentDataRequest.end == m_agendaModel->endDate()) {
         emit getEventsResult(m_currentDataRequest.transactionId, reply);
         m_currentDataRequest = DataRequest();
-    } else {
-        qWarning() << "No transactionId, discarding results";
     }
 
     processQueue();
