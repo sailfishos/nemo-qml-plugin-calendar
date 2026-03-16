@@ -57,7 +57,7 @@ bool TestInvitationPlugin::sendInvitation(const QString &accountId, const QStrin
 }
 
 bool TestInvitationPlugin::sendUpdate(const QString &accountId, const KCalendarCore::Incidence::Ptr &invitation,
-                                         const QString &body)
+                                      const QString &body)
 {
     Q_UNUSED(accountId);
     Q_UNUSED(invitation);
@@ -69,7 +69,7 @@ bool TestInvitationPlugin::sendUpdate(const QString &accountId, const KCalendarC
 }
 
 bool TestInvitationPlugin::sendResponse(const QString &accountId, const KCalendarCore::Incidence::Ptr &invitation,
-                                           const QString &body)
+                                        const QString &body)
 {
     Q_UNUSED(accountId);
     Q_UNUSED(invitation);
@@ -109,7 +109,7 @@ QString TestInvitationPlugin::displayName(const mKCal::Notebook::Ptr &notebook) 
 }
 
 bool TestInvitationPlugin::downloadAttachment(const mKCal::Notebook::Ptr &notebook, const QString &uri,
-                                                 const QString &path)
+                                              const QString &path)
 {
     Q_UNUSED(notebook);
     Q_UNUSED(uri);
@@ -117,8 +117,9 @@ bool TestInvitationPlugin::downloadAttachment(const mKCal::Notebook::Ptr &notebo
     return false;
 }
 
-bool TestInvitationPlugin::deleteAttachment(const mKCal::Notebook::Ptr &notebook, const KCalendarCore::Incidence::Ptr &incidence,
-                                               const QString &uri)
+bool TestInvitationPlugin::deleteAttachment(const mKCal::Notebook::Ptr &notebook,
+                                            const KCalendarCore::Incidence::Ptr &incidence,
+                                            const QString &uri)
 {
     Q_UNUSED(notebook);
     Q_UNUSED(incidence);

@@ -407,10 +407,12 @@ void tst_CalendarEvent::testRecurrenceException()
     QSignalSpy dataUpdated(CalendarManager::instance(), &CalendarManager::dataUpdated);
 
     // adjust second occurrence a bit
-    CalendarEventModification *recurrenceException = calendarApi->createModification(savedEvent, qobject_cast<CalendarEventOccurrence*>(query.occurrence()));
-    QVERIFY(recurrenceException != 0);
+    CalendarEventModification *recurrenceException
+        = calendarApi->createModification(savedEvent, qobject_cast<CalendarEventOccurrence*>(query.occurrence()));
+    QVERIFY(recurrenceException);
     QVERIFY(recurrenceException->isException());
-    QDateTime modifiedSecond = secondStart.addSecs(10*60); // 12:10
+
+    QDateTime modifiedSecond = secondStart.addSecs(10 * 60); // 12:10
     recurrenceException->setStartTime(modifiedSecond, Qt::TimeZone, "Asia/Ho_Chi_Minh");
     recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
     recurrenceException->setDisplayLabel("Modified recurring event instance");
@@ -430,10 +432,9 @@ void tst_CalendarEvent::testRecurrenceException()
     savedEvent = (CalendarStoredEvent*)query.event();
     QVERIFY(query.event());
     QVERIFY(query.occurrence());
-    CalendarEventModification *recurrenceSecondException =
-        calendarApi->createModification
-        (qobject_cast<CalendarStoredEvent*>(query.event()),
-         qobject_cast<CalendarEventOccurrence*>(query.occurrence()));
+    CalendarEventModification *recurrenceSecondException
+        = calendarApi->createModification(qobject_cast<CalendarStoredEvent*>(query.event()),
+                                          qobject_cast<CalendarEventOccurrence*>(query.occurrence()));
     QVERIFY(recurrenceSecondException != 0);
     QVERIFY(recurrenceSecondException->isException());
     recurrenceSecondException->setDisplayLabel("Modified recurring event fifth instance");
@@ -447,17 +448,21 @@ void tst_CalendarEvent::testRecurrenceException()
     CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(uid,
                                                                                          startTime.addDays(-1));
     QVERIFY(occurrence);
+
     // first
     QCOMPARE(occurrence->startTime(), startTime);
+
     // third
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, startTime.addDays(1));
     QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), startTime.addDays(14));
+
     // second is exception
     occurrence = CalendarManager::instance()->getNextOccurrence(recurrenceException->instanceId(),
                                                                 startTime.addDays(1));
     QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), modifiedSecond);
+
     // fourth has been deleted and fifth is an exception
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, startTime.addDays(15));
     QVERIFY(occurrence);
@@ -472,12 +477,13 @@ void tst_CalendarEvent::testRecurrenceException()
     QVERIFY(query.event());
 
     delete recurrenceException;
-    recurrenceException = calendarApi->createModification(static_cast<CalendarStoredEvent*>(query.event()));
-    QVERIFY(recurrenceException != 0);
 
-    modifiedSecond = modifiedSecond.addSecs(20*60); // 12:30
+    recurrenceException = calendarApi->createModification(static_cast<CalendarStoredEvent*>(query.event()));
+    QVERIFY(recurrenceException);
+
+    modifiedSecond = modifiedSecond.addSecs(20 * 60); // 12:30
     recurrenceException->setStartTime(modifiedSecond, Qt::TimeZone, "Asia/Ho_Chi_Minh");
-    recurrenceException->setEndTime(modifiedSecond.addSecs(10*60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
+    recurrenceException->setEndTime(modifiedSecond.addSecs(10 * 60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
     QString modifiedLabel("Modified recurring event instance, ver 2");
     recurrenceException->setDisplayLabel(modifiedLabel);
     recurrenceException->save();
@@ -485,15 +491,17 @@ void tst_CalendarEvent::testRecurrenceException()
 
     // check the occurrences are correct
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, startTime.addDays(-1));
+
     // first
     QCOMPARE(occurrence->startTime(), startTime);
+
     // third
     occurrence = CalendarManager::instance()->getNextOccurrence(uid, startTime.addDays(1));
     QCOMPARE(occurrence->startTime(), startTime.addDays(14));
+
     // second is exception
     occurrence = CalendarManager::instance()->getNextOccurrence(recurrenceException->instanceId(),
                                                                 startTime.addDays(1));
-
     QVERIFY(occurrence);
     QCOMPARE(occurrence->startTime(), modifiedSecond);
 
@@ -509,10 +517,10 @@ void tst_CalendarEvent::testRecurrenceException()
     ///////
     // update the main event time within a day, exception stays intact
     CalendarEventModification *mod = calendarApi->createModification(savedEvent);
-    QVERIFY(mod != 0);
-    QDateTime modifiedStart = startTime.addSecs(40*60); // 12:40
+    QVERIFY(mod);
+    QDateTime modifiedStart = startTime.addSecs(40 * 60); // 12:40
     mod->setStartTime(modifiedStart, Qt::TimeZone, "Asia/Ho_Chi_Minh");
-    mod->setEndTime(modifiedStart.addSecs(40*60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
+    mod->setEndTime(modifiedStart.addSecs(40 * 60), Qt::TimeZone, "Asia/Ho_Chi_Minh");
     mod->save();
     QVERIFY(dataUpdated.wait());
 
@@ -770,7 +778,8 @@ void tst_CalendarEvent::testAttendees()
     QVERIFY(query.attendees().isEmpty());
 
     // Test the case with attendees
-    TestInvitationPlugin *plugin = static_cast<TestInvitationPlugin*>(mKCal::ServiceHandler::instance().service(defaultNotebook->pluginName()));
+    TestInvitationPlugin *plugin =
+        static_cast<TestInvitationPlugin*>(mKCal::ServiceHandler::instance().service(defaultNotebook->pluginName()));
     QVERIFY(plugin);
     QVERIFY(!plugin->sentInvitation());
 
@@ -810,9 +819,12 @@ void tst_CalendarEvent::testAttendees()
     QCOMPARE(sentInvitation->uid(), uid);
     const KCalendarCore::Attendee::List sentAttendees = sentInvitation->attendees();
     QCOMPARE(sentAttendees.count(), 3);
-    KCalendarCore::Attendee attAlice(alice, aliceEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
-    KCalendarCore::Attendee attBob(bob, bobEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
-    KCalendarCore::Attendee attCarl(carl, carlEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::OptParticipant);
+    KCalendarCore::Attendee attAlice(alice, aliceEmail, true, KCalendarCore::Attendee::NeedsAction,
+                                     KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attBob(bob, bobEmail, true, KCalendarCore::Attendee::NeedsAction,
+                                   KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attCarl(carl, carlEmail, true, KCalendarCore::Attendee::NeedsAction,
+                                    KCalendarCore::Attendee::OptParticipant);
     QVERIFY(sentAttendees.contains(attAlice));
     QVERIFY(sentAttendees.contains(attBob));
     QVERIFY(sentAttendees.contains(attCarl));
@@ -899,8 +911,10 @@ void tst_CalendarEvent::testAttendees()
     QCOMPARE(updatedAttendees.count(), 4);
     QVERIFY(updatedAttendees.contains(attAlice));
     QVERIFY(updatedAttendees.contains(attDude));
-    KCalendarCore::Attendee attEmily(emily, emilyEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::ReqParticipant);
-    KCalendarCore::Attendee attFanny(fanny, fannyEmail, true, KCalendarCore::Attendee::NeedsAction, KCalendarCore::Attendee::OptParticipant);
+    KCalendarCore::Attendee attEmily(emily, emilyEmail, true, KCalendarCore::Attendee::NeedsAction,
+                                     KCalendarCore::Attendee::ReqParticipant);
+    KCalendarCore::Attendee attFanny(fanny, fannyEmail, true, KCalendarCore::Attendee::NeedsAction,
+                                     KCalendarCore::Attendee::OptParticipant);
     QVERIFY(updatedAttendees.contains(attEmily));
     QVERIFY(updatedAttendees.contains(attFanny));
 }

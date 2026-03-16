@@ -44,14 +44,16 @@
 #include "calendardata.h"
 
 CalendarEvent::CalendarEvent(const CalendarData::Event *data, QObject *parent)
-    : QObject(parent), m_data(new CalendarData::Event)
+    : QObject(parent)
+    , m_data(new CalendarData::Event)
 {
     if (data)
         *m_data = *data;
 }
 
 CalendarEvent::CalendarEvent(const CalendarEvent *other, QObject *parent)
-    : QObject(parent), m_data(new CalendarData::Event)
+    : QObject(parent)
+    , m_data(new CalendarData::Event)
 {
     if (other) {
         *m_data = *other->m_data;
@@ -338,5 +340,6 @@ void CalendarStoredEvent::setEvent(const CalendarData::Event *data)
 
 CalendarData::Event CalendarStoredEvent::dissociateSingleOccurrence(const CalendarEventOccurrence *occurrence) const
 {
-    return occurrence ? m_manager->dissociateSingleOccurrence(m_data->instanceId, occurrence->startTime()) : CalendarData::Event();
+    return occurrence ? m_manager->dissociateSingleOccurrence(m_data->instanceId, occurrence->startTime())
+                      : CalendarData::Event();
 }

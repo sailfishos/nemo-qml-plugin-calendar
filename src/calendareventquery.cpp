@@ -39,7 +39,11 @@
 #include <QDebug>
 
 CalendarEventQuery::CalendarEventQuery()
-    : m_isComplete(true), m_occurrence(0), m_attendeesCached(false), m_eventError(false), m_updateOccurrence(false)
+    : m_isComplete(true)
+    , m_occurrence(nullptr)
+    , m_attendeesCached(false)
+    , m_eventError(false)
+    , m_updateOccurrence(false)
 {
     connect(CalendarManager::instance(), SIGNAL(dataUpdated()), this, SLOT(refresh()));
     connect(CalendarManager::instance(), SIGNAL(storageModified()), this, SLOT(refresh()));
@@ -77,7 +81,7 @@ void CalendarEventQuery::setInstanceId(const QString &instanceId)
     }
     if (m_occurrence) {
         delete m_occurrence;
-        m_occurrence = 0;
+        m_occurrence = nullptr;
         emit occurrenceChanged();
     }
 
@@ -171,7 +175,7 @@ void CalendarEventQuery::doRefresh(CalendarData::Event event, bool eventError)
 
     if (updateOccurrence) { // Err on the safe side: always update occurrence if it may have changed
         delete m_occurrence;
-        m_occurrence = 0;
+        m_occurrence = nullptr;
 
         if (m_event.isValid()) {
             CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(

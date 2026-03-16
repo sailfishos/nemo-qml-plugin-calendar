@@ -169,7 +169,8 @@ void CalendarManager::saveModification(CalendarData::Event eventData, bool updat
                               Q_ARG(QList<CalendarData::EmailContact>, optional));
 }
 
-CalendarData::Event CalendarManager::dissociateSingleOccurrence(const QString &instanceId, const QDateTime &datetime) const
+CalendarData::Event CalendarManager::dissociateSingleOccurrence(const QString &instanceId,
+                                                                const QDateTime &datetime) const
 {
     CalendarData::Event event;
     // Worker method is not calling any storage method that could block.
