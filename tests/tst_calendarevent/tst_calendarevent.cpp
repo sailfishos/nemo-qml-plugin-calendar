@@ -762,6 +762,20 @@ void tst_CalendarEvent::testRecurWeeklyDays()
     m_savedEvents.remove(uid);
 }
 
+// simplistic custom comparison to avoid problems like Attendee instances generating uids if nothing set
+static bool containsAttendee(const KCalendarCore::Attendee::List list, const KCalendarCore::Attendee &attendee)
+{
+    for (const KCalendarCore::Attendee &entry : list) {
+        if (entry.name() == attendee.name()
+            && entry.email() == attendee.email()
+            && entry.role() == attendee.role()
+            && entry.status() == attendee.status()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void tst_CalendarEvent::testAttendees()
 {
     // Ensure that service handler for invitation is using the test plugin.
@@ -786,12 +800,13 @@ void tst_CalendarEvent::testAttendees()
 
     QString uid;
     bool ok = saveEvent(eventMod, &uid);
+    delete eventMod;
+
     if (!ok) {
         QFAIL("Failed to fetch new event uid");
     }
     QVERIFY(!uid.isEmpty());
     m_savedEvents.insert(uid);
-    delete eventMod;
 
     CalendarEventQuery query;
     QSignalSpy eventSpy(&query, &CalendarEventQuery::attendeesChanged);
@@ -801,13 +816,13 @@ void tst_CalendarEvent::testAttendees()
     QVERIFY(query.attendees().isEmpty());
 
     // Test the case with attendees
-    TestInvitationPlugin *plugin =
-        static_cast<TestInvitationPlugin*>(mKCal::ServiceHandler::instance().service(defaultNotebook->pluginName()));
+    TestInvitationPlugin *plugin
+        = static_cast<TestInvitationPlugin*>(mKCal::ServiceHandler::instance().service(defaultNotebook->pluginName()));
     QVERIFY(plugin);
     QVERIFY(!plugin->sentInvitation());
 
     eventMod = calendarApi->createNewEvent();
-    QVERIFY(eventMod != 0);
+    QVERIFY(eventMod);
 
     eventMod->setStartTime(QDateTime::currentDateTime(), Qt::LocalTime);
     eventMod->setEndTime(eventMod->startTime().addSecs(600), Qt::LocalTime);
@@ -829,12 +844,14 @@ void tst_CalendarEvent::testAttendees()
     Person Carl(carl, carlEmail, false, Person::OptionalParticipant, Person::UnknownParticipation);
 
     ok = saveEvent(eventMod, &uid);
+    delete eventMod;
+
     if (!ok) {
         QFAIL("Failed to fetch new event uid");
     }
+
     QVERIFY(!uid.isEmpty());
     m_savedEvents.insert(uid);
-    delete eventMod;
 
     // Check that the sendInvitation() service has received the right data.
     const KCalendarCore::Incidence::Ptr sentInvitation = plugin->sentInvitation();
@@ -842,15 +859,17 @@ void tst_CalendarEvent::testAttendees()
     QCOMPARE(sentInvitation->uid(), uid);
     const KCalendarCore::Attendee::List sentAttendees = sentInvitation->attendees();
     QCOMPARE(sentAttendees.count(), 3);
+
     KCalendarCore::Attendee attAlice(alice, aliceEmail, true, KCalendarCore::Attendee::NeedsAction,
                                      KCalendarCore::Attendee::ReqParticipant);
     KCalendarCore::Attendee attBob(bob, bobEmail, true, KCalendarCore::Attendee::NeedsAction,
                                    KCalendarCore::Attendee::ReqParticipant);
     KCalendarCore::Attendee attCarl(carl, carlEmail, true, KCalendarCore::Attendee::NeedsAction,
                                     KCalendarCore::Attendee::OptParticipant);
-    QVERIFY(sentAttendees.contains(attAlice));
-    QVERIFY(sentAttendees.contains(attBob));
-    QVERIFY(sentAttendees.contains(attCarl));
+
+    QVERIFY(containsAttendee(sentAttendees, attAlice));
+    QVERIFY(containsAttendee(sentAttendees, attBob));
+    QVERIFY(containsAttendee(sentAttendees, attCarl));
 
     // Check that saved event locally is presenting the right data.
     query.setInstanceId(uid);
@@ -923,8 +942,8 @@ void tst_CalendarEvent::testAttendees()
     QCOMPARE(cancelled->status(), KCalendarCore::Incidence::StatusCanceled);
     const KCalendarCore::Attendee::List cancelledAttendees = cancelled->attendees();
     QCOMPARE(cancelledAttendees.count(), 2);
-    QVERIFY(cancelledAttendees.contains(attBob));
-    QVERIFY(cancelledAttendees.contains(attCarl));
+    QVERIFY(containsAttendee(cancelledAttendees, attBob));
+    QVERIFY(containsAttendee(cancelledAttendees, attCarl));
     // For the updated participants.
     const KCalendarCore::Incidence::Ptr updated = updatedInvitations[1];
     QVERIFY(updated);
@@ -932,19 +951,20 @@ void tst_CalendarEvent::testAttendees()
     QCOMPARE(updated->status(), KCalendarCore::Incidence::StatusNone);
     const KCalendarCore::Attendee::List updatedAttendees = updated->attendees();
     QCOMPARE(updatedAttendees.count(), 4);
-    QVERIFY(updatedAttendees.contains(attAlice));
-    QVERIFY(updatedAttendees.contains(attDude));
+    QVERIFY(containsAttendee(updatedAttendees, attAlice));
+    QVERIFY(containsAttendee(updatedAttendees, attDude));
     KCalendarCore::Attendee attEmily(emily, emilyEmail, true, KCalendarCore::Attendee::NeedsAction,
                                      KCalendarCore::Attendee::ReqParticipant);
     KCalendarCore::Attendee attFanny(fanny, fannyEmail, true, KCalendarCore::Attendee::NeedsAction,
                                      KCalendarCore::Attendee::OptParticipant);
-    QVERIFY(updatedAttendees.contains(attEmily));
-    QVERIFY(updatedAttendees.contains(attFanny));
+    QVERIFY(containsAttendee(updatedAttendees, attEmily));
+    QVERIFY(containsAttendee(updatedAttendees, attFanny));
 }
 
 void tst_CalendarEvent::cleanupTestCase()
 {
     QSignalSpy modified(CalendarManager::instance(), &CalendarManager::storageModified);
+
     foreach (const QString &uid, m_savedEvents)
         calendarApi->removeAll(uid);
     if (!m_savedEvents.isEmpty())
