@@ -55,7 +55,9 @@ void updateTime(QDateTime *dt, Qt::TimeSpec spec, const QString &timeZone)
 
 }
 
-CalendarEventModification::CalendarEventModification(const CalendarStoredEvent *source, const CalendarEventOccurrence *occurrence, QObject *parent)
+CalendarEventModification::CalendarEventModification(const CalendarStoredEvent *source,
+                                                     const CalendarEventOccurrence *occurrence,
+                                                     QObject *parent)
     : CalendarEvent(source, parent)
 {
     if (source && occurrence)

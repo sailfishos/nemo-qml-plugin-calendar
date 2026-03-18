@@ -75,7 +75,8 @@ namespace {
 }
 
 CalendarWorker::CalendarWorker()
-    : QObject(0), m_accountManager(0)
+    : QObject(nullptr)
+    , m_accountManager(nullptr)
 {
 }
 
@@ -261,7 +262,8 @@ QString CalendarWorker::convertEventToICalendar(const QString &instanceId, const
 
     KCalendarCore::ICalFormat fmt;
     fmt.setApplication(fmt.application(),
-                       prodId.isEmpty() ? QLatin1String("-//sailfishos.org/Sailfish//NONSGML v1.0//EN") : prodId);
+                       prodId.isEmpty() ? QLatin1String("-//sailfishos.org/Sailfish//NONSGML v1.0//EN")
+                                        : prodId);
     return fmt.toICalString(event);
 }
 
@@ -297,8 +299,8 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
             // for new events than trying to implement some complex logic in basesailfish-eas.
             event->setUid(event->uid().toUpper());
         } else if (eventData.recurrenceId.isValid()) {
-            KCalendarCore::Event::Ptr parent =
-                m_calendar->event(eventData.incidenceUid);
+            KCalendarCore::Event::Ptr parent = m_calendar->event(eventData.incidenceUid);
+
             if (!parent) {
                 // The parent was removed while the exception was edited.
                 qWarning("Unable to create an exception without parent");
@@ -344,7 +346,8 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         updateEventAttendees(event, createNew, required, optional, notebookUid);
     }
 
-    if (createNew && !m_calendar->addEvent(event, notebookUid.isEmpty() ? m_calendar->defaultNotebook() : notebookUid)) {
+    if (createNew && !m_calendar->addEvent(event, notebookUid.isEmpty() ? m_calendar->defaultNotebook()
+                                                                        : notebookUid)) {
         qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
         return;
     } else if (!createNew) {
@@ -952,7 +955,8 @@ CalendarData::EventOccurrence CalendarWorker::getNextOccurrence(const QString &i
         qWarning() << "Failed to get next occurrence, event not found. UID = " << instanceId;
         return CalendarData::EventOccurrence();
     }
-    return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? m_calendar->instances(event) : KCalendarCore::Incidence::List());
+    return CalendarUtils::getNextOccurrence(event, start, event->recurs() ? m_calendar->instances(event)
+                                                                          : KCalendarCore::Incidence::List());
 }
 
 QList<CalendarData::Attendee> CalendarWorker::getEventAttendees(const QString &instanceId)
@@ -977,7 +981,9 @@ void CalendarWorker::findMatchingEvent(const QString &invitationFile)
         KCalendarCore::Incidence::Ptr incidence = incidenceList.at(i);
         if (incidence->type() == KCalendarCore::IncidenceBase::TypeEvent) {
             // Search for this event in the database.
-            loadData(QList<CalendarData::Range>() << qMakePair(incidence->dtStart().date().addDays(-1), incidence->dtStart().date().addDays(1)), QStringList(), false);
+            loadData(QList<CalendarData::Range>()
+                         << qMakePair(incidence->dtStart().date().addDays(-1),
+                                      incidence->dtStart().date().addDays(1)), QStringList(), false);
             KCalendarCore::Incidence::List dbIncidences = m_calendar->incidences();
             Q_FOREACH (KCalendarCore::Incidence::Ptr dbIncidence, dbIncidences) {
                 const QString remoteUidValue(dbIncidence->nonKDECustomProperty("X-SAILFISHOS-REMOTE-UID"));
@@ -986,7 +992,8 @@ void CalendarWorker::findMatchingEvent(const QString &invitationFile)
                     if ((!incidence->hasRecurrenceId() && !dbIncidence->hasRecurrenceId())
                             || (incidence->hasRecurrenceId() && dbIncidence->hasRecurrenceId()
                                 && incidence->recurrenceId() == dbIncidence->recurrenceId())) {
-                        emit findMatchingEventFinished(invitationFile, createEventStruct(dbIncidence.staticCast<KCalendarCore::Event>()));
+                        emit findMatchingEventFinished(invitationFile,
+                                                       createEventStruct(dbIncidence.staticCast<KCalendarCore::Event>()));
                         return;
                     }
                 }

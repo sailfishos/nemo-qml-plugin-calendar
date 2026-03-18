@@ -57,8 +57,9 @@ class CalendarEventModification : public CalendarEvent
     Q_PROPERTY(CalendarEvent::SyncFailureResolution syncFailureResolution READ syncFailureResolution WRITE setSyncFailureResolution NOTIFY syncFailureResolutionChanged)
 
 public:
-    CalendarEventModification(const CalendarStoredEvent *source, const CalendarEventOccurrence *occurrence = 0, QObject *parent = 0);
-    explicit CalendarEventModification(QObject *parent = 0);
+    CalendarEventModification(const CalendarStoredEvent *source, const CalendarEventOccurrence *occurrence = nullptr,
+                              QObject *parent = nullptr);
+    explicit CalendarEventModification(QObject *parent = nullptr);
     ~CalendarEventModification();
 
     void setDisplayLabel(const QString &displayLabel);

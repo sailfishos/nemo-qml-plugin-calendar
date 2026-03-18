@@ -62,31 +62,18 @@ public:
 
     //! \reimp ServiceHandler
     QString icon() const;
-
     QString uiName() const;
-
     bool multiCalendar() const;
-
     QString emailAddress(const mKCal::Notebook::Ptr &notebook);
-
     QString displayName(const mKCal::Notebook::Ptr &notebook) const;
-
     bool downloadAttachment(const mKCal::Notebook::Ptr &notebook, const QString &uri, const QString &path);
-
     bool deleteAttachment(const mKCal::Notebook::Ptr &notebook, const KCalendarCore::Incidence::Ptr &incidence, const QString &uri);
-
     bool shareNotebook(const mKCal::Notebook::Ptr &notebook, const QStringList &sharedWith);
-
     QStringList sharedWith(const mKCal::Notebook::Ptr &notebook);
-
     QString serviceName() const;
-
     QString defaultNotebook() const;
-
     bool checkProductId(const QString &prodId) const;
-
     ErrorCode error() const;
-
     //! \reimp_end
 
 private:
