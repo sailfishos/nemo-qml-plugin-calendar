@@ -757,7 +757,11 @@ void CalendarManager::dataLoadedSlot(const QList<CalendarData::Range> &ranges,
 
     m_loadedRanges = addRanges(m_loadedRanges, ranges);
     m_loadedQueries.append(instanceList);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    m_events.insert(events);
+#else
     m_events = m_events.unite(events);
+#endif
     // Use m_eventOccurrences.insert(occurrences) from Qt5.15,
     // .unite() is deprecated and broken, it is duplicating keys.
     for (const CalendarData::EventOccurrence &eo: occurrences)

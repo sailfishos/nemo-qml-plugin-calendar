@@ -56,7 +56,11 @@
 #include <Accounts/Account>
 
 // To get notified about timezone changes
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <timed-qt6/interface>
+#else
 #include <timed-qt5/interface>
+#endif
 
 namespace {
     void updateAttendee(KCalendarCore::Incidence::Ptr event,

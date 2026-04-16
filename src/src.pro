@@ -2,13 +2,13 @@ TARGET = nemocalendar
 PLUGIN_IMPORT_PATH = org/nemomobile/calendar
 
 TEMPLATE = lib
-CONFIG += qt plugin hide_symbols timed-qt5
+CONFIG += qt plugin hide_symbols timed-qt$${QT_MAJOR_VERSION}
 
 QT += qml concurrent
 QT -= gui
 
 target.path = $$[QT_INSTALL_QML]/$$PLUGIN_IMPORT_PATH
-PKGCONFIG += KF5CalendarCore libmkcal-qt5 accounts-qt5
+PKGCONFIG += KF$${QT_MAJOR_VERSION}CalendarCore libmkcal-qt$${QT_MAJOR_VERSION} accounts-qt$${QT_MAJOR_VERSION} timed-qt$${QT_MAJOR_VERSION}
 
 INSTALLS += target
 

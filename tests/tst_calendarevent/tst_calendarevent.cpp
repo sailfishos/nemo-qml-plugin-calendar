@@ -241,8 +241,13 @@ void tst_CalendarEvent::testSave()
 
     // mKCal DB stores times as seconds, losing millisecond accuracy.
     // Compare dates with QDateTime::toTime_t() instead of QDateTime::toMSecsSinceEpoch()
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 8, 0))
+    QCOMPARE(eventB->endTime().toSecsSinceEpoch(), endTime.toSecsSinceEpoch());
+    QCOMPARE(eventB->startTime().toSecsSinceEpoch(), startTime.toSecsSinceEpoch());
+#else
     QCOMPARE(eventB->endTime().toTime_t(), endTime.toTime_t());
     QCOMPARE(eventB->startTime().toTime_t(), startTime.toTime_t());
+#endif
 
     QCOMPARE(eventB->endTime().timeSpec(), Qt::LocalTime);
     QCOMPARE(eventB->startTime().timeSpec(), Qt::LocalTime);

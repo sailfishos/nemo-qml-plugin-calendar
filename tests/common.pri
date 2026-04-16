@@ -6,4 +6,4 @@ QT += testlib
 TEMPLATE = app
 CONFIG -= app_bundle
 
-target.path = /opt/tests/nemo-qml-plugin-calendar-qt5
+target.path = /opt/tests/nemo-qml-plugin-calendar-qt$${QT_MAJOR_VERSION}
