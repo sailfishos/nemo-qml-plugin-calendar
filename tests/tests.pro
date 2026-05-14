@@ -6,7 +6,7 @@ SUBDIRS = \
     tst_calendarimportmodel \
     tst_calendarsearchmodel
 
-tests_xml.path = /opt/tests/nemo-qml-plugin-calendar-qt5
+tests_xml.path = /opt/tests/nemo-qml-plugin-calendar-qt$${QT_MAJOR_VERSION}
 tests_xml.files = tests.xml
 INSTALLS += tests_xml
 

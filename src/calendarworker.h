@@ -45,7 +45,11 @@
 namespace Accounts { class Manager; }
 
 // To get notified about timezone changes
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <timed-qt6/wall-declarations.h>
+#else
 #include <timed-qt5/wall-declarations.h>
+#endif
 
 class CalendarInvitationQuery;
 

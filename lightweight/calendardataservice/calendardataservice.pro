@@ -5,8 +5,8 @@ target.path = /usr/bin
 QT += qml dbus
 QT -= gui
 
-CONFIG += link_pkgconfig timed-qt5
-PKGCONFIG += KF5CalendarCore libmkcal-qt5 accounts-qt5
+CONFIG += link_pkgconfig
+PKGCONFIG += KF$${QT_MAJOR_VERSION}CalendarCore libmkcal-qt$${QT_MAJOR_VERSION} accounts-qt$${QT_MAJOR_VERSION} timed-qt$${QT_MAJOR_VERSION}
 
 HEADERS += \
     calendardataservice.h \

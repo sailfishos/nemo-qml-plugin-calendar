@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
+#include <QtGlobal>
 #include <QCoreApplication>
 #include <QCommandLineParser>
 #include <QStringList>
@@ -51,6 +52,13 @@
 
 #include <extendedcalendar.h>
 #include <extendedstorage.h>
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+namespace Qt
+{
+    static auto endl = ::endl;
+}
+#endif
 
 #define LOG_DEBUG(msg) if (printDebug) qDebug() << msg
 
@@ -441,9 +449,9 @@ namespace CalendarImportExport {
         storage->open();
         storage->load();
         QTextStream qStdout(stdout);
-        qStdout << "List of known notebooks on device:" << endl;
+        qStdout << "List of known notebooks on device:" << Qt::endl;
         Q_FOREACH (mKCal::Notebook::Ptr notebook, storage->notebooks()) {
-            qStdout << "- " << notebook->uid() << ": " << notebook->name() << endl;
+            qStdout << "- " << notebook->uid() << ": " << notebook->name() << Qt::endl;
         }
         storage->close();
     }
@@ -504,7 +512,11 @@ namespace CalendarImportExport {
         }
 
         KCalendarCore::ICalFormat icalFormat;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        return icalFormat.toString(memoryCalendar);
+#else
         return icalFormat.toString(memoryCalendar, QString(), false);
+#endif
     }
 
     QString constructExportIcs(const QString &notebookUid, const QString &incidenceUid, const QDateTime &recurrenceId, bool printDebug)

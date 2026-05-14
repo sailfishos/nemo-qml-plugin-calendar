@@ -223,13 +223,13 @@ QVariant CalendarEventsModel::data(const QModelIndex &index, int role) const
         return eventData.description;
     case StartTimeRole:
         if (eventData.allDay) {
-            return QDateTime(QDate::fromString(eventData.startTime, Qt::ISODate));
+            return QDateTime(QDate::fromString(eventData.startTime, Qt::ISODate), QTime());
         } else {
             return QDateTime::fromString(eventData.startTime, Qt::ISODate);
         }
     case EndTimeRole:
         if (eventData.allDay) {
-            return QDateTime(QDate::fromString(eventData.endTime, Qt::ISODate));
+            return QDateTime(QDate::fromString(eventData.endTime, Qt::ISODate), QTime());
         } else {
             return QDateTime::fromString(eventData.endTime, Qt::ISODate);
         }
@@ -298,9 +298,9 @@ void CalendarEventsModel::getEventsResult(const QString &transactionId, const Ev
         QDateTime endTime;
 
         if (e.allDay) {
-            startTime = QDateTime(QDate::fromString(e.startTime, Qt::ISODate));
+            startTime = QDateTime(QDate::fromString(e.startTime, Qt::ISODate), QTime());
             // returned value inclusive, need to know when event is over so getting the following day
-            endTime = QDateTime(QDate::fromString(e.endTime, Qt::ISODate).addDays(1));
+            endTime = QDateTime(QDate::fromString(e.endTime, Qt::ISODate).addDays(1), QTime());
         } else {
             startTime = QDateTime::fromString(e.startTime, Qt::ISODate);
 
