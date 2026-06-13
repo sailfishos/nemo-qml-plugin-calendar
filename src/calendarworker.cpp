@@ -836,28 +836,6 @@ void CalendarWorker::search(const QString &searchString, int limit)
     }
 }
 
-static bool serviceIsEnabled(Accounts::Account *account, const QString &syncProfile)
-{
-    account->selectService();
-    if (account->enabled()) {
-        for (const Accounts::Service &service : account->services()) {
-            account->selectService(service);
-            const QStringList allKeys = account->allKeys();
-            for (const QString &key : allKeys) {
-                if (key.endsWith(QLatin1String("/profile_id"))
-                    && account->valueAsString(key) == syncProfile) {
-                    bool ret = account->enabled();
-                    account->selectService();
-                    return ret;
-                }
-            }
-        }
-        account->selectService();
-        return true;
-    }
-    return false;
-}
-
 void CalendarWorker::loadNotebooks()
 {
     QStringList defaultNotebookColors = QStringList() << "#00aeef" << "red" << "blue" << "green" << "pink" << "yellow";
@@ -871,7 +849,8 @@ void CalendarWorker::loadNotebooks()
     bool changed = m_notebooks.isEmpty();
     for (int ii = 0; ii < notebooks.count(); ++ii) {
         mKCal::Notebook::Ptr mkNotebook = notebooks.at(ii);
-        if (!mkNotebook->eventsAllowed()) {
+        if (!mkNotebook->eventsAllowed()
+            || !mkNotebook->isEnabled()) {
             continue;
         }
         
@@ -923,9 +902,6 @@ void CalendarWorker::loadNotebooks()
             if (ok && accountId > 0) {
                 Accounts::Account *account = Accounts::Account::fromId(m_accountManager, accountId, this);
                 if (account) {
-                    if (!serviceIsEnabled(account, mkNotebook->syncProfile())) {
-                        continue;
-                    }
                     notebook.accountId = accountId;
                     notebook.accountIcon = m_accountManager->provider(account->providerName()).iconName();
                     if (notebook.description.isEmpty()) {
