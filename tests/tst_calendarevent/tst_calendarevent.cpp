@@ -69,6 +69,7 @@ private slots:
     void testRecurrence();
     void testRecurWeeklyDays();
     void testAttendees();
+    void testAllDayRecurrence();
 
 private:
     bool saveEvent(CalendarEventModification *eventMod, QString *uid);
@@ -964,6 +965,83 @@ void tst_CalendarEvent::testAttendees()
                                      KCalendarCore::Attendee::OptParticipant);
     QVERIFY(containsAttendee(updatedAttendees, attEmily));
     QVERIFY(containsAttendee(updatedAttendees, attFanny));
+}
+
+void tst_CalendarEvent::testAllDayRecurrence()
+{
+    // Define event and exception as if device is in Vietnam,
+    // then test reread from French time zone.
+    const QByteArray TZenv(qgetenv("TZ"));
+    qputenv("TZ", "Asia/Ho_Chi_Minh");
+
+    QDateTime mainStartTime = QDateTime(QDate(2026, 10, 7), QTime());
+    QDateTime mainEndTime = mainStartTime.addSecs(24 * 60 * 60 - 1);
+
+    CalendarEventModification *event = calendarApi->createNewEvent();
+    QVERIFY(event);
+
+    event->setDisplayLabel("Recurring all-day event");
+    event->setAllDay(true);
+    event->setStartTime(mainStartTime, Qt::LocalTime);
+    event->setEndTime(mainEndTime, Qt::LocalTime);
+    CalendarEvent::Recur recur = CalendarEvent::RecurDaily;
+    event->setRecur(recur);
+
+    QString uid;
+    bool ok = saveEvent(event, &uid);
+    if (!ok) {
+        QFAIL("Failed to fetch new event uid");
+    }
+    QVERIFY(!uid.isEmpty());
+    m_savedEvents.insert(uid);
+
+    CalendarEventQuery query;
+    QSignalSpy updated(&query, &CalendarEventQuery::eventChanged);
+    query.setInstanceId(uid);
+    query.setStartTime(mainStartTime);
+    QVERIFY(updated.wait());
+
+    CalendarStoredEvent *savedEvent = (CalendarStoredEvent*) query.event();
+    QVERIFY(savedEvent);
+    QVERIFY(query.occurrence());
+
+    QSignalSpy dataUpdated(CalendarManager::instance(),
+                           &CalendarManager::dataUpdated);
+
+    // Test and do actions in another time zone
+    qputenv("TZ", "Europe/Paris");
+
+    // check the occurrences are correct
+    CalendarEventOccurrence *occurrence = CalendarManager::instance()->getNextOccurrence(uid, mainStartTime.addDays(-1));
+    QVERIFY(occurrence);
+
+    // first
+    QCOMPARE(occurrence->startTime(), mainStartTime);
+
+    // second
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, mainStartTime.addDays(1));
+    QVERIFY(occurrence);
+    QCOMPARE(occurrence->startTime(), mainStartTime.addDays(1));
+
+    // Delete this second occurrence
+    calendarApi->remove(savedEvent->instanceId(), occurrence->startTime());
+    QVERIFY(dataUpdated.wait());
+
+    occurrence = CalendarManager::instance()->getNextOccurrence(uid, mainStartTime.addDays(1));
+    QVERIFY(occurrence);
+    QCOMPARE(occurrence->startTime(), mainStartTime.addDays(2));
+
+    // ensure all is gone
+    calendarApi->removeAll(uid);
+    QVERIFY(updated.wait());
+    QVERIFY(!query.event());
+    m_savedEvents.remove(uid);
+
+    if (TZenv.isEmpty()) {
+        qunsetenv("TZ");
+    } else {
+        qputenv("TZ", TZenv);
+    }
 }
 
 void tst_CalendarEvent::cleanupTestCase()

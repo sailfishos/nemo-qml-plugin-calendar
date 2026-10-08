@@ -181,16 +181,24 @@ void CalendarWorker::deleteEvent(const QString &instanceId, const QDateTime &dat
         // We're deleting an occurrence from a recurring event.
         // No incidence is deleted from the database in that case,
         // only the base incidence is modified by adding an exDate.
-        if (dateTime.timeSpec() == Qt::LocalTime && event->dtStart().timeSpec() != Qt::LocalTime)
-            event->recurrence()->addExDateTime(dateTime.toTimeZone(event->dtStart().timeZone()));
-        else
-            event->recurrence()->addExDateTime(dateTime);
+        if (event->allDay()) {
+            event->recurrence()->addExDate(dateTime.date());
+        } else {
+            if (dateTime.timeSpec() == Qt::LocalTime && event->dtStart().timeSpec() != Qt::LocalTime)
+                event->recurrence()->addExDateTime(dateTime.toTimeZone(event->dtStart().timeZone()));
+            else
+                event->recurrence()->addExDateTime(dateTime);
+        }
         event->setRevision(event->revision() + 1);
     } else if (event->hasRecurrenceId()) {
         // We consider that deleting an exception implies to create an exdate for the parent.
         KCalendarCore::Event::Ptr parent = m_calendar->event(event->uid());
         if (parent) {
-            parent->recurrence()->addExDateTime(event->recurrenceId());
+            if (parent->allDay()) {
+                parent->recurrence()->addExDate(event->recurrenceId().date());
+            } else {
+                parent->recurrence()->addExDateTime(event->recurrenceId());
+            }
             parent->setRevision(parent->revision() + 1);
         }
         m_calendar->deleteIncidence(event);
