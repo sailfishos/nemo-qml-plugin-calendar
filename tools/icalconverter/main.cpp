@@ -818,6 +818,8 @@ int main(int argc, char *argv[])
         parser.addPositionalArgument("backup", "file to be read.", "backup.ics");
         parser.addOption(QCommandLineOption(QStringList() << "d" << "destructive",
                                             "local calendar data will be removed prior to import."));
+        parser.addOption(QCommandLineOption(QStringList() << "n" << "notebook",
+                                            "uid of notebook to import into.", "uid"));
     } else if (command == "export") {
         parser.clearPositionalArguments();
         parser.addPositionalArgument("export", "export calendar entries as ICS data in backup.ics.");
@@ -849,7 +851,7 @@ int main(int argc, char *argv[])
             QFile importFile(backupFile);
             if (importFile.open(QIODevice::ReadOnly)) {
                 QString fileData = QString::fromUtf8(importFile.readAll());
-                if (CalendarImportExport::importIcsData(fileData, QString(), parser.isSet("destructive"), verbose)) {
+                if (CalendarImportExport::importIcsData(fileData, parser.value("notebook"), parser.isSet("destructive"), verbose)) {
                     qDebug() << "Successfully imported:" << backupFile;
                     return 0;
                 }
