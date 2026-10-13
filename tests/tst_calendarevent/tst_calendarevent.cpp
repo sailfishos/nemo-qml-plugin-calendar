@@ -46,6 +46,7 @@
 #include "test_plugin/test_plugin.h"
 
 #include <servicehandler.h>
+#include <KCalendarCore/Recurrence>
 
 #include "plugin.cpp"
 
@@ -70,6 +71,7 @@ private slots:
     void testRecurWeeklyDays();
     void testAttendees();
     void testAllDayRecurrence();
+    void testMoveNotebook();
 
 private:
     bool saveEvent(CalendarEventModification *eventMod, QString *uid);
@@ -1042,6 +1044,71 @@ void tst_CalendarEvent::testAllDayRecurrence()
     } else {
         qputenv("TZ", TZenv);
     }
+}
+
+void tst_CalendarEvent::testMoveNotebook()
+{
+    mKCal::ExtendedCalendar::Ptr cal(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
+    mKCal::ExtendedStorage::Ptr storage = mKCal::ExtendedCalendar::defaultStorage(cal);
+    QVERIFY(storage->open());
+
+    QSignalSpy notebooks(CalendarManager::instance(), &CalendarManager::notebooksChanged);
+    mKCal::Notebook::Ptr target(new mKCal::Notebook(QStringLiteral("Target"), QString()));
+    QVERIFY(storage->addNotebook(target));
+    QVERIFY(notebooks.wait());
+
+    const QDateTime created(QDate(2020, 1, 1), QTime(0, 0), Qt::UTC);
+    KCalendarCore::Event::Ptr event(new KCalendarCore::Event);
+    event->setDtStart(QDateTime(QDate(2026, 10, 6), QTime(9, 0), Qt::UTC));
+    event->setDtEnd(event->dtStart().addSecs(3600));
+    event->recurrence()->setDaily(1);
+    event->recurrence()->setDuration(3);
+    event->setCreated(created);
+    event->addComment(QStringLiteral("buteo:caldav:uri:/old/event.ics"));
+    KCalendarCore::Event::Ptr exception(event->clone());
+    exception->clearRecurrence();
+    exception->setRecurrenceId(event->dtStart().addDays(1));
+    exception->setDtStart(exception->recurrenceId().addSecs(1800));
+    exception->setDtEnd(exception->dtStart().addSecs(3600));
+    const QString source = CalendarManager::instance()->defaultNotebook();
+    QVERIFY(cal->addEvent(event, source));
+    QVERIFY(cal->addEvent(exception, source));
+    QVERIFY(storage->save());
+
+    CalendarEventQuery query;
+    QSignalSpy eventSpy(&query, &CalendarEventQuery::eventChanged);
+    query.setInstanceId(event->instanceIdentifier());
+    QVERIFY(eventSpy.wait());
+    CalendarStoredEvent *stored = qobject_cast<CalendarStoredEvent*>(query.event());
+    QVERIFY(stored);
+
+    QSignalSpy modified(CalendarManager::instance(), &CalendarManager::storageModified);
+    CalendarEventModification *mod = calendarApi->createModification(stored);
+    mod->setCalendarUid(target->uid());
+    mod->save();
+    delete mod;
+    QVERIFY(modified.wait());
+
+    const QString instanceId = query.instanceId();
+    QVERIFY(instanceId != event->instanceIdentifier());
+    m_savedEvents.insert(instanceId);
+
+    mKCal::ExtendedCalendar::Ptr check(new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()));
+    mKCal::ExtendedStorage::Ptr checkStorage = mKCal::ExtendedCalendar::defaultStorage(check);
+    QVERIFY(checkStorage->open());
+    QVERIFY(checkStorage->load(event->uid()));
+    QVERIFY(!check->event(event->uid()));
+    QVERIFY(checkStorage->loadIncidenceInstance(instanceId));
+    KCalendarCore::Incidence::Ptr moved = check->instance(instanceId);
+    QVERIFY(moved);
+    QVERIFY(checkStorage->load(moved->uid()));
+    QCOMPARE(check->notebook(moved), target->uid());
+    QVERIFY(moved->created() > created);
+    QVERIFY(moved->comments().isEmpty());
+    const KCalendarCore::Incidence::List exceptions = check->instances(moved);
+    QCOMPARE(exceptions.count(), 1);
+    QCOMPARE(exceptions.first()->recurrenceId(), exception->recurrenceId());
+    QCOMPARE(check->notebook(exceptions.first()), target->uid());
 }
 
 void tst_CalendarEvent::cleanupTestCase()
