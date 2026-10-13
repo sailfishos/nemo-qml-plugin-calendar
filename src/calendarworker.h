@@ -133,6 +133,9 @@ private:
                               const QString &notebookUid);
     QString getNotebookAddress(const QString &notebookUid) const;
     KCalendarCore::Incidence::Ptr getInstance(const QString &instanceId) const;
+    bool moveEvent(const KCalendarCore::Event::Ptr &original,
+                   const KCalendarCore::Event::Ptr &moved,
+                   const QString &notebookUid);
 
     CalendarData::Event createEventStruct(const KCalendarCore::Event::Ptr &event,
                                           mKCal::Notebook::Ptr notebook = mKCal::Notebook::Ptr()) const;

@@ -300,6 +300,7 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         event = m_calendar->instance(eventData.instanceId).staticCast<KCalendarCore::Event>();
     }
     bool createNew = event.isNull();
+    KCalendarCore::Event::Ptr original;
 
     if (createNew) {
         if (eventData.instanceId.isEmpty()) {
@@ -326,27 +327,13 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
             qWarning("Event to be saved not found");
             return;
         }
-    } else if (!notebookUid.isEmpty() && m_calendar->notebook(event) != notebookUid) {
-#if 0
-        // mkcal does not support keeping the same UID for events
-        // in different notebooks. One should keep the same UID
-        // for the deleted event and the new event not to confuse
-        // sync processes, if the event has been uploaded to a server
-        // already.
-        // So this code is currently broken and requires mKCal
-        // to support multi-notebook incidences sharing the same UID.
-        KCalendarCore::Event::Ptr parent = m_calendar->event(event-uid());
-        for (const KCalendarCore::Incidence::Ptr &incidence : m_calendar->instances(parent) << parent) {
-            if (!m_calendar->deleteIncidence(incidence)
-                || !m_calendar->addIncidence(incidence, notebookUid)) {
-                qWarning() << "Cannot move event" << incidence->uid() << " to notebookUid:" << notebookUid;
-                return;
-            }
-            emit eventNotebookChanged(incidence->instanceIdentifier(),
-                                      incidence->instanceIdentifier(), notebookUid);
-        }
-#endif
-        event->startUpdates();
+    } else if (!notebookUid.isEmpty() && m_calendar->notebook(event) != notebookUid
+               && !event->hasRecurrenceId() && event->attendeeCount() == 0
+               && !(updateAttendees && (!required.isEmpty() || !optional.isEmpty()))) {
+        // Moving changes the UID, hence not for exceptions or invitations.
+        m_storage->load(event->uid());
+        original = event;
+        event = KCalendarCore::Event::Ptr(original->clone());
     } else {
         event->startUpdates();
         event->setRevision(event->revision() + 1);
@@ -358,8 +345,12 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
         updateEventAttendees(event, createNew, required, optional, notebookUid);
     }
 
-    if (createNew && !m_calendar->addEvent(event, notebookUid.isEmpty() ? m_calendar->defaultNotebook()
-                                                                        : notebookUid)) {
+    if (original) {
+        if (!moveEvent(original, event, notebookUid)) {
+            return;
+        }
+    } else if (createNew && !m_calendar->addEvent(event, notebookUid.isEmpty() ? m_calendar->defaultNotebook()
+                                                                               : notebookUid)) {
         qWarning() << "Cannot add event" << event->uid() << ", notebookUid:" << notebookUid;
         return;
     } else if (!createNew) {
@@ -367,6 +358,61 @@ void CalendarWorker::saveEvent(const CalendarData::Event &eventData, bool update
     }
 
     save();
+}
+
+static void resetMovedIncidence(const KCalendarCore::Incidence::Ptr &incidence, const QString &uid)
+{
+    incidence->setUid(uid);
+    incidence->setRevision(0);
+    // mKCal reports additions by creation date.
+    incidence->setCreated(QDateTime::currentDateTimeUtc());
+
+    // Sync state refers to the old remote resource.
+    const QStringList comments = incidence->comments();
+    for (const QString &comment : comments) {
+        if (comment.startsWith(QLatin1String("buteo:")))
+            incidence->removeComment(comment);
+    }
+    QMap<QByteArray, QString> properties = incidence->customProperties();
+    for (auto it = properties.begin(); it != properties.end();) {
+        if (it.key().startsWith("X-KDE-VOLATILE-") || it.key().startsWith("X-KDE-buteo-"))
+            it = properties.erase(it);
+        else
+            ++it;
+    }
+    incidence->setCustomProperties(properties);
+}
+
+// mKCal allows a UID in one notebook only.
+bool CalendarWorker::moveEvent(const KCalendarCore::Event::Ptr &original,
+                               const KCalendarCore::Event::Ptr &moved,
+                               const QString &notebookUid)
+{
+    const QString uid = KCalendarCore::CalFormat::createUniqueId().toUpper();
+    QList<QPair<QString, QString>> ids;
+
+    resetMovedIncidence(moved, uid);
+    if (!m_calendar->addEvent(moved, notebookUid)) {
+        qWarning() << "Cannot move event" << original->uid() << "to notebook" << notebookUid;
+        return false;
+    }
+    ids << qMakePair(original->instanceIdentifier(), moved->instanceIdentifier());
+
+    for (const KCalendarCore::Incidence::Ptr &exception : m_calendar->instances(original)) {
+        KCalendarCore::Incidence::Ptr copy(exception->clone());
+        resetMovedIncidence(copy, uid);
+        if (!m_calendar->addIncidence(copy, notebookUid)) {
+            qWarning() << "Cannot move exception" << exception->instanceIdentifier();
+            m_calendar->deleteIncidence(moved);
+            return false;
+        }
+        ids << qMakePair(exception->instanceIdentifier(), copy->instanceIdentifier());
+    }
+
+    m_calendar->deleteIncidence(original);
+    for (const QPair<QString, QString> &id : ids)
+        emit eventNotebookChanged(id.first, id.second, notebookUid);
+    return true;
 }
 
 CalendarData::Event CalendarWorker::dissociateSingleOccurrence(const QString &instanceId, const QDateTime &datetime)
